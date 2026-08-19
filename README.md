@@ -2,11 +2,13 @@
 
 A personal logistics tracking app for China–Iran freight orders.
 
-- **Admin panel** (`/admin`, password-protected): full CRUD for group orders,
-  sub-orders, trucks, cargo transfers, payment status, comments, and
-  photo/video uploads.
-- **Public monitoring page** (`/`): read-only overview of every order, for
-  quick status checks without logging in.
+- **Admin panel** (`/admin`, single username/password): full CRUD for group
+  orders, sub-orders, trucks, cargo transfers, payment status, comments, and
+  photo/video uploads. Only the admin account can create, edit, or delete
+  anything.
+- **Monitoring pages** (`/` and `/track/[id]`): read-only overview of every
+  order. Login required — either the admin account, or a registered viewer
+  account (see below). No longer publicly accessible.
 
 ## Data model
 
@@ -37,14 +39,34 @@ attached to a truck in a different sub-order that hasn't arrived yet (still
 use. Close the original sub-order (give it an arrival date) to free the
 plate up for reuse.
 
+## Who can see what
+
+There are two, completely separate login systems:
+
+- **Admin** — one account, credentials from environment variables
+  (`ADMIN_USERNAME` / `ADMIN_PASSWORD`). Full access: `/admin/*` plus the
+  monitoring pages. This is the only account that can create, edit, or
+  delete orders/sub-orders/trucks/comments/media.
+- **Viewer** — regular accounts stored in the database, created by anyone
+  who knows the invite code (`REGISTRATION_CODE`) at `/register`. Read-only:
+  can see `/` and `/track/[id]`, nothing else. Cannot reach `/admin` at all.
+
+Registration is invite-gated on purpose: without `REGISTRATION_CODE`, no one
+can create a viewer account, so the monitoring data (driver phone numbers,
+payment status, cargo details) stays visible only to people you've actually
+shared the code with. Share the code (not the password) with your boss or
+colleagues who just need to check status.
+
 ## Tech stack
 
 - Next.js 15 (App Router, TypeScript, Server Actions)
 - PostgreSQL via Prisma
 - Vercel Blob for photo/video storage (uploads go straight from the browser,
   so large videos don't hit any server body-size limit)
-- A single admin username/password, stored as environment variables (no user
-  database) — session is a signed, httpOnly cookie
+- Admin: single username/password from environment variables, no database
+  row. Viewers: real accounts in the `User` table, password hashed with
+  bcrypt. Both use a signed, httpOnly session cookie (separate cookies, same
+  signing secret).
 
 ## 1. Local setup
 
@@ -60,10 +82,11 @@ cp .env.example .env.local
 ```
 
 ```
-DATABASE_URL=...          # PostgreSQL connection string
+DATABASE_URL=...           # PostgreSQL connection string
 BLOB_READ_WRITE_TOKEN=...  # Vercel Blob token
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=choose-a-real-password
+REGISTRATION_CODE=...      # invite code required to self-register a viewer account
 SESSION_SECRET=...         # random string, see below
 ```
 
@@ -85,7 +108,8 @@ Run the app:
 npm run dev
 ```
 
-- Public page: http://localhost:3000
+- Monitoring page (login required): http://localhost:3000
+- Register a viewer account: http://localhost:3000/register
 - Admin panel: http://localhost:3000/admin
 
 ## 2. Database — Neon (free)
@@ -119,6 +143,7 @@ storage, so there's no practical size limit imposed by the server.
    - `BLOB_READ_WRITE_TOKEN`
    - `ADMIN_USERNAME`
    - `ADMIN_PASSWORD`
+   - `REGISTRATION_CODE`
    - `SESSION_SECRET`
 4. Deploy. Vercel runs `prisma generate && next build` automatically (see
    `package.json`).
@@ -126,8 +151,9 @@ storage, so there's no practical size limit imposed by the server.
    the production `DATABASE_URL`) to create the tables in the production
    database — or run it any time the schema changes.
 
-Once deployed, share the plain URL for monitoring (`/`) with anyone who
-needs to check status, and keep the admin password to yourself for `/admin`.
+Once deployed, share `REGISTRATION_CODE` with anyone who should be able to
+create a read-only monitoring account, and keep `ADMIN_PASSWORD` to
+yourself.
 
 ## Deployment shape — one Vercel project is enough
 
@@ -160,6 +186,18 @@ covers everything.
 - The admin login is a single username/password pair from environment
   variables — appropriate for a single personal admin account. There's no
   brute-force lockout; keep `ADMIN_PASSWORD` strong.
+- **Viewer registration is invite-gated** (`REGISTRATION_CODE`) so the
+  monitoring data isn't exposed to anyone who finds the URL — verified live:
+  a registration attempt with the wrong code is rejected and creates no
+  account.
+- **Viewer passwords are hashed with bcrypt** before being stored — never
+  saved in plain text. Login always runs the same bcrypt check whether or
+  not the email exists (comparing against a dummy hash for unknown emails),
+  so response timing can't be used to enumerate which emails are registered.
+- `/` and `/track/*` require a session (admin or viewer) via middleware;
+  `/admin/*` requires the admin session specifically. Verified live: an
+  unauthenticated request to either is redirected to the appropriate login
+  page and reads no data.
 
 ## Notes
 

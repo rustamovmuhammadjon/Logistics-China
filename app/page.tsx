@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { truckStats, formatDate, formatDateTime, formatDirection } from "@/lib/stats";
+import { getViewerSession, isAdminAuthenticated } from "@/lib/auth";
+import { logoutUserAction } from "@/lib/actions/user-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function MonitoringPage() {
+  const [viewer, admin] = await Promise.all([getViewerSession(), isAdminAuthenticated()]);
+
   const groupOrders = await prisma.groupOrder.findMany({
     include: {
       subOrders: {
@@ -23,9 +27,20 @@ export default async function MonitoringPage() {
           <h1 className="text-2xl font-bold text-slate-900">China–Iran Logistics Monitoring</h1>
           <p className="text-sm text-slate-500">Live overview of every order and truck.</p>
         </div>
-        <Link href="/admin" className="btn-secondary shrink-0">
-          Admin panel
-        </Link>
+        <div className="flex items-center gap-3">
+          {viewer && <span className="text-sm text-slate-500">{viewer.email}</span>}
+          {admin && <span className="badge-slate">admin</span>}
+          {viewer && (
+            <form action={logoutUserAction}>
+              <button type="submit" className="btn-secondary">
+                Log out
+              </button>
+            </form>
+          )}
+          <Link href="/admin" className="btn-secondary shrink-0">
+            Admin panel
+          </Link>
+        </div>
       </header>
 
       <section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { COOKIE_NAME, verifyAdminSessionFromToken } from "@/lib/auth";
+import {
+  ADMIN_COOKIE_NAME,
+  USER_COOKIE_NAME,
+  verifyAdminSessionFromToken,
+  verifyUserSessionFromToken,
+} from "@/lib/auth";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -8,11 +13,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  const authenticated = await verifyAdminSessionFromToken(token);
+  const adminToken = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  const isAdmin = await verifyAdminSessionFromToken(adminToken);
 
-  if (!authenticated) {
-    const loginUrl = new URL("/admin/login", request.url);
+  if (pathname.startsWith("/admin")) {
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // The monitoring pages ("/" and "/track/*") require either an admin
+  // session or a registered viewer session — no more fully public access.
+  if (isAdmin) {
+    return NextResponse.next();
+  }
+
+  const userToken = request.cookies.get(USER_COOKIE_NAME)?.value;
+  const viewer = await verifyUserSessionFromToken(userToken);
+
+  if (!viewer) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -20,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/", "/track/:path*"],
 };
