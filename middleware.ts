@@ -23,8 +23,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // The monitoring pages ("/" and "/track/*") require either an admin
-  // session or a registered viewer session — no more fully public access.
+  // The monitoring pages ("/", "/completed", "/track/*") require either an
+  // admin session or a registered viewer session — no fully public access.
   if (isAdmin) {
     return NextResponse.next();
   }
@@ -42,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/", "/track/:path*", "/dashboard/:path*"],
+  matcher: ["/admin/:path*", "/", "/completed", "/track/:path*", "/dashboard/:path*"],
 };

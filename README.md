@@ -9,9 +9,13 @@ A personal logistics tracking app for China–Iran freight orders.
   for consignees (create and manage their own orders) and operators (update
   truck location and leave comments on orders they're linked to) — see
   "Who can see what" below.
-- **Monitoring pages** (`/` and `/track/[id]`): read-only overview of every
-  order. Login required — admin, consignee, or operator. Not publicly
-  accessible.
+- **Monitoring pages** (`/` and `/completed`): a top navbar and a left
+  sidebar (all active order names, click to jump straight to the right page
+  for your role) wrap a searchable, sortable list of orders, each showing its
+  sub-orders nested underneath. `/` shows active orders, newest first by
+  default; `/completed` shows orders that have arrived. `/track/[id]` is the
+  full read-only detail view. Login required — admin, consignee, or
+  operator. Not publicly accessible.
 
 ## Data model
 
@@ -41,6 +45,33 @@ attached to a truck in a different sub-order that hasn't arrived yet (still
 `OPEN`), the app blocks it with an explanation of where it's currently in
 use. Close the original sub-order (give it an arrival date) to free the
 plate up for reuse.
+
+### Completed orders
+
+A group order counts as "completed" the moment it has an arrival date — the
+same rule sub-orders already use to auto-close. No separate flag: setting
+`arrivedAt` on the order (from the admin panel or a consignee's dashboard)
+is what moves it from `/` to `/completed`. Clearing the arrival date moves it
+back. Verified live against the real database: setting/clearing arrivedAt
+correctly relocates the order between the two pages and the sidebar.
+
+### Search and sort
+
+Both `/` and `/completed` have a search box and a sort dropdown (newest
+first / oldest first / by location-update date). Search matches the order
+name, any of its sub-order names, or any of its trucks' plate number,
+trailer plate number, or driver phone number — whichever level the match is
+found at, the whole order shows up.
+
+### Where an order link takes you
+
+Clicking an order (on `/`, `/completed`, or the sidebar) goes to whichever
+page you're actually allowed to act on: admins go to `/admin/orders/[id]`;
+a consignee goes to their own `/dashboard/orders/[id]` for orders they
+created; a linked operator goes there too for orders they're linked to;
+everyone else (including a consignee/operator looking at an order that isn't
+theirs) falls back to the read-only `/track/[id]`. Verified live for all
+three cases.
 
 ## Who can see what
 
@@ -127,6 +158,7 @@ npm run dev
 ```
 
 - Monitoring page (login required): http://localhost:3000
+- Completed orders: http://localhost:3000/completed
 - Register a consignee/operator account: http://localhost:3000/register
 - Consignee/operator dashboard: http://localhost:3000/dashboard
 - Admin panel: http://localhost:3000/admin
