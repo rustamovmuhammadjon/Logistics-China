@@ -31,6 +31,11 @@ export default async function MonitoringPage() {
           {viewer && <span className="text-sm text-slate-500">{viewer.email}</span>}
           {admin && <span className="badge-slate">admin</span>}
           {viewer && (
+            <Link href="/dashboard" className="btn-secondary shrink-0">
+              My dashboard
+            </Link>
+          )}
+          {viewer && (
             <form action={logoutUserAction}>
               <button type="submit" className="btn-secondary">
                 Log out

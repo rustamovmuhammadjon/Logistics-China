@@ -3,8 +3,10 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createUserSession, destroyUserSession } from "@/lib/auth";
+import { generateUniqueLinkCode } from "@/lib/current-user";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -29,6 +31,7 @@ export async function registerUserAction(
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   const inviteCode = String(formData.get("inviteCode") ?? "");
+  const roleRaw = String(formData.get("role") ?? "");
   const next = safeNextPath(formData.get("next"));
 
   const expectedCode = process.env.REGISTRATION_CODE ?? "";
@@ -36,6 +39,10 @@ export async function registerUserAction(
   if (!expectedCode || inviteCode !== expectedCode) {
     return { error: "Invalid invite code" };
   }
+  if (roleRaw !== "CONSIGNEE" && roleRaw !== "OPERATOR") {
+    return { error: "Choose an account type" };
+  }
+  const role = roleRaw as UserRole;
   if (!EMAIL_PATTERN.test(email)) {
     return { error: "Enter a valid email address" };
   }
@@ -47,10 +54,11 @@ export async function registerUserAction(
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
+  const linkCode = await generateUniqueLinkCode();
 
   let userId: string;
   try {
-    const user = await prisma.user.create({ data: { email, passwordHash } });
+    const user = await prisma.user.create({ data: { email, passwordHash, role, linkCode } });
     userId = user.id;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
