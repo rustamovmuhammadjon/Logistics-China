@@ -30,6 +30,35 @@ export async function updateOrderLocationAction(groupOrderId: string, formData: 
   revalidatePath("/");
 }
 
+export async function updateSubOrderLocationAction(
+  groupOrderId: string,
+  subOrderId: string,
+  formData: FormData
+) {
+  const me = await requireOperator();
+  const order = await prisma.groupOrder.findUniqueOrThrow({ where: { id: groupOrderId } });
+  await requireOperatorLinkedTo(me.id, order.ownerId);
+
+  const sub = await prisma.subOrder.findUniqueOrThrow({ where: { id: subOrderId } });
+  if (sub.groupOrderId !== groupOrderId) {
+    throw new Error("Not authorized");
+  }
+
+  const statusText = optionalString(formData, "statusText");
+  const changed = statusText !== sub.statusText;
+
+  await prisma.subOrder.update({
+    where: { id: subOrderId },
+    data: {
+      statusText,
+      statusUpdatedAt: changed ? new Date() : sub.statusUpdatedAt,
+    },
+  });
+
+  revalidatePath(`/dashboard/orders/${groupOrderId}`);
+  revalidatePath("/");
+}
+
 export async function updateTruckLocationAction(
   groupOrderId: string,
   truckId: string,

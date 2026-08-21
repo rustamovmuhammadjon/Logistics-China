@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { formatDate, formatDateTime, formatDirection, truckStats } from "@/lib/stats";
+import { formatDate, formatDirection, truckStats } from "@/lib/stats";
 import { getOrderHref, type ViewerContext } from "@/lib/order-links";
+import { LocationBadge } from "@/app/components/LocationBadge";
 
 type OrderWithSubOrders = Prisma.GroupOrderGetPayload<{
   include: { subOrders: { include: { trucks: true } } };
@@ -9,6 +10,7 @@ type OrderWithSubOrders = Prisma.GroupOrderGetPayload<{
 
 export function OrderCard({ order, ctx }: { order: OrderWithSubOrders; ctx: ViewerContext }) {
   const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
+  const hasSubOrders = order.subOrders.length > 0;
 
   return (
     <Link href={getOrderHref(order, ctx)} className="card block transition hover:border-brand-300 hover:shadow-md">
@@ -39,26 +41,27 @@ export function OrderCard({ order, ctx }: { order: OrderWithSubOrders; ctx: View
         </div>
       </div>
 
-      {order.statusText && (
-        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          {order.statusText}
-          <span className="ml-2 text-xs text-slate-400">(updated {formatDateTime(order.statusUpdatedAt)})</span>
-        </p>
-      )}
+      {/* With no sub-orders the order itself is the unit being tracked, so its
+          own location is the one that matters. Once sub-orders exist, each
+          one shows its own location below instead. */}
+      {!hasSubOrders && <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />}
 
-      {order.subOrders.length > 0 && (
-        <ul className="mt-3 space-y-1 border-l-2 border-slate-100 pl-3">
+      {hasSubOrders && (
+        <ul className="mt-3 space-y-2 border-l-2 border-slate-100 pl-3">
           {order.subOrders.map((sub) => {
             const subStats = truckStats(sub.trucks);
             return (
-              <li key={sub.id} className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-                <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-                  {sub.status === "CLOSED" ? "Closed" : "Open"}
-                </span>
-                <span>{sub.name || "Sub-order"}</span>
-                <span className="text-xs text-slate-400">
-                  {subStats.total} truck{subStats.total === 1 ? "" : "s"}
-                </span>
+              <li key={sub.id} className="text-sm text-slate-600">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                    {sub.status === "CLOSED" ? "Closed" : "Open"}
+                  </span>
+                  <span>{sub.name || "Sub-order"}</span>
+                  <span className="text-xs text-slate-400">
+                    {subStats.total} truck{subStats.total === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
               </li>
             );
           })}

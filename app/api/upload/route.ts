@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/current-user";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
@@ -10,7 +11,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async () => {
-        const authed = await isAdminAuthenticated();
+        // Truck media is admin-only (checked again in createMediaAction);
+        // profile photos are for any signed-in account. Either is enough to
+        // get an upload token — the follow-up DB write is what's scoped.
+        const authed = (await isAdminAuthenticated()) || (await getCurrentUser());
         if (!authed) {
           throw new Error("Not authorized");
         }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatDateTime, formatDirection, truckStats } from "@/lib/stats";
 import { PaymentBadge } from "@/app/components/PaymentBadge";
+import { LocationBadge } from "@/app/components/LocationBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -76,14 +77,7 @@ export default async function TrackOrderPage({
           <Field label="Factory load" value={formatDate(order.factoryLoadDate)} />
         </dl>
 
-        {order.statusText && (
-          <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            {order.statusText}
-            <span className="ml-2 text-xs text-slate-400">
-              (updated {formatDateTime(order.statusUpdatedAt)})
-            </span>
-          </p>
-        )}
+        <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />
 
         {order.comments.length > 0 && (
           <div className="mt-4">
@@ -138,6 +132,8 @@ export default async function TrackOrderPage({
                 </div>
               </summary>
 
+              <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
+
               {sub.comments.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-xs font-semibold uppercase text-slate-500 mb-1">Comments</h4>
@@ -178,14 +174,7 @@ export default async function TrackOrderPage({
                       </div>
                     </div>
 
-                    {truck.currentLocation && (
-                      <p className="mt-2 rounded-md bg-slate-50 px-3 py-1.5 text-sm text-slate-700">
-                        📍 {truck.currentLocation}
-                        <span className="ml-2 text-xs text-slate-400">
-                          (updated {formatDateTime(truck.locationUpdatedAt)})
-                        </span>
-                      </p>
-                    )}
+                    <LocationBadge statusText={truck.currentLocation} updatedAt={truck.locationUpdatedAt} />
 
                     <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500 sm:grid-cols-4">
                       <Field label="Size (LxWxH, m)" value={dimensions(truck)} />

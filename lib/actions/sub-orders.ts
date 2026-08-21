@@ -33,6 +33,10 @@ export async function updateSubOrderAction(
   await requireAdmin();
   const arrivedAt = optionalDate(formData, "arrivedAt");
 
+  const existing = await prisma.subOrder.findUniqueOrThrow({ where: { id: subOrderId } });
+  const newStatusText = optionalString(formData, "statusText");
+  const statusChanged = newStatusText !== existing.statusText;
+
   await prisma.subOrder.update({
     where: { id: subOrderId },
     data: {
@@ -42,6 +46,8 @@ export async function updateSubOrderAction(
       // Arriving closes the sub-order automatically; clearing the arrival
       // date re-opens it (e.g. to fix a mistaken entry).
       status: arrivedAt ? "CLOSED" : "OPEN",
+      statusText: newStatusText,
+      statusUpdatedAt: statusChanged ? new Date() : existing.statusUpdatedAt,
     },
   });
 

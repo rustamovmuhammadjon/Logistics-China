@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { formatDate, formatDateTime, formatDirection, truckStats } from "@/lib/stats";
-import { updateOrderLocationAction, updateTruckLocationAction } from "@/lib/actions/operator";
+import {
+  updateOrderLocationAction,
+  updateSubOrderLocationAction,
+  updateTruckLocationAction,
+} from "@/lib/actions/operator";
 import { OperatorComments } from "./OperatorComments";
 
 type OrderWithRelations = Prisma.GroupOrderGetPayload<{
@@ -67,7 +71,9 @@ export function OperatorOrderDetail({ order }: { order: OrderWithRelations }) {
           <p className="card text-center text-slate-400">No sub-orders yet.</p>
         ) : (
           <div className="space-y-4">
-            {order.subOrders.map((sub) => (
+            {order.subOrders.map((sub) => {
+              const updateSubLocation = updateSubOrderLocationAction.bind(null, order.id, sub.id);
+              return (
               <details key={sub.id} className="card" open>
                 <summary className="cursor-pointer list-none">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -77,6 +83,24 @@ export function OperatorOrderDetail({ order }: { order: OrderWithRelations }) {
                     </span>
                   </div>
                 </summary>
+
+                <form action={updateSubLocation} className="mt-4 space-y-1">
+                  <label className="field-label">Sub-order status / location</label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      className="field-input flex-1"
+                      type="text"
+                      name="statusText"
+                      defaultValue={sub.statusText ?? ""}
+                    />
+                    <button type="submit" className="btn-primary shrink-0">
+                      Update
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Last updated: {formatDateTime(sub.statusUpdatedAt)}
+                  </p>
+                </form>
 
                 <div className="mt-4">
                   <OperatorComments
@@ -139,7 +163,8 @@ export function OperatorOrderDetail({ order }: { order: OrderWithRelations }) {
                   )}
                 </div>
               </details>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

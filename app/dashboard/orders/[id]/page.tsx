@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
+import AppShell from "@/app/AppShell";
 import { ConsigneeOrderDetail } from "./ConsigneeOrderDetail";
 import { OperatorOrderDetail } from "./OperatorOrderDetail";
 
@@ -38,14 +39,14 @@ export default async function DashboardOrderPage({
   if (user.role === "CONSIGNEE") {
     if (order.ownerId !== user.id) notFound();
     return (
-      <main className="mx-auto max-w-5xl px-4 py-10">
+      <AppShell>
         <Link href="/dashboard" className="text-sm text-brand-600 hover:underline">
           ← My orders
         </Link>
         <div className="mt-3">
           <ConsigneeOrderDetail order={order} />
         </div>
-      </main>
+      </AppShell>
     );
   }
 
@@ -57,13 +58,13 @@ export default async function DashboardOrderPage({
   if (!link) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <AppShell>
       <Link href="/dashboard" className="text-sm text-brand-600 hover:underline">
         ← Orders to track
       </Link>
       <div className="mt-3">
         <OperatorOrderDetail order={order} />
       </div>
-    </main>
+    </AppShell>
   );
 }

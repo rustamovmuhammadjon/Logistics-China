@@ -9,6 +9,7 @@ import { toDateInputValue } from "@/lib/form-utils";
 import { CommentsSection } from "@/app/components/CommentsSection";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { PaymentBadge } from "@/app/components/PaymentBadge";
+import { LocationBadge } from "@/app/components/LocationBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -92,11 +93,22 @@ export default async function SubOrderPage({
             <p className="mt-1 text-xs text-slate-400">Setting this closes the sub-order.</p>
           </div>
           <div className="sm:col-span-3">
+            <label className="field-label">Current status / location</label>
+            <input
+              className="field-input"
+              type="text"
+              name="statusText"
+              defaultValue={sub.statusText ?? ""}
+            />
+          </div>
+          <div className="sm:col-span-3">
             <button type="submit" className="btn-primary">
               Save changes
             </button>
           </div>
         </form>
+
+        <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
 
         <CommentsSection
           target={{ level: "sub", groupOrderId: id, subOrderId: sub.id }}

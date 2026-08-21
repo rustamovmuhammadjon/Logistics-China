@@ -37,3 +37,24 @@ export function formatDateTime(date: Date | null | undefined): string {
     minute: "2-digit",
   }).format(date);
 }
+
+/**
+ * How stale a location update is: green within 2 days, amber up to 5 days,
+ * red beyond that. "none" when it's never been updated.
+ */
+export type Freshness = "green" | "amber" | "red" | "none";
+
+export function locationFreshness(updatedAt: Date | null | undefined): Freshness {
+  if (!updatedAt) return "none";
+  const days = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+  if (days <= 2) return "green";
+  if (days <= 5) return "amber";
+  return "red";
+}
+
+export function freshnessBadgeClass(freshness: Freshness): string {
+  if (freshness === "green") return "badge-green";
+  if (freshness === "amber") return "badge-amber";
+  if (freshness === "red") return "badge-red";
+  return "badge-slate";
+}

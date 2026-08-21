@@ -8,7 +8,8 @@ A personal logistics tracking app for China–Iran freight orders.
 - **Dashboard** (`/dashboard`, registered accounts): scoped read/write access
   for consignees (create and manage their own orders) and operators (update
   truck location and leave comments on orders they're linked to) — see
-  "Who can see what" below.
+  "Who can see what" below. Consignees get a "+ New order" button pinned to
+  the top of the sidebar on every page.
 - **Monitoring pages** (`/` and `/completed`): a top navbar and a left
   sidebar (all active order names, click to jump straight to the right page
   for your role) wrap a searchable, sortable list of orders, each showing its
@@ -16,6 +17,11 @@ A personal logistics tracking app for China–Iran freight orders.
   default; `/completed` shows orders that have arrived. `/track/[id]` is the
   full read-only detail view. Login required — admin, consignee, or
   operator. Not publicly accessible.
+- **Profile** (`/profile`, consignee/operator accounts): edit first/last
+  name, phone number, email, and a profile photo. Reachable from the navbar
+  (top right — avatar, name, and account type). The admin account doesn't
+  have a database row, so it gets a short notice here instead of an edit
+  form.
 
 ## Data model
 
@@ -23,9 +29,10 @@ A personal logistics tracking app for China–Iran freight orders.
   name, origin/destination (direction), opened date, arrival date, place of
   loading, commodity, volume, factory load date, and a free-text current
   status/location.
-- **Sub-order** — a batch inside a group order. Has an opened date and an
-  arrival date. Setting the arrival date **automatically closes** the
-  sub-order (status flips to Closed); clearing it re-opens it.
+- **Sub-order** — a batch inside a group order. Has an opened date, an
+  arrival date, and its own free-text current status/location (separate
+  from the parent order's). Setting the arrival date **automatically
+  closes** the sub-order (status flips to Closed); clearing it re-opens it.
 - **Truck** — belongs to a sub-order. Plate number, trailer plate number,
   driver name/phone, dimensions (L×W×H), cargo weight/description, current
   location (with a last-updated timestamp), driver payment status, customer
@@ -45,6 +52,15 @@ attached to a truck in a different sub-order that hasn't arrived yet (still
 `OPEN`), the app blocks it with an explanation of where it's currently in
 use. Close the original sub-order (give it an arrival date) to free the
 plate up for reuse.
+
+### Location freshness colors
+
+Anywhere a current status/location is shown with its "updated" timestamp
+(order-level, sub-order-level, or truck-level), the timestamp badge is
+color-coded by how stale it is: **green** within 2 days, **amber** up to 5
+days, **red** beyond that. On the monitoring cards, an order with no
+sub-orders shows its own location; once it has sub-orders, each one shows
+its own location instead (they can be at different stages).
 
 ### Completed orders
 

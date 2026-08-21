@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/consignee";
 import { toDateInputValue } from "@/lib/form-utils";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
+import { LocationBadge } from "@/app/components/LocationBadge";
 
 type OrderWithRelations = Prisma.GroupOrderGetPayload<{
   include: {
@@ -113,11 +114,7 @@ export function ConsigneeOrderDetail({ order }: { order: OrderWithRelations }) {
           </div>
         </form>
 
-        {order.statusText && (
-          <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            Current status (set by your operator): {order.statusText}
-          </p>
-        )}
+        <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />
       </div>
 
       <div className="card">
@@ -190,6 +187,7 @@ export function ConsigneeOrderDetail({ order }: { order: OrderWithRelations }) {
                       </button>
                     </div>
                   </form>
+                  <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
                   <form action={deleteSub}>
                     <ConfirmSubmitButton confirmText="Delete this sub-order?">
                       Delete sub-order

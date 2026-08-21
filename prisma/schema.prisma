@@ -37,6 +37,11 @@ model User {
   passwordHash String
   role         UserRole
 
+  firstName String?
+  lastName  String?
+  phone     String?
+  photoUrl  String?
+
   // 8-digit code shared out-of-band so a consignee and an operator can link
   // accounts with each other.
   linkCode String @unique
@@ -108,6 +113,10 @@ model SubOrder {
   openedAt  DateTime?
   arrivedAt DateTime?
   status    SubOrderStatus @default(OPEN)
+
+  // Free-text current status / location for this batch specifically
+  statusText      String?
+  statusUpdatedAt DateTime?
 
   groupOrderId String
   groupOrder   GroupOrder @relation(fields: [groupOrderId], references: [id], onDelete: Cascade)
