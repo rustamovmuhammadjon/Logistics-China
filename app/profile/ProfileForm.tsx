@@ -20,11 +20,27 @@ export function ProfileForm({
     <form action={formAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label className="field-label">First name</label>
-        <input className="field-input" type="text" name="firstName" defaultValue={firstName ?? ""} />
+        <input
+          className="field-input"
+          type="text"
+          name="firstName"
+          defaultValue={firstName ?? ""}
+          pattern="^[\p{L}\s]+$"
+          title="Letters only, no numbers or symbols"
+          required
+        />
       </div>
       <div>
         <label className="field-label">Last name</label>
-        <input className="field-input" type="text" name="lastName" defaultValue={lastName ?? ""} />
+        <input
+          className="field-input"
+          type="text"
+          name="lastName"
+          defaultValue={lastName ?? ""}
+          pattern="^[\p{L}\s]+$"
+          title="Letters only, no numbers or symbols"
+          required
+        />
       </div>
       <div>
         <label className="field-label">Phone number</label>

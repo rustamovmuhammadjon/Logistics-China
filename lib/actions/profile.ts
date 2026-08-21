@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
-import { optionalString } from "@/lib/form-utils";
+import { isLettersOnly, optionalString } from "@/lib/form-utils";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BLOB_HOST_PATTERN = /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i;
@@ -17,8 +17,17 @@ export async function updateProfileAction(
   if (!me) return { error: "Not authorized" };
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+
   if (!EMAIL_PATTERN.test(email)) {
     return { error: "Enter a valid email address" };
+  }
+  if (!firstName || !isLettersOnly(firstName)) {
+    return { error: "First name is required and may only contain letters" };
+  }
+  if (!lastName || !isLettersOnly(lastName)) {
+    return { error: "Last name is required and may only contain letters" };
   }
 
   try {
@@ -26,8 +35,8 @@ export async function updateProfileAction(
       where: { id: me.id },
       data: {
         email,
-        firstName: optionalString(formData, "firstName"),
-        lastName: optionalString(formData, "lastName"),
+        firstName,
+        lastName,
         phone: optionalString(formData, "phone"),
       },
     });

@@ -51,14 +51,16 @@ export default async function AppShell({ children }: { children: React.ReactNode
           <div className="flex items-center gap-3">
             {(user || admin) && (
               <Link href="/profile" className="flex items-center gap-2">
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm font-medium leading-tight text-slate-900">{displayName}</p>
+                  <p className="text-xs leading-tight text-slate-500">{user ? user.role.toLowerCase() : "admin"}</p>
+                </div>
                 <Avatar
                   photoUrl={user?.photoUrl}
                   firstName={user?.firstName}
                   lastName={user?.lastName}
                   email={user?.email ?? "admin"}
                 />
-                <span className="hidden text-sm text-slate-700 sm:inline">{displayName}</span>
-                <span className="badge-slate">{user ? user.role.toLowerCase() : "admin"}</span>
               </Link>
             )}
           </div>

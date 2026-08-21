@@ -7,6 +7,7 @@ import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createUserSession, destroyUserSession } from "@/lib/auth";
 import { generateUniqueLinkCode } from "@/lib/current-user";
+import { isLettersOnly } from "@/lib/form-utils";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -32,6 +33,8 @@ export async function registerUserAction(
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   const inviteCode = String(formData.get("inviteCode") ?? "");
   const roleRaw = String(formData.get("role") ?? "");
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
   const next = safeNextPath(formData.get("next"));
 
   const expectedCode = process.env.REGISTRATION_CODE ?? "";
@@ -43,6 +46,12 @@ export async function registerUserAction(
     return { error: "Choose an account type" };
   }
   const role = roleRaw as UserRole;
+  if (!firstName || !isLettersOnly(firstName)) {
+    return { error: "First name is required and may only contain letters" };
+  }
+  if (!lastName || !isLettersOnly(lastName)) {
+    return { error: "Last name is required and may only contain letters" };
+  }
   if (!EMAIL_PATTERN.test(email)) {
     return { error: "Enter a valid email address" };
   }
@@ -58,7 +67,9 @@ export async function registerUserAction(
 
   let userId: string;
   try {
-    const user = await prisma.user.create({ data: { email, passwordHash, role, linkCode } });
+    const user = await prisma.user.create({
+      data: { email, passwordHash, role, linkCode, firstName, lastName },
+    });
     userId = user.id;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

@@ -29,3 +29,10 @@ export function toDateInputValue(date: Date | null | undefined): string {
   if (!date) return "";
   return date.toISOString().slice(0, 10);
 }
+
+// Letters (any script) and spaces only — no digits, no punctuation/symbols.
+export const NAME_PATTERN = /^[\p{L}\s]+$/u;
+
+export function isLettersOnly(value: string): boolean {
+  return NAME_PATTERN.test(value);
+}

@@ -18,10 +18,15 @@ A personal logistics tracking app for China–Iran freight orders.
   full read-only detail view. Login required — admin, consignee, or
   operator. Not publicly accessible.
 - **Profile** (`/profile`, consignee/operator accounts): edit first/last
-  name, phone number, email, and a profile photo. Reachable from the navbar
-  (top right — avatar, name, and account type). The admin account doesn't
-  have a database row, so it gets a short notice here instead of an edit
-  form.
+  name, phone number, email, and a profile photo; also where the log-out
+  button lives. Reachable from the navbar (top right — name and account type
+  to the left of the avatar). The admin account doesn't have a database row,
+  so it gets a short notice here instead of an edit form.
+
+First and last name are **required** at registration (and stay required
+when editing) and may only contain letters (any script — Latin, Cyrillic,
+etc.) and spaces; no digits or symbols, enforced both in the browser and on
+the server.
 
 ## Data model
 

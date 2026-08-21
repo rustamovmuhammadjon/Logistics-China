@@ -35,6 +35,31 @@ export function RegisterForm({ next }: { next: string }) {
         <input className="field-input" type="text" name="inviteCode" required />
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="field-label">First name</label>
+          <input
+            className="field-input"
+            type="text"
+            name="firstName"
+            pattern="^[\p{L}\s]+$"
+            title="Letters only, no numbers or symbols"
+            required
+          />
+        </div>
+        <div>
+          <label className="field-label">Last name</label>
+          <input
+            className="field-input"
+            type="text"
+            name="lastName"
+            pattern="^[\p{L}\s]+$"
+            title="Letters only, no numbers or symbols"
+            required
+          />
+        </div>
+      </div>
+
       <div>
         <label className="field-label">Email</label>
         <input className="field-input" type="email" name="email" autoComplete="email" required />
