@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/current-user";
 import { isAdminAuthenticated } from "@/lib/auth";
+import { logoutUserAction } from "@/lib/actions/user-auth";
 import AppShell from "@/app/AppShell";
 import { ProfileForm } from "./ProfileForm";
 import { ProfilePhotoUploader } from "./ProfilePhotoUploader";
@@ -30,11 +31,18 @@ export default async function ProfilePage() {
   return (
     <AppShell>
       <div className="card space-y-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Profile</h1>
-          <p className="text-sm text-slate-500">
-            Account type: <span className="badge-slate">{user.role.toLowerCase()}</span>
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Profile</h1>
+            <p className="text-sm text-slate-500">
+              Account type: <span className="badge-slate">{user.role.toLowerCase()}</span>
+            </p>
+          </div>
+          <form action={logoutUserAction}>
+            <button type="submit" className="btn-secondary">
+              Log out
+            </button>
+          </form>
         </div>
 
         <ProfilePhotoUploader

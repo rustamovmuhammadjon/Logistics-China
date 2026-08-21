@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/current-user";
-import { logoutUserAction } from "@/lib/actions/user-auth";
 import { getOrderHref, getViewerContext } from "@/lib/order-links";
 import { Avatar } from "@/app/components/Avatar";
 
@@ -61,13 +60,6 @@ export default async function AppShell({ children }: { children: React.ReactNode
                 <span className="hidden text-sm text-slate-700 sm:inline">{displayName}</span>
                 <span className="badge-slate">{user ? user.role.toLowerCase() : "admin"}</span>
               </Link>
-            )}
-            {user && (
-              <form action={logoutUserAction}>
-                <button type="submit" className="btn-secondary">
-                  Log out
-                </button>
-              </form>
             )}
           </div>
         </div>
