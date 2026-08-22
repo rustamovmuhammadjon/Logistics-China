@@ -2,9 +2,9 @@ import { Router } from "express";
 import type { PaymentStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { conflict, notFound } from "../lib/errors.js";
-import { optionalDate, optionalFloat, optionalString, requiredString } from "../lib/input.js";
+import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
-import { findActivePlateConflict, listInclude, plateConflictMessage } from "../lib/orders.js";
+import { findActivePlateConflict, listInclude, plateConflictMessage, truckFields } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -233,25 +233,10 @@ adminRouter.delete(
   })
 );
 
-function truckData(body: Record<string, unknown>) {
-  return {
-    plateNumber: optionalString(body.plateNumber),
-    trailerPlateNumber: optionalString(body.trailerPlateNumber),
-    driverName: optionalString(body.driverName),
-    driverPhone: optionalString(body.driverPhone),
-    lengthM: optionalFloat(body.lengthM),
-    widthM: optionalFloat(body.widthM),
-    heightM: optionalFloat(body.heightM),
-    cargoWeight: optionalFloat(body.cargoWeight),
-    cargoDescription: optionalString(body.cargoDescription),
-    currentLocation: optionalString(body.currentLocation),
-  };
-}
-
 adminRouter.post(
   "/orders/:id/sub-orders/:subId/trucks",
   asyncHandler(async (req, res) => {
-    const data = truckData(req.body);
+    const data = truckFields(req.body);
     const clash = await findActivePlateConflict({
       plateNumber: data.plateNumber,
       trailerPlateNumber: data.trailerPlateNumber,
@@ -298,7 +283,7 @@ adminRouter.patch(
   asyncHandler(async (req, res) => {
     const existing = await prisma.truck.findUnique({ where: { id: req.params.truckId } });
     if (!existing || existing.subOrderId !== req.params.subId) notFound();
-    const data = truckData(req.body);
+    const data = truckFields(req.body);
     const clash = await findActivePlateConflict({
       plateNumber: data.plateNumber,
       trailerPlateNumber: data.trailerPlateNumber,

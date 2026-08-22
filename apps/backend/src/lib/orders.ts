@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
+import { optionalFloat, optionalString } from "./input.js";
 
 export function buildOrderWhere(completed: boolean, q?: string): Prisma.GroupOrderWhereInput {
   const base: Prisma.GroupOrderWhereInput = completed ? { arrivedAt: { not: null } } : { arrivedAt: null };
@@ -64,6 +65,40 @@ export async function getViewerContext(admin: boolean, user: { id: string; role:
     kind: "operator" as const,
     userId: user.id,
     linkedConsigneeIds: links.map((l) => l.consigneeId),
+  };
+}
+
+export function scopeOrderWhere(
+  ctx: Awaited<ReturnType<typeof getViewerContext>>,
+  where: Prisma.GroupOrderWhereInput
+): Prisma.GroupOrderWhereInput {
+  if (ctx.kind !== "operator") return where;
+  if (ctx.linkedConsigneeIds.length === 0) return { AND: [where, { id: { in: [] } }] };
+  return { AND: [where, { ownerId: { in: ctx.linkedConsigneeIds } }] };
+}
+
+export function viewerCanAccessOrder(
+  ctx: Awaited<ReturnType<typeof getViewerContext>>,
+  ownerId: string | null
+): boolean {
+  if (ctx.kind === "admin") return true;
+  if (ctx.kind === "consignee") return true;
+  if (ctx.kind === "operator") return Boolean(ownerId && ctx.linkedConsigneeIds.includes(ownerId));
+  return false;
+}
+
+export function truckFields(body: Record<string, unknown>) {
+  return {
+    plateNumber: optionalString(body.plateNumber),
+    trailerPlateNumber: optionalString(body.trailerPlateNumber),
+    driverName: optionalString(body.driverName),
+    driverPhone: optionalString(body.driverPhone),
+    lengthM: optionalFloat(body.lengthM),
+    widthM: optionalFloat(body.widthM),
+    heightM: optionalFloat(body.heightM),
+    cargoWeight: optionalFloat(body.cargoWeight),
+    cargoDescription: optionalString(body.cargoDescription),
+    currentLocation: optionalString(body.currentLocation),
   };
 }
 

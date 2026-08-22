@@ -1,8 +1,11 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { formatDate, formatDateTime, formatDirection, truckStats, type CommentDto, type GroupOrderDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { TruckFields } from "@/components/TruckFields";
 
 export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
   const { submit, pending, error } = useApiSubmit();
@@ -52,6 +55,37 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
+      <div className="card">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
+        <p className="mb-3 text-xs text-slate-400">Add a sub-order first if this order has none, then add trucks to it.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit(`/api/operator/orders/${order.id}/sub-orders`, { body: formToJson(e.currentTarget) });
+            e.currentTarget.reset();
+          }}
+          className="grid grid-cols-1 gap-4 sm:grid-cols-4"
+        >
+          <div>
+            <label className="field-label">Name</label>
+            <input className="field-input" type="text" name="name" placeholder="optional" />
+          </div>
+          <div>
+            <label className="field-label">Opened date</label>
+            <input className="field-input" type="date" name="openedAt" />
+          </div>
+          <div>
+            <label className="field-label">Arrived date</label>
+            <input className="field-input" type="date" name="arrivedAt" />
+          </div>
+          <div className="flex items-end">
+            <button type="submit" className="btn-primary w-full" disabled={pending}>
+              Add sub-order
+            </button>
+          </div>
+        </form>
+      </div>
+
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
         {order.subOrders.length === 0 ? (
@@ -98,39 +132,62 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                 </div>
 
                 <div className="mt-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-800">New truck</h3>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks`, {
+                        body: formToJson(e.currentTarget),
+                      });
+                      e.currentTarget.reset();
+                    }}
+                    className="rounded-xl border border-dashed border-slate-200 p-4"
+                  >
+                    <TruckFields />
+                    <button type="submit" className="btn-primary mt-3" disabled={pending}>
+                      Add truck
+                    </button>
+                  </form>
                   {sub.trucks.map((truck) => (
                     <div key={truck.id} className="space-y-3 rounded-xl border border-slate-200 p-4">
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {truck.plateNumber || "Truck"}
-                          {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {truck.driverName ? `${truck.driverName} · ` : ""}
-                          {truck.driverPhone || ""}
-                        </p>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {truck.plateNumber || "Truck"}
+                            {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {truck.driverName ? `${truck.driverName} · ` : ""}
+                            {truck.driverPhone || ""}
+                          </p>
+                        </div>
+                        <ConfirmButton
+                          confirmText="Delete this truck?"
+                          disabled={pending}
+                          onConfirm={() =>
+                            submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${truck.id}`, {
+                              method: "DELETE",
+                            })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </ConfirmButton>
                       </div>
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
-                          submit(`/api/operator/orders/${order.id}/trucks/${truck.id}/location`, {
+                          submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${truck.id}`, {
                             method: "PATCH",
                             body: formToJson(e.currentTarget),
                           });
                         }}
                       >
-                        <label className="field-label">Current location</label>
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <input
-                            className="field-input flex-1"
-                            type="text"
-                            name="currentLocation"
-                            defaultValue={truck.currentLocation ?? ""}
-                          />
-                          <button type="submit" className="btn-primary shrink-0" disabled={pending}>
-                            Update
-                          </button>
-                        </div>
+                        <TruckFields truck={truck} />
+                        <p className="mt-1 text-xs text-slate-400">Last location update: {formatDateTime(truck.locationUpdatedAt)}</p>
+                        <button type="submit" className="btn-primary mt-3" disabled={pending}>
+                          Save truck
+                        </button>
                       </form>
                       <OperatorComments
                         groupOrderId={order.id}

@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { notFound, unauthorized } from "../lib/errors.js";
-import { optionalString, requiredString } from "../lib/input.js";
-import { detailInclude } from "../lib/orders.js";
+import { conflict, notFound, unauthorized } from "../lib/errors.js";
+import { optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
 
@@ -105,5 +105,93 @@ operatorRouter.post(
       },
     });
     res.json({ comment });
+  })
+);
+
+async function requireLinkedSubOrder(operatorId: string, orderId: string, subId: string) {
+  await loadLinkedOrder(operatorId, orderId);
+  const sub = await prisma.subOrder.findUnique({ where: { id: subId } });
+  if (!sub || sub.groupOrderId !== orderId) notFound();
+  return sub;
+}
+
+operatorRouter.post(
+  "/orders/:id/sub-orders",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await loadLinkedOrder(me.id, req.params.id);
+    const arrivedAt = optionalDate(req.body?.arrivedAt);
+    const subOrder = await prisma.subOrder.create({
+      data: {
+        groupOrderId: req.params.id,
+        name: optionalString(req.body?.name),
+        openedAt: optionalDate(req.body?.openedAt),
+        arrivedAt,
+        status: arrivedAt ? "CLOSED" : "OPEN",
+      },
+    });
+    res.json({ subOrder });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/trucks",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const data = truckFields(req.body);
+    const clash = await findActivePlateConflict({
+      plateNumber: data.plateNumber,
+      trailerPlateNumber: data.trailerPlateNumber,
+      subOrderId: req.params.subId,
+    });
+    if (clash) conflict(plateConflictMessage(clash));
+    const truck = await prisma.truck.create({
+      data: {
+        subOrderId: req.params.subId,
+        ...data,
+        locationUpdatedAt: data.currentLocation ? new Date() : null,
+      },
+    });
+    res.json({ truck });
+  })
+);
+
+operatorRouter.patch(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const existing = await prisma.truck.findUnique({ where: { id: req.params.truckId } });
+    if (!existing || existing.subOrderId !== req.params.subId) notFound();
+    const data = truckFields(req.body);
+    const clash = await findActivePlateConflict({
+      plateNumber: data.plateNumber,
+      trailerPlateNumber: data.trailerPlateNumber,
+      subOrderId: req.params.subId,
+      excludeTruckId: existing.id,
+    });
+    if (clash) conflict(plateConflictMessage(clash));
+    const locationChanged = data.currentLocation !== existing.currentLocation;
+    const truck = await prisma.truck.update({
+      where: { id: existing.id },
+      data: {
+        ...data,
+        locationUpdatedAt: locationChanged ? new Date() : existing.locationUpdatedAt,
+      },
+    });
+    res.json({ truck });
+  })
+);
+
+operatorRouter.delete(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const existing = await prisma.truck.findUnique({ where: { id: req.params.truckId } });
+    if (!existing || existing.subOrderId !== req.params.subId) notFound();
+    await prisma.truck.delete({ where: { id: existing.id } });
+    res.json({ ok: true });
   })
 );
