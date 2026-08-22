@@ -33,10 +33,11 @@ model User {
   passwordHash String
   role         UserRole
 
-  firstName String?
-  lastName  String?
-  phone     String?
-  photoUrl  String?
+  firstName   String?
+  lastName    String?
+  phone       String?
+  photoUrl    String?
+  dateOfBirth DateTime? @db.Date
 
   linkCode String @unique
 

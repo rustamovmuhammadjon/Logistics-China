@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { CommentDto, CargoTransferDto, GroupOrderDto, SubOrderDto, TruckDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
+import { AdminShell } from "@/components/AdminShell";
 import { CommentsSection } from "@/components/CommentsSection";
 import { LocationBadge } from "@/components/LocationBadge";
 import { PaymentBadge } from "@/components/PaymentBadge";
@@ -25,7 +25,7 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
   const sub = data.subOrder;
 
   return (
-    <AppShell>
+    <AdminShell>
       <div className="space-y-6">
         <Link href={`/admin/orders/${id}`} className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
           <ArrowLeft className="h-4 w-4" />
@@ -85,6 +85,6 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
           )}
         </div>
       </div>
-    </AppShell>
+    </AdminShell>
   );
 }

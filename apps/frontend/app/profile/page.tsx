@@ -52,6 +52,7 @@ export default async function ProfilePage() {
             lastName={me.user.lastName}
             phone={me.user.phone}
             email={me.user.email}
+            dateOfBirth={me.user.dateOfBirth}
           />
         </div>
       )}

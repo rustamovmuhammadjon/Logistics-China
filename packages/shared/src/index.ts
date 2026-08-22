@@ -13,6 +13,7 @@ export type UserPublic = {
   phone: string | null;
   photoUrl: string | null;
   linkCode: string;
+  dateOfBirth: string | null;
 };
 
 export type AuthMe = {
@@ -101,6 +102,8 @@ export type GroupOrderDto = {
   openedAt: string | null;
   arrivedAt: string | null;
   ownerId: string | null;
+  owner?: UserPublic | null;
+  operators?: UserPublic[];
   pol: string | null;
   origin: string | null;
   destination: string | null;
@@ -113,6 +116,11 @@ export type GroupOrderDto = {
   updatedAt: string;
   subOrders: SubOrderDto[];
   comments?: CommentDto[];
+};
+
+export type AdminUserDto = UserPublic & {
+  createdAt: string;
+  ownedOrderCount: number;
 };
 
 export type LinkedAccountDto = {
@@ -239,4 +247,14 @@ export function getOrderHref(
 
 export function displayName(user: Pick<UserPublic, "firstName" | "lastName" | "email">): string {
   return [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+}
+
+export function ageFromDob(value: string | Date | null | undefined): number | null {
+  const date = toDate(value);
+  if (!date) return null;
+  const now = new Date();
+  let age = now.getFullYear() - date.getFullYear();
+  const monthDelta = now.getMonth() - date.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < date.getDate())) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
 }

@@ -3,6 +3,7 @@ import { truckStats } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { notFound } from "../lib/errors.js";
 import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listInclude } from "../lib/orders.js";
+import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAnyAuth, type AuthedRequest } from "../middleware/auth.js";
 
@@ -49,18 +50,7 @@ monitoringRouter.get(
       orders,
       ctx,
       admin: me.admin,
-      user: me.user
-        ? {
-            id: me.user.id,
-            email: me.user.email,
-            role: me.user.role,
-            firstName: me.user.firstName,
-            lastName: me.user.lastName,
-            phone: me.user.phone,
-            photoUrl: me.user.photoUrl,
-            linkCode: me.user.linkCode,
-          }
-        : null,
+      user: me.user ? toPublicUser(me.user) : null,
     });
   })
 );

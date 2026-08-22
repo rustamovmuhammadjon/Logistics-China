@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import type { CommentDto, CargoTransferDto, MediaDto, TruckDto } from "@logistics/shared";
 import { formatDate } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
+import { AdminShell } from "@/components/AdminShell";
 import { CommentsSection } from "@/components/CommentsSection";
 import { MediaUploader } from "@/components/MediaUploader";
 import { AdminTruckForms } from "./AdminTruckForms";
@@ -33,7 +33,7 @@ export default async function AdminTruckPage({
   const truck = data.truck;
 
   return (
-    <AppShell>
+    <AdminShell>
       <div className="space-y-6">
         <Link
           href={`/admin/orders/${id}/suborders/${subId}`}
@@ -81,6 +81,6 @@ export default async function AdminTruckPage({
           />
         </div>
       </div>
-    </AppShell>
+    </AdminShell>
   );
 }

@@ -87,6 +87,7 @@ export function toPublicUser(user: User) {
     phone: user.phone,
     photoUrl: user.photoUrl,
     linkCode: user.linkCode,
+    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString() : null,
   };
 }
 

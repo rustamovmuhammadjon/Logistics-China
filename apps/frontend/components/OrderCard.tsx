@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { formatDate, formatDirection, getOrderHref, truckStats, type GroupOrderDto, type ViewerContext } from "@logistics/shared";
+import {
+  displayName,
+  formatDate,
+  formatDirection,
+  getOrderHref,
+  truckStats,
+  type GroupOrderDto,
+  type ViewerContext,
+} from "@logistics/shared";
 import { LocationBadge } from "./LocationBadge";
 
 export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerContext }) {
@@ -34,6 +42,21 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
           </span>
         </div>
       </div>
+
+      {ctx.kind === "admin" && (
+        <div className="mt-3 space-y-1 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          <p>
+            <span className="font-medium text-slate-500">Consignee:</span>{" "}
+            {order.owner ? `${displayName(order.owner)} · ${order.owner.email}` : "Not assigned"}
+          </p>
+          <p>
+            <span className="font-medium text-slate-500">Operators:</span>{" "}
+            {order.operators && order.operators.length > 0
+              ? order.operators.map((person) => displayName(person)).join(", ")
+              : "None linked"}
+          </p>
+        </div>
+      )}
 
       {!hasSubOrders && <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />}
 

@@ -65,6 +65,11 @@ export function RegisterForm({ next }: { next: string }) {
       </div>
 
       <div>
+        <label className="field-label">Date of birth</label>
+        <input className="field-input" type="date" name="dateOfBirth" required />
+      </div>
+
+      <div>
         <label className="field-label">Email</label>
         <input className="field-input" type="email" name="email" autoComplete="email" required />
       </div>

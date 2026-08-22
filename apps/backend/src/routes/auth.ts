@@ -5,7 +5,7 @@ import type { UserRole } from "@prisma/client";
 import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
-import { optionalString, requiredString } from "../lib/input.js";
+import { optionalString, parseDateOfBirth, requiredString } from "../lib/input.js";
 import {
   checkAdminCredentials,
   createAdminSession,
@@ -63,6 +63,7 @@ authRouter.post(
     const roleRaw = String(req.body?.role ?? "");
     const firstName = String(req.body?.firstName ?? "").trim();
     const lastName = String(req.body?.lastName ?? "").trim();
+    const dateOfBirth = parseDateOfBirth(req.body?.dateOfBirth, true);
     const expectedCode = process.env.REGISTRATION_CODE ?? "";
 
     if (!expectedCode || inviteCode !== expectedCode) badRequest("Invalid invite code");
@@ -85,7 +86,7 @@ authRouter.post(
 
     try {
       const user = await prisma.user.create({
-        data: { email, passwordHash, role, linkCode, firstName, lastName },
+        data: { email, passwordHash, role, linkCode, firstName, lastName, dateOfBirth },
       });
       await createUserSession(res, user.id, user.email);
       res.json({ ok: true });
@@ -102,6 +103,33 @@ authRouter.post(
   "/logout",
   asyncHandler(async (_req, res) => {
     destroyUserSession(res);
+    res.json({ ok: true });
+  })
+);
+
+authRouter.post(
+  "/reset-password",
+  asyncHandler(async (req, res) => {
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    const inviteCode = String(req.body?.inviteCode ?? "");
+    const password = String(req.body?.password ?? "");
+    const confirmPassword = String(req.body?.confirmPassword ?? "");
+    const expectedCode = process.env.REGISTRATION_CODE ?? "";
+
+    if (!expectedCode || inviteCode !== expectedCode) badRequest("Invalid registration code");
+    if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      badRequest(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    }
+    if (password !== confirmPassword) badRequest("Passwords do not match");
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) badRequest("No account found with that email");
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await bcrypt.hash(password, 10) },
+    });
     res.json({ ok: true });
   })
 );

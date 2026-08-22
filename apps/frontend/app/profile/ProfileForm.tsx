@@ -1,5 +1,6 @@
 "use client";
 
+import { toDateInputValue } from "@logistics/shared";
 import { useApiSubmit } from "@/lib/hooks";
 
 export function ProfileForm({
@@ -7,11 +8,13 @@ export function ProfileForm({
   lastName,
   phone,
   email,
+  dateOfBirth,
 }: {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
   email: string;
+  dateOfBirth: string | null;
 }) {
   const { submitForm, pending, error } = useApiSubmit();
 
@@ -46,6 +49,10 @@ export function ProfileForm({
         <input className="field-input" type="text" name="phone" defaultValue={phone ?? ""} />
       </div>
       <div>
+        <label className="field-label">Date of birth</label>
+        <input className="field-input" type="date" name="dateOfBirth" defaultValue={toDateInputValue(dateOfBirth)} required />
+      </div>
+      <div className="sm:col-span-2">
         <label className="field-label">Email (used to log in)</label>
         <input className="field-input" type="email" name="email" defaultValue={email} required />
       </div>

@@ -36,6 +36,12 @@ export function LoginForm({ next }: { next: string }) {
       </button>
 
       <p className="text-center text-sm text-slate-500">
+        Forgot your password?{" "}
+        <Link href="/reset-password" className="text-brand-600 hover:underline">
+          Reset with registration code
+        </Link>
+      </p>
+      <p className="text-center text-sm text-slate-500">
         No account?{" "}
         <Link href="/register" className="text-brand-600 hover:underline">
           Register with invite code

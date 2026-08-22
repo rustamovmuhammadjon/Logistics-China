@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { EMAIL_PATTERN, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
-import { optionalString } from "../lib/input.js";
+import { optionalString, parseDateOfBirth } from "../lib/input.js";
 import { toPublicUser } from "../lib/auth.js";
 import { assertSupabasePublicUrl } from "../lib/supabase.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -37,6 +37,7 @@ profileRouter.patch(
           firstName,
           lastName,
           phone: optionalString(req.body?.phone),
+          dateOfBirth: parseDateOfBirth(req.body?.dateOfBirth, true),
         },
       });
       res.json({ user: toPublicUser(user) });
