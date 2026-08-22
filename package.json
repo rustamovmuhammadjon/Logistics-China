@@ -7,7 +7,8 @@
     "dev": "turbo dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend dev",
-    "build": "turbo build",
+    "build": "turbo build --filter=frontend",
+    "build:all": "turbo build",
     "lint": "turbo lint",
     "db:push": "pnpm --filter backend db:push",
     "db:studio": "pnpm --filter backend db:studio"
