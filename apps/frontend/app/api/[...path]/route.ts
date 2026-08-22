@@ -9,24 +9,44 @@ const SKIP = new Set([
   "host",
   "keep-alive",
   "transfer-encoding",
+  "accept-encoding",
 ]);
 
 function backendOrigin() {
-  const value = process.env.BACKEND_URL?.trim();
-  return value ? value.replace(/\/$/, "") : null;
+  let value = process.env.BACKEND_URL?.trim() ?? "";
+  if (!value) {
+    return { error: "BACKEND_URL is not set on Vercel. Add the Railway backend URL." };
+  }
+
+  value = value.replace(/\/$/, "").replace(/\/api$/i, "");
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return { error: "BACKEND_URL is not a valid URL." };
+  }
+
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1") {
+    return { error: "BACKEND_URL is localhost. On Vercel it must be your Railway public URL, like https://xxxx.up.railway.app" };
+  }
+  if (host.endsWith(".vercel.app")) {
+    return { error: "BACKEND_URL is the Vercel site. Put the Railway backend URL instead, like https://xxxx.up.railway.app" };
+  }
+
+  return { origin: url.origin };
 }
 
 async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
-  const origin = backendOrigin();
-  if (!origin) {
-    return NextResponse.json(
-      { error: "BACKEND_URL is not set on Vercel. Add the Railway URL and redeploy." },
-      { status: 503 }
-    );
+  const parsed = backendOrigin();
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 503 });
   }
 
   const { path } = await ctx.params;
-  const target = `${origin}/api/${path.join("/")}${req.nextUrl.search}`;
+  const target = `${parsed.origin}/api/${path.join("/")}${req.nextUrl.search}`;
   const headers = new Headers();
   req.headers.forEach((value, key) => {
     if (!SKIP.has(key.toLowerCase())) headers.set(key, value);
@@ -42,9 +62,10 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
       redirect: "manual",
       cache: "no-store",
     });
-  } catch {
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : "network error";
     return NextResponse.json(
-      { error: "Cannot reach the Railway backend. Check BACKEND_URL." },
+      { error: `Cannot reach Railway (${parsed.origin}). ${cause}` },
       { status: 502 }
     );
   }

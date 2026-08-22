@@ -44,6 +44,6 @@ app.use("/api/admin", adminRouter);
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Backend listening on http://0.0.0.0:${port}`);
 });
