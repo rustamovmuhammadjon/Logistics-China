@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  displayName,
   formatDate,
   formatDirection,
   getOrderHref,
@@ -47,12 +46,12 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
         <div className="mt-3 space-y-1 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
           <p>
             <span className="font-medium text-slate-500">Consignee:</span>{" "}
-            {order.owner ? `${displayName(order.owner)} · ${order.owner.email}` : "Not assigned"}
+            {order.owner?.email ?? "Not assigned"}
           </p>
           <p>
             <span className="font-medium text-slate-500">Operators:</span>{" "}
             {order.operators && order.operators.length > 0
-              ? order.operators.map((person) => displayName(person)).join(", ")
+              ? order.operators.map((person) => person.email).join(", ")
               : "None linked"}
           </p>
         </div>

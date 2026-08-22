@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { conflict, notFound } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
-import { findActivePlateConflict, listInclude, plateConflictMessage, truckFields } from "../lib/orders.js";
+import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -12,42 +12,6 @@ import { requireAdmin } from "../middleware/auth.js";
 export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
-
-const personSelect = {
-  id: true,
-  email: true,
-  role: true,
-  firstName: true,
-  lastName: true,
-  phone: true,
-  photoUrl: true,
-  linkCode: true,
-  dateOfBirth: true,
-} as const;
-
-function toPerson(user: {
-  id: string;
-  email: string;
-  role: "CONSIGNEE" | "OPERATOR";
-  firstName: string | null;
-  lastName: string | null;
-  phone: string | null;
-  photoUrl: string | null;
-  linkCode: string;
-  dateOfBirth: Date | null;
-}) {
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    phone: user.phone,
-    photoUrl: user.photoUrl,
-    linkCode: user.linkCode,
-    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString() : null,
-  };
-}
 
 adminRouter.get(
   "/users",
@@ -71,24 +35,10 @@ adminRouter.get(
   "/orders",
   asyncHandler(async (_req, res) => {
     const orders = await prisma.groupOrder.findMany({
-      include: {
-        ...listInclude,
-        owner: {
-          select: {
-            ...personSelect,
-            linksAsConsignee: { select: { operator: { select: personSelect } } },
-          },
-        },
-      },
+      include: listIncludeWithPeople,
       orderBy: { createdAt: "desc" },
     });
-    res.json({
-      orders: orders.map(({ owner, ...order }) => ({
-        ...order,
-        owner: owner ? toPerson(owner) : null,
-        operators: owner?.linksAsConsignee.map((link) => toPerson(link.operator)) ?? [],
-      })),
-    });
+    res.json({ orders: orders.map(withOrderPeople) });
   })
 );
 

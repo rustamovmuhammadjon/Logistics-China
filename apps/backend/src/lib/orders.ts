@@ -34,6 +34,63 @@ export const listInclude = {
   subOrders: { include: { trucks: true }, orderBy: { createdAt: "asc" as const } },
 };
 
+const personSelect = {
+  id: true,
+  email: true,
+  role: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  photoUrl: true,
+  linkCode: true,
+  dateOfBirth: true,
+} as const;
+
+export const listIncludeWithPeople = {
+  ...listInclude,
+  owner: {
+    select: {
+      ...personSelect,
+      linksAsConsignee: { select: { operator: { select: personSelect } } },
+    },
+  },
+};
+
+function toPerson(user: {
+  id: string;
+  email: string;
+  role: "CONSIGNEE" | "OPERATOR";
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  photoUrl: string | null;
+  linkCode: string;
+  dateOfBirth: Date | null;
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    photoUrl: user.photoUrl,
+    linkCode: user.linkCode,
+    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString() : null,
+  };
+}
+
+export function withOrderPeople<T extends { owner?: null | {
+  linksAsConsignee?: { operator: Parameters<typeof toPerson>[0] }[];
+} & Parameters<typeof toPerson>[0] }>(order: T) {
+  const { owner, ...rest } = order;
+  return {
+    ...rest,
+    owner: owner ? toPerson(owner) : null,
+    operators: owner?.linksAsConsignee?.map((link) => toPerson(link.operator)) ?? [],
+  };
+}
+
 export const detailInclude = {
   comments: { orderBy: { createdAt: "desc" as const } },
   subOrders: {

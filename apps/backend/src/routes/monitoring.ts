@@ -2,7 +2,7 @@ import { Router } from "express";
 import { truckStats } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { notFound } from "../lib/errors.js";
-import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listInclude, scopeOrderWhere, viewerCanAccessOrder } from "../lib/orders.js";
+import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listIncludeWithPeople, scopeOrderWhere, viewerCanAccessOrder, withOrderPeople } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAnyAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -22,12 +22,12 @@ monitoringRouter.get(
     const ctx = await getViewerContext(isAdmin, user);
     const orders = await prisma.groupOrder.findMany({
       where: scopeOrderWhere(ctx, buildOrderWhere(completed, q)),
-      include: listInclude,
+      include: listIncludeWithPeople,
       orderBy: buildOrderOrderBy(sort),
     });
 
     const stats = truckStats(orders.flatMap((o) => o.subOrders.flatMap((s) => s.trucks)));
-    res.json({ orders, ctx, stats });
+    res.json({ orders: orders.map(withOrderPeople), ctx, stats });
   })
 );
 
