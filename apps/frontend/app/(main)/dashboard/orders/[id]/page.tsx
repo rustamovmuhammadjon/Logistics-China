@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { AuthMe, GroupOrderDto } from "@logistics/shared";
 import { serverApi, serverApiOrNull } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
 import { ConsigneeOrderDetail } from "./ConsigneeOrderDetail";
 import { OperatorOrderDetail } from "./OperatorOrderDetail";
 
@@ -19,7 +18,7 @@ export default async function DashboardOrderPage({ params }: { params: Promise<{
   if (!data) notFound();
 
   return (
-    <AppShell>
+    <>
       <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
         {me.user.role === "CONSIGNEE" ? "My orders" : "Orders to track"}
@@ -31,6 +30,6 @@ export default async function DashboardOrderPage({ params }: { params: Promise<{
           <OperatorOrderDetail order={data.order} />
         )}
       </div>
-    </AppShell>
+    </>
   );
 }

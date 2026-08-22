@@ -2,7 +2,6 @@ import { Plus } from "lucide-react";
 import { Box1 } from "iconsax-react";
 import type { GroupOrderDto } from "@logistics/shared";
 import { serverApi } from "@/lib/server-api";
-import { AdminShell } from "@/components/AdminShell";
 import { EmptyState } from "@/components/EmptyState";
 import { OrderCard } from "@/components/OrderCard";
 import { AdminNewOrderForm } from "../AdminNewOrderForm";
@@ -13,8 +12,7 @@ export default async function AdminOrdersPage() {
   const { orders } = await serverApi<{ orders: GroupOrderDto[] }>("/api/admin/orders");
 
   return (
-    <AdminShell>
-      <div className="space-y-8">
+    <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Orders</h1>
           <p className="text-sm text-slate-500">All group orders, with the owning consignee and linked operators.</p>
@@ -42,6 +40,6 @@ export default async function AdminOrdersPage() {
           </ul>
         )}
       </div>
-    </AdminShell>
+    
   );
 }

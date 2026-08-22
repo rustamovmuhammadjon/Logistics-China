@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Activity, CheckCircle2, LayoutDashboard, Plus, Shield } from "lucide-react";
 import { Truck } from "iconsax-react";
 import { displayName, getOrderHref, type SidebarOrderDto, type ViewerContext, type UserPublic } from "@logistics/shared";
-import { serverApiSafe } from "@/lib/server-api";
 import { Avatar } from "./Avatar";
 
 type ShellData = {
@@ -19,10 +22,44 @@ const emptyShell: ShellData = {
   user: null,
 };
 
-export async function AppShell({ children }: { children: React.ReactNode }) {
-  const { data, error } = await serverApiSafe<ShellData>("/api/monitoring/sidebar");
-  const { orders, ctx, admin, user } = data ?? emptyShell;
-  const name = user ? displayName(user) : "Admin";
+let memoryCache: { data: ShellData; at: number } | null = null;
+
+async function loadShell(): Promise<ShellData> {
+  const res = await fetch("/api/monitoring/sidebar", { credentials: "include", cache: "no-store" });
+  if (!res.ok) return emptyShell;
+  return (await res.json()) as ShellData;
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [data, setData] = useState<ShellData>(memoryCache?.data ?? emptyShell);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fresh = memoryCache && Date.now() - memoryCache.at < 20_000;
+    if (fresh && memoryCache) {
+      setData(memoryCache.data);
+    }
+
+    loadShell()
+      .then((next) => {
+        if (cancelled) return;
+        memoryCache = { data: next, at: Date.now() };
+        setData(next);
+        setError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  const { orders, ctx, admin, user } = data;
+  const name = user ? displayName(user) : admin ? "Admin" : "";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -54,7 +91,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           {(user || admin) && (
             <Link href="/profile" className="flex items-center gap-2">
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-medium leading-tight text-slate-900">{name}</p>
+                <p className="text-sm font-medium leading-tight text-slate-900">{name || "…"}</p>
                 <p className="text-xs leading-tight text-slate-500">{user ? user.role.toLowerCase() : "admin"}</p>
               </div>
               <Avatar
@@ -86,6 +123,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
                   <li key={order.id}>
                     <Link
                       href={getOrderHref(order, ctx)}
+                      prefetch
                       className="block truncate rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
                       title={order.name}
                     >
@@ -104,10 +142,15 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function NavLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      prefetch
+      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${
+        active ? "bg-slate-100 font-medium text-slate-900" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      }`}
     >
       {icon}
       {children}

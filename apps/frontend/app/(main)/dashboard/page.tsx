@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { Box1 } from "iconsax-react";
 import { formatDate, formatDirection, truckStats, type DashboardResponse } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkPanel } from "./LinkPanel";
 
@@ -17,8 +16,7 @@ export default async function DashboardPage() {
   const isConsignee = data.user.role === "CONSIGNEE";
 
   return (
-    <AppShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{isConsignee ? "My orders" : "Orders to track"}</h1>
@@ -73,6 +71,6 @@ export default async function DashboardPage() {
           </ul>
         )}
       </div>
-    </AppShell>
+    
   );
 }

@@ -1,7 +1,6 @@
 import { Profile2User } from "iconsax-react";
 import type { AuthMe } from "@logistics/shared";
 import { serverApi } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
 import { ProfileForm } from "./ProfileForm";
 import { ProfilePhotoUploader } from "./ProfilePhotoUploader";
 import { LogoutButton } from "./LogoutButton";
@@ -12,7 +11,7 @@ export default async function ProfilePage() {
   const me = await serverApi<AuthMe>("/api/auth/me");
 
   return (
-    <AppShell>
+    <>
       {!me.user ? (
         <div className="card">
           <h1 className="text-xl font-bold text-slate-900">Profile</h1>
@@ -56,6 +55,6 @@ export default async function ProfilePage() {
           />
         </div>
       )}
-    </AppShell>
+    </>
   );
 }

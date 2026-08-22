@@ -1,7 +1,6 @@
 import { TickCircle, Truck, Wallet2 } from "iconsax-react";
 import { normalizeSort, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
 import { OrderCard } from "@/components/OrderCard";
 import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
@@ -23,8 +22,7 @@ export default async function CompletedOrdersPage({
   const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
 
   return (
-    <AppShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Completed orders</h1>
           <p className="text-sm text-slate-500">Orders that have arrived. Hidden from the main monitoring page.</p>
@@ -64,6 +62,6 @@ export default async function CompletedOrdersPage({
           </>
         )}
       </div>
-    </AppShell>
+    
   );
 }

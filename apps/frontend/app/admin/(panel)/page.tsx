@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { Box1, Profile2User } from "iconsax-react";
-import { AdminShell } from "@/components/AdminShell";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminHomePage() {
   return (
-    <AdminShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Admin panel</h1>
           <p className="text-sm text-slate-500">Choose a section from the sidebar. Order details stay inside Orders.</p>
@@ -25,6 +23,6 @@ export default function AdminHomePage() {
           </Link>
         </div>
       </div>
-    </AdminShell>
+    
   );
 }

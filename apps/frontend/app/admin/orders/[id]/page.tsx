@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { formatDate, formatDirection, truckStats, type CommentDto, type GroupOrderDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { AdminShell } from "@/components/AdminShell";
 import { CommentsSection } from "@/components/CommentsSection";
 import { AdminOrderForms } from "./AdminOrderForms";
 
@@ -21,8 +20,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   const order = data.order;
 
   return (
-    <AdminShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <Link href="/admin/orders" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
           <ArrowLeft className="h-4 w-4" />
           All orders
@@ -73,6 +71,6 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
-    </AdminShell>
+    
   );
 }

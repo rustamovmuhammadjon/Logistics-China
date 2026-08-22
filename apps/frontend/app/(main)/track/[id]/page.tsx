@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { formatDate, formatDateTime, formatDirection, truckStats, type GroupOrderDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
 import { LocationBadge } from "@/components/LocationBadge";
 import { PaymentBadge } from "@/components/PaymentBadge";
 
@@ -17,8 +16,8 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
   const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
 
   return (
-    <AppShell>
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
+    <>
+    <Link href="/" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
         All orders
       </Link>
@@ -139,7 +138,7 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
           );
         })}
       </div>
-    </AppShell>
+    </>
   );
 }
 

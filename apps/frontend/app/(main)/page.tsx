@@ -1,7 +1,6 @@
 import { Box1, Truck, Wallet2 } from "iconsax-react";
 import { normalizeSort, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { AppShell } from "@/components/AppShell";
 import { OrderCard } from "@/components/OrderCard";
 import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
@@ -24,8 +23,7 @@ export default async function MonitoringPage({
   const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
 
   return (
-    <AppShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Monitoring</h1>
           <p className="text-sm text-slate-500">Live overview of every active order and truck.</p>
@@ -65,6 +63,6 @@ export default async function MonitoringPage({
           </>
         )}
       </div>
-    </AppShell>
+    
   );
 }
