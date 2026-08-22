@@ -1,0 +1,8 @@
+{
+  "name": "China–Iran Logistics Tracker",
+  "short_name": "Logistics",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1d4e89"
+}

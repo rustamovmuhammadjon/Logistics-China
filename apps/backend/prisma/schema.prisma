@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  NOT_PAID
+  PAID
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum SubOrderStatus {
+  OPEN
+  CLOSED
+}
+
+enum UserRole {
+  CONSIGNEE
+  OPERATOR
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+
+  firstName String?
+  lastName  String?
+  phone     String?
+  photoUrl  String?
+
+  linkCode String @unique
+
+  createdAt DateTime @default(now())
+
+  ownedOrders      GroupOrder[]    @relation("OrderOwner")
+  linksAsConsignee OperatorLink[]  @relation("ConsigneeLinks")
+  linksAsOperator  OperatorLink[]  @relation("OperatorLinks")
+}
+
+model OperatorLink {
+  id String @id @default(cuid())
+
+  consigneeId String
+  consignee   User   @relation("ConsigneeLinks", fields: [consigneeId], references: [id], onDelete: Cascade)
+
+  operatorId String
+  operator   User   @relation("OperatorLinks", fields: [operatorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([consigneeId, operatorId])
+  @@index([operatorId])
+}
+
+model GroupOrder {
+  id        String    @id @default(cuid())
+  name      String
+  openedAt  DateTime?
+  arrivedAt DateTime?
+
+  ownerId String?
+  owner   User?   @relation("OrderOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  pol             String?
+  origin          String?
+  destination     String?
+  commodity       String?
+  volumeInfo      String?
+  factoryLoadDate DateTime?
+
+  statusText      String?
+  statusUpdatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subOrders SubOrder[]
+  comments  Comment[]
+
+  @@index([name])
+  @@index([ownerId])
+}
+
+model SubOrder {
+  id        String         @id @default(cuid())
+  name      String?
+  openedAt  DateTime?
+  arrivedAt DateTime?
+  status    SubOrderStatus @default(OPEN)
+
+  statusText      String?
+  statusUpdatedAt DateTime?
+
+  groupOrderId String
+  groupOrder   GroupOrder @relation(fields: [groupOrderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trucks   Truck[]
+  comments Comment[]
+
+  @@index([groupOrderId])
+  @@index([status])
+}
+
+model Truck {
+  id String @id @default(cuid())
+
+  subOrderId String
+  subOrder   SubOrder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  plateNumber        String?
+  trailerPlateNumber String?
+  driverName         String?
+  driverPhone        String?
+
+  lengthM Float?
+  widthM  Float?
+  heightM Float?
+
+  cargoWeight      Float?
+  cargoDescription String?
+
+  currentLocation   String?
+  locationUpdatedAt DateTime?
+
+  driverPaymentStatus   PaymentStatus @default(NOT_PAID)
+  customerPaymentStatus PaymentStatus @default(NOT_PAID)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media    Media[]
+  comments Comment[]
+
+  transfersFrom CargoTransfer[] @relation("TransferFrom")
+  transfersTo   CargoTransfer[] @relation("TransferTo")
+
+  @@index([subOrderId])
+}
+
+model CargoTransfer {
+  id String @id @default(cuid())
+
+  fromTruckId String
+  fromTruck   Truck  @relation("TransferFrom", fields: [fromTruckId], references: [id], onDelete: Cascade)
+
+  toTruckId String
+  toTruck   Truck  @relation("TransferTo", fields: [toTruckId], references: [id], onDelete: Cascade)
+
+  transferDate DateTime?
+  comment      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([fromTruckId])
+  @@index([toTruckId])
+}
+
+model Media {
+  id String @id @default(cuid())
+
+  truckId String
+  truck   Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  url      String
+  type     MediaType
+  fileName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([truckId])
+}
+
+model Comment {
+  id   String @id @default(cuid())
+  text String
+
+  groupOrderId String?
+  groupOrder   GroupOrder? @relation(fields: [groupOrderId], references: [id], onDelete: Cascade)
+
+  subOrderId String?
+  subOrder   SubOrder? @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  truckId String?
+  truck   Truck?  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  author String?
+
+  createdAt DateTime @default(now())
+
+  @@index([groupOrderId])
+  @@index([subOrderId])
+  @@index([truckId])
+}

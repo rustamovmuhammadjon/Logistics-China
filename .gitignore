@@ -1,22 +1,14 @@
-# dependencies
-/node_modules
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# env
+node_modules
+.turbo
+.next
+out
+dist
+build
 .env
 .env*.local
-
-# misc
-.DS_Store
 *.pem
+.DS_Store
 npm-debug.log*
-
-# typescript
+pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
