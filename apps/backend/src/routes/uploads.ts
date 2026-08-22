@@ -6,9 +6,12 @@ import { getSupabaseAdmin, publicObjectUrl, safeFileName, storageBucket } from "
 import { asyncHandler } from "../middleware/errors.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 
+const AVATAR_MAX_BYTES = 4 * 1024 * 1024;
+const MEDIA_MAX_BYTES = 50 * 1024 * 1024;
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 300 * 1024 * 1024 },
+  limits: { fileSize: MEDIA_MAX_BYTES },
 });
 
 export const uploadsRouter = Router();
@@ -21,11 +24,16 @@ async function ensurePublicBucket() {
   if (!buckets?.some((item) => item.name === bucket)) {
     const { error } = await supabase.storage.createBucket(bucket, {
       public: true,
-      fileSizeLimit: "300MB",
+      fileSizeLimit: MEDIA_MAX_BYTES,
     });
     if (error && !error.message.toLowerCase().includes("already exists")) {
       throw new Error(error.message);
     }
+  } else {
+    await supabase.storage.updateBucket(bucket, {
+      public: true,
+      fileSizeLimit: MEDIA_MAX_BYTES,
+    });
   }
   return { supabase, bucket };
 }
@@ -49,7 +57,10 @@ uploadsRouter.post(
     if (kind === "media" && !isAdmin) unauthorized();
     if (kind === "avatar" && !user) unauthorized();
     if (kind === "avatar" && !contentType.startsWith("image/")) {
-      badRequest("Profile photo must be an image");
+      badRequest("Profile photo must be a JPEG, PNG or WebP image");
+    }
+    if (kind === "avatar" && file.size > AVATAR_MAX_BYTES) {
+      badRequest("Profile photo must be 4 MB or smaller");
     }
 
     const folder = kind === "avatar" ? "avatars" : "trucks";
@@ -60,7 +71,17 @@ uploadsRouter.post(
       contentType,
       upsert: true,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      const text = error.message.toLowerCase();
+      if (text.includes("maximum allowed size") || text.includes("exceeded")) {
+        badRequest(
+          kind === "avatar"
+            ? "This photo is too large. Use a JPEG, PNG or WebP under 4 MB."
+            : "This file is too large. Use an image or video under 50 MB."
+        );
+      }
+      throw new Error(error.message);
+    }
 
     res.json({ path, publicUrl: publicObjectUrl(path) });
   })

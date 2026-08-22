@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { Gallery } from "iconsax-react";
 import { clientApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { MEDIA_HINT, MEDIA_MAX_BYTES, fileSizeLabel, isAllowedMedia } from "@/lib/upload-limits";
 
 async function uploadToSupabase(file: File, kind: "media" | "avatar") {
   const body = new FormData();
@@ -45,6 +46,12 @@ export function MediaUploader({
 
     try {
       for (const file of Array.from(files)) {
+        if (!isAllowedMedia(file)) {
+          throw new Error(`${file.name}: use a photo or video (JPEG, PNG, WebP, MP4).`);
+        }
+        if (file.size > MEDIA_MAX_BYTES) {
+          throw new Error(`${file.name} is ${fileSizeLabel(file.size)}. Max 4 MB per file.`);
+        }
         setProgressLabel(`Uploading ${file.name}…`);
         const publicUrl = await uploadToSupabase(file, "media");
         await clientApi("/api/admin/media", {
@@ -75,11 +82,11 @@ export function MediaUploader({
           <Upload className="h-4 w-4" />
           {uploading ? progressLabel ?? "Uploading…" : "Drop photos or videos, or click to browse"}
         </span>
-        <span className="mt-1 text-xs text-slate-400">Images and videos upload to Supabase Storage</span>
+        <span className="mt-1 text-xs text-slate-400">{MEDIA_HINT}</span>
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
           multiple
           disabled={uploading}
           onChange={(e) => handleFiles(e.target.files)}

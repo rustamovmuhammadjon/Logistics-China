@@ -6,6 +6,7 @@ import { clientApi } from "@/lib/api";
 import { uploadToSupabase } from "@/components/MediaUploader";
 import { Avatar } from "@/components/Avatar";
 import { useRouter } from "next/navigation";
+import { AVATAR_ACCEPT, AVATAR_HINT, prepareAvatarFile } from "@/lib/upload-limits";
 
 export function ProfilePhotoUploader({
   photoUrl,
@@ -29,7 +30,8 @@ export function ProfilePhotoUploader({
     setUploading(true);
     setError(null);
     try {
-      const publicUrl = await uploadToSupabase(file, "avatar");
+      const ready = await prepareAvatarFile(file);
+      const publicUrl = await uploadToSupabase(ready, "avatar");
       await clientApi("/api/profile/photo", { method: "POST", body: JSON.stringify({ url: publicUrl }) });
       setPreview(publicUrl);
       router.refresh();
@@ -51,12 +53,13 @@ export function ProfilePhotoUploader({
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept={AVATAR_ACCEPT}
             disabled={uploading}
             onChange={(e) => handleFile(e.target.files?.[0])}
             className="sr-only"
           />
         </label>
+        <p className="mt-1 text-xs text-slate-500">{AVATAR_HINT}</p>
         {uploading && (
           <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
             <div className="h-full w-2/3 animate-pulse rounded-full bg-brand-600" />
