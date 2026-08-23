@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Logistics Driver",
+    "slug": "logistics-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.logistics.driver",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "The app sends this truck’s location to the operator every 3 hours.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "The app sends this truck’s location to the operator every 3 hours, including in the background.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
+    },
+    "android": {
+      "package": "com.logistics.driver",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
+      "usesCleartextTraffic": true
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "locationWhenInUsePermission": "The app sends this truck’s location to the operator every 3 hours.",
+          "locationAlwaysAndWhenInUsePermission": "The app sends this truck’s location to the operator every 3 hours, including in the background."
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiUrl": "http://10.0.2.2:4000"
+    }
+  }
+}

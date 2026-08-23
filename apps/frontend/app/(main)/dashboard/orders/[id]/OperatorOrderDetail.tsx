@@ -6,6 +6,9 @@ import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { TruckFields } from "@/components/TruckFields";
+import { DriverAssignPanel } from "@/components/DriverAssignPanel";
+import { CargoTransferForm } from "@/components/CargoTransferForm";
+import { LocationBadge } from "@/components/LocationBadge";
 
 export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
   const { submit, pending, error } = useApiSubmit();
@@ -189,6 +192,12 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                           Save truck
                         </button>
                       </form>
+                      <LocationBadge
+                        statusText={truck.currentLocation}
+                        updatedAt={truck.locationUpdatedAt}
+                        lat={truck.lastLat}
+                        lng={truck.lastLng}
+                      />
                       <OperatorComments
                         groupOrderId={order.id}
                         level="truck"
@@ -198,6 +207,15 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                       />
                     </div>
                   ))}
+                  <DriverAssignPanel
+                    apiBase={`/api/operator/orders/${order.id}/sub-orders/${sub.id}`}
+                    trucks={sub.trucks}
+                  />
+                  <CargoTransferForm
+                    apiBase={`/api/operator/orders/${order.id}/sub-orders/${sub.id}`}
+                    trucks={sub.trucks}
+                    transfers={sub.trucks.flatMap((t) => t.transfersFrom ?? [])}
+                  />
                 </div>
               </details>
             ))}

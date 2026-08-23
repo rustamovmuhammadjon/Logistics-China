@@ -5,6 +5,8 @@ import { formatDate, toDateInputValue, type CargoTransferDto, type SubOrderDto, 
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { DriverAssignPanel } from "@/components/DriverAssignPanel";
+import { CargoTransferForm } from "@/components/CargoTransferForm";
 
 export function AdminSubOrderForms({
   orderId,
@@ -104,84 +106,17 @@ export function AdminSubOrderForms({
         </form>
       </div>
 
-      <div>
-        <h2 className="mb-1 text-lg font-semibold text-slate-900">Cargo transfers (перекид)</h2>
-        <p className="mb-3 text-xs text-slate-400">
-          Record cargo moving from one truck to another. Both trucks must already exist in this sub-order.
-        </p>
-        {sub.trucks.length < 2 ? (
-          <p className="text-sm text-slate-400">Add at least two trucks to record a transfer.</p>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}/transfers`, {
-                body: formToJson(e.currentTarget),
-              });
-            }}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-4"
-          >
-            <div>
-              <label className="field-label">From truck</label>
-              <select className="field-input" name="fromTruckId" required>
-                {sub.trucks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.plateNumber || t.id.slice(0, 6)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="field-label">To truck</label>
-              <select className="field-input" name="toTruckId" required>
-                {sub.trucks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.plateNumber || t.id.slice(0, 6)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="field-label">Transfer date</label>
-              <input className="field-input" type="date" name="transferDate" />
-            </div>
-            <div>
-              <label className="field-label">Comment</label>
-              <input className="field-input" type="text" name="comment" />
-            </div>
-            <div className="sm:col-span-4">
-              <button type="submit" className="btn-primary" disabled={pending}>
-                Record transfer
-              </button>
-            </div>
-          </form>
-        )}
-        {transfers.length > 0 && (
-          <ul className="mt-4 space-y-2">
-            {transfers.map((t) => (
-              <li
-                key={t.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-              >
-                <span>
-                  <strong>{t.toTruck?.plateNumber || "?"}</strong> received cargo on {formatDate(t.transferDate)}
-                  {t.comment ? ` — ${t.comment}` : ""}
-                </span>
-                <ConfirmButton
-                  confirmText="Delete this transfer record?"
-                  className="text-xs text-red-500 hover:text-red-700"
-                  disabled={pending}
-                  onConfirm={() =>
-                    submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}/transfers/${t.id}`, { method: "DELETE" })
-                  }
-                >
-                  Delete
-                </ConfirmButton>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <DriverAssignPanel
+        apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
+        trucks={sub.trucks}
+      />
+
+      <CargoTransferForm
+        apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
+        trucks={sub.trucks}
+        transfers={transfers}
+        canDelete
+      />
     </div>
   );
 }

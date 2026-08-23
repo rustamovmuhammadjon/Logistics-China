@@ -3,6 +3,8 @@ import { prisma } from "../lib/prisma.js";
 import { conflict, notFound, unauthorized } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
+import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
+import { createCargoTransfer } from "../lib/transfers.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
 
@@ -193,5 +195,54 @@ operatorRouter.delete(
     if (!existing || existing.subOrderId !== req.params.subId) notFound();
     await prisma.truck.delete({ where: { id: existing.id } });
     res.json({ ok: true });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/assignments",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const result = await createDriverAssignment({
+      subOrderId: req.params.subId,
+      plateNumber: req.body?.plateNumber,
+      phone: req.body?.phone ?? req.body?.driverPhone,
+      createdByUserId: me.id,
+      createdByLabel: me.email,
+    });
+    res.json(result);
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/assignments/:assignmentId/regenerate",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId);
+    res.json(result);
+  })
+);
+
+operatorRouter.delete(
+  "/orders/:id/sub-orders/:subId/assignments/:assignmentId",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await revokeDriverAssignment(req.params.assignmentId, req.params.subId);
+    res.json({ ok: true });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/transfers",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const transfer = await createCargoTransfer({
+      subOrderId: req.params.subId,
+      body: req.body as Record<string, unknown>,
+    });
+    res.json({ transfer });
   })
 );

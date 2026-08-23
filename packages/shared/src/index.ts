@@ -46,15 +46,37 @@ export type MediaDto = {
   truckId: string;
 };
 
+export type DriverAssignmentStatus = "PENDING" | "ACTIVE" | "REVOKED";
+
+export type DriverAssignmentDto = {
+  id: string;
+  truckId: string;
+  phoneNormalized: string;
+  status: DriverAssignmentStatus;
+  claimedAt: string | null;
+  lastLat: number | null;
+  lastLng: number | null;
+  lastLocationText: string | null;
+  lastPingAt: string | null;
+  pairingExpiresAt: string | null;
+  createdAt: string;
+  createdByLabel: string | null;
+};
+
 export type CargoTransferDto = {
   id: string;
   fromTruckId: string;
   toTruckId: string;
+  keepTrailer?: boolean;
+  fromPlate?: string | null;
+  toPlate?: string | null;
+  fromTrailer?: string | null;
+  toTrailer?: string | null;
   transferDate: string | null;
   comment: string | null;
   createdAt: string;
-  fromTruck?: { id: string; plateNumber: string | null };
-  toTruck?: { id: string; plateNumber: string | null };
+  fromTruck?: { id: string; plateNumber: string | null; trailerPlateNumber?: string | null };
+  toTruck?: { id: string; plateNumber: string | null; trailerPlateNumber?: string | null };
 };
 
 export type TruckDto = {
@@ -71,6 +93,8 @@ export type TruckDto = {
   cargoDescription: string | null;
   currentLocation: string | null;
   locationUpdatedAt: string | null;
+  lastLat?: number | null;
+  lastLng?: number | null;
   driverPaymentStatus: PaymentStatus;
   customerPaymentStatus: PaymentStatus;
   createdAt: string;
@@ -79,6 +103,7 @@ export type TruckDto = {
   comments?: CommentDto[];
   transfersFrom?: CargoTransferDto[];
   transfersTo?: CargoTransferDto[];
+  assignments?: DriverAssignmentDto[];
 };
 
 export type SubOrderDto = {
@@ -219,6 +244,15 @@ export function locationFreshness(value: string | Date | null | undefined): Fres
   const days = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
   if (days <= 2) return "green";
   if (days <= 5) return "amber";
+  return "red";
+}
+
+export function gpsFreshness(value: string | Date | null | undefined): Freshness {
+  const updatedAt = toDate(value);
+  if (!updatedAt) return "none";
+  const hours = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60);
+  if (hours <= 4) return "green";
+  if (hours <= 10) return "amber";
   return "red";
 }
 

@@ -5,6 +5,8 @@ import { conflict, notFound } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
+import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
+import { createCargoTransfer } from "../lib/transfers.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -141,8 +143,26 @@ adminRouter.get(
         trucks: {
           orderBy: { createdAt: "asc" },
           include: {
-            transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true } } } },
-            transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true } } } },
+            transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } } },
+            transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } } },
+            assignments: {
+              where: { status: { in: ["PENDING", "ACTIVE"] as Array<"PENDING" | "ACTIVE"> } },
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                truckId: true,
+                phoneNormalized: true,
+                status: true,
+                claimedAt: true,
+                lastLat: true,
+                lastLng: true,
+                lastLocationText: true,
+                lastPingAt: true,
+                pairingExpiresAt: true,
+                createdAt: true,
+                createdByLabel: true,
+              },
+            },
           },
         },
       },
@@ -281,21 +301,41 @@ adminRouter.patch(
 );
 
 adminRouter.post(
+  "/orders/:id/sub-orders/:subId/assignments",
+  asyncHandler(async (req, res) => {
+    const result = await createDriverAssignment({
+      subOrderId: req.params.subId,
+      plateNumber: req.body?.plateNumber,
+      phone: req.body?.phone ?? req.body?.driverPhone,
+      createdByUserId: null,
+      createdByLabel: "admin",
+    });
+    res.json(result);
+  })
+);
+
+adminRouter.post(
+  "/orders/:id/sub-orders/:subId/assignments/:assignmentId/regenerate",
+  asyncHandler(async (req, res) => {
+    const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId);
+    res.json(result);
+  })
+);
+
+adminRouter.delete(
+  "/orders/:id/sub-orders/:subId/assignments/:assignmentId",
+  asyncHandler(async (req, res) => {
+    await revokeDriverAssignment(req.params.assignmentId, req.params.subId);
+    res.json({ ok: true });
+  })
+);
+
+adminRouter.post(
   "/orders/:id/sub-orders/:subId/transfers",
   asyncHandler(async (req, res) => {
-    const fromTruckId = requiredString(req.body?.fromTruckId, "fromTruckId");
-    const toTruckId = requiredString(req.body?.toTruckId, "toTruckId");
-    if (fromTruckId === toTruckId) {
-      res.json({ ok: true, skipped: true });
-      return;
-    }
-    const transfer = await prisma.cargoTransfer.create({
-      data: {
-        fromTruckId,
-        toTruckId,
-        transferDate: optionalDate(req.body?.transferDate),
-        comment: optionalString(req.body?.comment),
-      },
+    const transfer = await createCargoTransfer({
+      subOrderId: req.params.subId,
+      body: req.body as Record<string, unknown>,
     });
     res.json({ transfer });
   })

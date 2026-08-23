@@ -27,6 +27,12 @@ enum UserRole {
   OPERATOR
 }
 
+enum DriverAssignmentStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -135,6 +141,8 @@ model Truck {
 
   currentLocation   String?
   locationUpdatedAt DateTime?
+  lastLat           Float?
+  lastLng           Float?
 
   driverPaymentStatus   PaymentStatus @default(NOT_PAID)
   customerPaymentStatus PaymentStatus @default(NOT_PAID)
@@ -147,6 +155,7 @@ model Truck {
 
   transfersFrom CargoTransfer[] @relation("TransferFrom")
   transfersTo   CargoTransfer[] @relation("TransferTo")
+  assignments   DriverAssignment[]
 
   @@index([subOrderId])
 }
@@ -160,6 +169,12 @@ model CargoTransfer {
   toTruckId String
   toTruck   Truck  @relation("TransferTo", fields: [toTruckId], references: [id], onDelete: Cascade)
 
+  keepTrailer Boolean @default(false)
+  fromPlate   String?
+  toPlate     String?
+  fromTrailer String?
+  toTrailer   String?
+
   transferDate DateTime?
   comment      String?
 
@@ -167,6 +182,52 @@ model CargoTransfer {
 
   @@index([fromTruckId])
   @@index([toTruckId])
+}
+
+model DriverAssignment {
+  id String @id @default(cuid())
+
+  truckId String
+  truck   Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  phoneNormalized String
+  pairingCodeHash String?
+  pairingExpiresAt DateTime?
+  status          DriverAssignmentStatus @default(PENDING)
+  tokenVersion    Int                    @default(0)
+  claimedAt       DateTime?
+
+  lastLat          Float?
+  lastLng          Float?
+  lastLocationText String?
+  lastPingAt       DateTime?
+
+  createdByUserId String?
+  createdByLabel  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pings LocationPing[]
+
+  @@index([phoneNormalized, status])
+  @@index([truckId, status])
+}
+
+model LocationPing {
+  id String @id @default(cuid())
+
+  assignmentId String
+  assignment   DriverAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  lat          Float
+  lng          Float
+  accuracy     Float?
+  locationText String?
+
+  recordedAt DateTime @default(now())
+
+  @@index([assignmentId, recordedAt])
 }
 
 model Media {

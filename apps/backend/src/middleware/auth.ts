@@ -3,15 +3,22 @@ import type { User } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { unauthorized } from "../lib/errors.js";
 import {
+  readBearerToken,
   readCookies,
   toPublicUser,
   verifyAdminSessionFromToken,
+  verifyDriverToken,
   verifyUserSessionFromToken,
+  type DriverSession,
 } from "../lib/auth.js";
 
 export type AuthedRequest = Request & {
   isAdmin: boolean;
   user: User | null;
+};
+
+export type DriverRequest = Request & {
+  driver: DriverSession;
 };
 
 export async function attachSession(req: Request, _res: Response, next: NextFunction) {
@@ -64,4 +71,11 @@ export async function assertOperatorLinked(operatorId: string, ownerId: string |
 export function currentUserPublic(req: Request) {
   const { isAdmin, user } = req as AuthedRequest;
   return { admin: isAdmin, user: user ? toPublicUser(user) : null };
+}
+
+export async function requireDriver(req: Request, _res: Response, next: NextFunction) {
+  const session = await verifyDriverToken(readBearerToken(req));
+  if (!session) unauthorized();
+  (req as DriverRequest).driver = session;
+  next();
 }

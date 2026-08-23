@@ -12,3 +12,7 @@ npm-debug.log*
 pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
+.expo
+android
+ios
+.idea

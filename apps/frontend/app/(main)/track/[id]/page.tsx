@@ -118,7 +118,12 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
                         <PaymentBadge status={truck.customerPaymentStatus} label="Customer" />
                       </div>
                     </div>
-                    <LocationBadge statusText={truck.currentLocation} updatedAt={truck.locationUpdatedAt} />
+                    <LocationBadge
+                      statusText={truck.currentLocation}
+                      updatedAt={truck.locationUpdatedAt}
+                      lat={truck.lastLat}
+                      lng={truck.lastLng}
+                    />
                     {truck.media && truck.media.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {truck.media.map((m) =>

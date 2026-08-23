@@ -26,6 +26,29 @@ export function optionalFloat(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+export function requiredNumber(value: unknown, field: string): number {
+  const parsed = optionalFloat(value);
+  if (parsed === null) badRequest(`"${field}" is required`);
+  return parsed;
+}
+
+export function truthyFlag(value: unknown): boolean {
+  return value === true || value === "true" || value === "on" || value === "1";
+}
+
+export function normalizePhone(value: unknown): string {
+  const raw = requiredString(value, "phone");
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 15) badRequest("Enter a valid phone number");
+  return digits;
+}
+
+export function normalizePlate(value: unknown, field = "plateNumber"): string {
+  const plate = requiredString(value, field).replace(/\s+/g, "").toUpperCase();
+  if (plate.length < 3) badRequest(`"${field}" looks too short`);
+  return plate;
+}
+
 export function optionalDate(value: unknown): Date | null {
   const raw = optionalString(value);
   if (!raw) return null;

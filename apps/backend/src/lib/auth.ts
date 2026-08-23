@@ -7,6 +7,9 @@ export const USER_COOKIE_NAME = "logistics_user_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
 
 export type ViewerSession = { role: "viewer"; userId: string; email: string };
+export type DriverSession = { role: "driver"; assignmentId: string; truckId: string; tokenVersion: number };
+
+const DRIVER_TOKEN_DURATION_SECONDS = 60 * 60 * 24 * 180;
 
 function getSecretKey() {
   const secret = process.env.SESSION_SECRET;
@@ -96,4 +99,31 @@ export function readCookies(req: Request) {
     adminToken: req.cookies?.[ADMIN_COOKIE_NAME] as string | undefined,
     userToken: req.cookies?.[USER_COOKIE_NAME] as string | undefined,
   };
+}
+
+export function readBearerToken(req: Request) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return undefined;
+  const token = header.slice(7).trim();
+  return token.length > 0 ? token : undefined;
+}
+
+export async function signDriverToken(input: Omit<DriverSession, "role">) {
+  return new SignJWT({ role: "driver", ...input })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${DRIVER_TOKEN_DURATION_SECONDS}s`)
+    .sign(getSecretKey());
+}
+
+export async function verifyDriverToken(token: string | undefined): Promise<DriverSession | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecretKey());
+    if (payload.role !== "driver" || typeof payload.assignmentId !== "string") return null;
+    if (typeof payload.truckId !== "string" || typeof payload.tokenVersion !== "number") return null;
+    return payload as unknown as DriverSession;
+  } catch {
+    return null;
+  }
 }

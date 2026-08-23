@@ -11,6 +11,7 @@ import { dashboardRouter } from "./routes/dashboard.js";
 import { consigneeRouter } from "./routes/consignee.js";
 import { operatorRouter } from "./routes/operator.js";
 import { adminRouter } from "./routes/admin.js";
+import { driverRouter } from "./routes/driver.js";
 import { attachSession } from "./middleware/auth.js";
 import { asyncHandler, errorHandler } from "./middleware/errors.js";
 
@@ -20,7 +21,13 @@ const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
 app.use(
   cors({
-    origin: frontendUrl,
+    origin(origin, callback) {
+      if (!origin || origin === frontendUrl) {
+        callback(null, true);
+        return;
+      }
+      callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -41,8 +48,13 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/consignee", consigneeRouter);
 app.use("/api/operator", operatorRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/driver", driverRouter);
 
 app.use(errorHandler);
+
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection", reason);
+});
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Backend listening on http://0.0.0.0:${port}`);

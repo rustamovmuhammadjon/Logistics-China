@@ -102,8 +102,30 @@ export const detailInclude = {
         include: {
           media: { orderBy: { createdAt: "desc" as const } },
           comments: { orderBy: { createdAt: "desc" as const } },
-          transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true } } } },
-          transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true } } } },
+          transfersFrom: {
+            include: { toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } },
+          },
+          transfersTo: {
+            include: { fromTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } },
+          },
+          assignments: {
+            where: { status: { in: ["PENDING", "ACTIVE"] as Array<"PENDING" | "ACTIVE"> } },
+            orderBy: { createdAt: "desc" as const },
+            select: {
+              id: true,
+              truckId: true,
+              phoneNormalized: true,
+              status: true,
+              claimedAt: true,
+              lastLat: true,
+              lastLng: true,
+              lastLocationText: true,
+              lastPingAt: true,
+              pairingExpiresAt: true,
+              createdAt: true,
+              createdByLabel: true,
+            },
+          },
         },
       },
     },
