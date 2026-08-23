@@ -2,8 +2,12 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { optionalFloat, optionalString } from "./input.js";
 
-export function buildOrderWhere(completed: boolean, q?: string): Prisma.GroupOrderWhereInput {
-  const base: Prisma.GroupOrderWhereInput = completed ? { arrivedAt: { not: null } } : { arrivedAt: null };
+export function buildOrderWhere(completed: boolean, q?: string, canceled = false): Prisma.GroupOrderWhereInput {
+  const base: Prisma.GroupOrderWhereInput = canceled
+    ? { canceledAt: { not: null } }
+    : completed
+      ? { arrivedAt: { not: null }, canceledAt: null }
+      : { arrivedAt: null, canceledAt: null };
   const query = q?.trim();
   if (!query) return base;
 
@@ -201,7 +205,8 @@ export async function findActivePlateConflict(params: {
     where: {
       id: excludeTruckId ? { not: excludeTruckId } : undefined,
       subOrderId: { not: subOrderId },
-      subOrder: { status: "OPEN" },
+      canceledAt: null,
+      subOrder: { status: "OPEN", groupOrder: { canceledAt: null } },
       OR: or,
     },
     include: { subOrder: { include: { groupOrder: true } } },

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Logistics Driver",
     "slug": "logistics-driver",
+    "owner": "mrustamov0109s-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -15,7 +16,10 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "The app sends this truck’s location to the operator every 3 hours.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "The app sends this truck’s location to the operator every 3 hours, including in the background.",
-        "UIBackgroundModes": ["location", "fetch"]
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -26,7 +30,12 @@
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "usesCleartextTraffic": true
     },
@@ -43,7 +52,10 @@
       "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "http://10.0.2.2:4000"
+      "apiUrl": "http://10.0.2.2:4000",
+      "eas": {
+        "projectId": "2f582f06-3504-4257-bda2-334a5113e100"
+      }
     }
   }
 }

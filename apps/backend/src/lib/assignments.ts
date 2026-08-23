@@ -3,6 +3,7 @@ import { badRequest, conflict, notFound, unauthorized } from "./errors.js";
 import { hashPairingCode, issuePairingCode, pairingCodesMatch, pairingExpiryDate } from "./pairing.js";
 import { normalizePhone, normalizePlate, optionalString } from "./input.js";
 import { signDriverToken } from "./auth.js";
+import { assertCanAddDirectTruck } from "./lifecycle.js";
 
 export const assignmentPublicSelect = {
   id: true,
@@ -28,7 +29,7 @@ function platesEqual(left: string | null | undefined, right: string) {
 }
 
 export async function findTruckInSubOrder(subOrderId: string, plateNumber: string) {
-  const trucks = await prisma.truck.findMany({ where: { subOrderId } });
+  const trucks = await prisma.truck.findMany({ where: { subOrderId, canceledAt: null } });
   return trucks.find((truck) => platesEqual(truck.plateNumber, plateNumber)) ?? null;
 }
 
@@ -47,6 +48,7 @@ export async function createDriverAssignment(params: {
 
   let truck = await findTruckInSubOrder(sub.id, plateNumber);
   if (!truck) {
+    await assertCanAddDirectTruck(sub.id);
     truck = await prisma.truck.create({
       data: {
         subOrderId: sub.id,
@@ -148,6 +150,7 @@ export async function pairDriver(phone: unknown, code: unknown) {
     (row) => row.pairingCodeHash && pairingCodesMatch(row.pairingCodeHash, phoneNormalized, pairingCode)
   );
   if (!match) unauthorized("Phone or code is not valid");
+  if (match.truck.canceledAt) unauthorized("This truck is canceled");
   if (match.truck.subOrder.status !== "OPEN") unauthorized("This trip is already closed");
 
   await prisma.driverAssignment.updateMany({
@@ -203,11 +206,16 @@ export function toDriverMe(assignment: Awaited<ReturnType<typeof pairDriver>>["a
 }
 
 export function assertAssignmentUsable(
-  assignment: { status: string; tokenVersion: number; truck: { subOrder: { status: string } } },
+  assignment: {
+    status: string;
+    tokenVersion: number;
+    truck: { canceledAt: Date | null; subOrder: { status: string } };
+  },
   tokenVersion: number
 ) {
   if (assignment.status !== "ACTIVE") unauthorized("This pairing is no longer active");
   if (assignment.tokenVersion !== tokenVersion) unauthorized("Sign in again with a new code");
+  if (assignment.truck.canceledAt) unauthorized("This truck is canceled");
   if (assignment.truck.subOrder.status !== "OPEN") unauthorized("This trip is already closed");
 }
 
@@ -232,6 +240,7 @@ export async function recordDriverPing(params: {
   });
   if (!assignment) unauthorized();
   if (assignment.status !== "ACTIVE") unauthorized("This pairing is no longer active");
+  if (assignment.truck.canceledAt) unauthorized("This truck is canceled");
   if (assignment.truck.subOrder.status !== "OPEN") unauthorized("This trip is already closed");
 
   if (assignment.lastPingAt && Date.now() - assignment.lastPingAt.getTime() < 60_000) {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Activity, CheckCircle2, LayoutDashboard, Plus, Shield } from "lucide-react";
+import { Activity, Ban, CheckCircle2, LayoutDashboard, Plus, Shield } from "lucide-react";
 import { Truck } from "iconsax-react";
 import { displayName, getOrderHref, type SidebarOrderDto, type ViewerContext, type UserPublic } from "@logistics/shared";
 import { Avatar } from "./Avatar";
@@ -75,6 +75,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </NavLink>
             <NavLink href="/completed" icon={<CheckCircle2 className="h-4 w-4" />}>
               Completed
+            </NavLink>
+            <NavLink href="/cancelled" icon={<Ban className="h-4 w-4" />}>
+              Cancelled
             </NavLink>
             {user && (
               <NavLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>

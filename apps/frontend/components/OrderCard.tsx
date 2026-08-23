@@ -3,6 +3,7 @@ import {
   formatDate,
   formatDirection,
   getOrderHref,
+  subOrderStatusLabel,
   truckStats,
   type GroupOrderDto,
   type ViewerContext,
@@ -17,7 +18,10 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
     <Link href={getOrderHref(order, ctx)} className="card block transition hover:-translate-y-0.5 hover:border-brand-300">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{order.name}</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {order.name}
+            {order.canceledAt ? <span className="badge-red ml-2 align-middle text-xs">Cancelled</span> : null}
+          </h2>
           {formatDirection(order.origin, order.destination) && (
             <p className="text-sm text-slate-600">{formatDirection(order.origin, order.destination)}</p>
           )}
@@ -66,8 +70,8 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
             return (
               <li key={sub.id} className="text-sm text-slate-600">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-                    {sub.status === "CLOSED" ? "Closed" : "Open"}
+                  <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                    {subOrderStatusLabel(sub.status)}
                   </span>
                   <span>{sub.name || "Sub-order"}</span>
                   <span className="text-xs text-slate-400">

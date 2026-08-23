@@ -1,7 +1,7 @@
 export type UserRole = "CONSIGNEE" | "OPERATOR";
 export type PaymentStatus = "NOT_PAID" | "PAID";
 export type MediaType = "IMAGE" | "VIDEO";
-export type SubOrderStatus = "OPEN" | "CLOSED";
+export type SubOrderStatus = "OPEN" | "CLOSED" | "CANCELED";
 export type OrderSort = "newest" | "oldest" | "location";
 
 export type UserPublic = {
@@ -97,6 +97,7 @@ export type TruckDto = {
   lastLng?: number | null;
   driverPaymentStatus: PaymentStatus;
   customerPaymentStatus: PaymentStatus;
+  canceledAt?: string | null;
   createdAt: string;
   updatedAt: string;
   media?: MediaDto[];
@@ -137,6 +138,7 @@ export type GroupOrderDto = {
   factoryLoadDate: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
+  canceledAt?: string | null;
   createdAt: string;
   updatedAt: string;
   subOrders: SubOrderDto[];
@@ -187,11 +189,28 @@ export function isLettersOnly(value: string): boolean {
   return NAME_PATTERN.test(value);
 }
 
-export function truckStats(trucks: { driverPaymentStatus: PaymentStatus; customerPaymentStatus: PaymentStatus }[]) {
-  const total = trucks.length;
-  const driverPaid = trucks.filter((t) => t.driverPaymentStatus === "PAID").length;
-  const customerPaid = trucks.filter((t) => t.customerPaymentStatus === "PAID").length;
+export function truckStats(
+  trucks: {
+    driverPaymentStatus: PaymentStatus;
+    customerPaymentStatus: PaymentStatus;
+    canceledAt?: string | Date | null;
+  }[]
+) {
+  const active = trucks.filter((t) => !t.canceledAt);
+  const total = active.length;
+  const driverPaid = active.filter((t) => t.driverPaymentStatus === "PAID").length;
+  const customerPaid = active.filter((t) => t.customerPaymentStatus === "PAID").length;
   return { total, driverPaid, customerPaid };
+}
+
+export function isActiveTruck(truck: { canceledAt?: string | Date | null }) {
+  return !truck.canceledAt;
+}
+
+export function subOrderStatusLabel(status: SubOrderStatus) {
+  if (status === "CANCELED") return "Cancelled";
+  if (status === "CLOSED") return "Closed";
+  return "Open";
 }
 
 export function formatDirection(

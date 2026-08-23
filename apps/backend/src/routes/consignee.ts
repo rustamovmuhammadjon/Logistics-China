@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { notFound, unauthorized } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude } from "../lib/orders.js";
+import { assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, subOrderPatchStatus } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireConsignee, type AuthedRequest } from "../middleware/auth.js";
 
@@ -70,12 +71,22 @@ consigneeRouter.patch(
   })
 );
 
+consigneeRouter.post(
+  "/orders/:id/cancel",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireOwnedOrder(req.params.id, me.id);
+    await cancelGroupOrder(req.params.id);
+    res.json({ ok: true });
+  })
+);
+
 consigneeRouter.delete(
   "/orders/:id",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
-    await prisma.groupOrder.delete({ where: { id: req.params.id } });
+    await cancelGroupOrder(req.params.id);
     res.json({ ok: true });
   })
 );
@@ -85,6 +96,7 @@ consigneeRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderActive(req.params.id);
     const arrivedAt = optionalDate(req.body?.arrivedAt);
     const subOrder = await prisma.subOrder.create({
       data: {
@@ -104,6 +116,8 @@ consigneeRouter.patch(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    const existing = await prisma.subOrder.findUnique({ where: { id: req.params.subId } });
+    if (!existing || existing.groupOrderId !== req.params.id) notFound();
     const arrivedAt = optionalDate(req.body?.arrivedAt);
     const subOrder = await prisma.subOrder.update({
       where: { id: req.params.subId },
@@ -111,10 +125,20 @@ consigneeRouter.patch(
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
         arrivedAt,
-        status: arrivedAt ? "CLOSED" : "OPEN",
+        status: subOrderPatchStatus(existing.status, arrivedAt),
       },
     });
     res.json({ subOrder });
+  })
+);
+
+consigneeRouter.post(
+  "/orders/:id/sub-orders/:subId/cancel",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireOwnedOrder(req.params.id, me.id);
+    await cancelSubOrder(req.params.subId, req.params.id);
+    res.json({ ok: true });
   })
 );
 
@@ -123,7 +147,7 @@ consigneeRouter.delete(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
-    await prisma.subOrder.delete({ where: { id: req.params.subId } });
+    await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })
 );

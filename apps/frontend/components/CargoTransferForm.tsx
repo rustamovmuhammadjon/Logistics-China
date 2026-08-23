@@ -23,7 +23,7 @@ export function CargoTransferForm({
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Cargo transfer (перекид)</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Cargo transfer</h3>
         <p className="mt-1 text-xs text-slate-400">
           Move cargo to a new truck. Keep the same trailer (only the tractor changes) or enter a new trailer plate.
         </p>

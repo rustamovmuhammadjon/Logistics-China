@@ -16,12 +16,13 @@ monitoringRouter.get(
   asyncHandler(async (req, res) => {
     const { isAdmin, user } = req as AuthedRequest;
     const completed = req.query.completed === "1" || req.query.completed === "true";
+    const canceled = req.query.canceled === "1" || req.query.canceled === "true";
     const q = typeof req.query.q === "string" ? req.query.q : undefined;
     const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
 
     const ctx = await getViewerContext(isAdmin, user);
     const orders = await prisma.groupOrder.findMany({
-      where: scopeOrderWhere(ctx, buildOrderWhere(completed, q)),
+      where: scopeOrderWhere(ctx, buildOrderWhere(completed, q, canceled)),
       include: listIncludeWithPeople,
       orderBy: buildOrderOrderBy(sort),
     });
@@ -38,7 +39,7 @@ monitoringRouter.get(
     const ctx = await getViewerContext(isAdmin, user);
     const [orders, me] = await Promise.all([
       prisma.groupOrder.findMany({
-        where: scopeOrderWhere(ctx, { arrivedAt: null }),
+        where: scopeOrderWhere(ctx, { arrivedAt: null, canceledAt: null }),
         select: { id: true, name: true, ownerId: true },
         orderBy: { createdAt: "desc" },
       }),

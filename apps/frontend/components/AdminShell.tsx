@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, CheckCircle2, Shield } from "lucide-react";
+import { Activity, Ban, CheckCircle2, Shield } from "lucide-react";
 import { Truck } from "iconsax-react";
 import { AdminSidebar } from "./AdminSidebar";
 
@@ -28,6 +28,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             >
               <CheckCircle2 className="h-4 w-4" />
               Completed
+            </Link>
+            <Link
+              href="/cancelled"
+              prefetch
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <Ban className="h-4 w-4" />
+              Cancelled
             </Link>
             <Link
               href="/admin"

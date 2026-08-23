@@ -1,6 +1,10 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeonHTTP } from "@prisma/adapter-neon";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
+
+neonConfig.webSocketConstructor = ws;
 
 function databaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -12,7 +16,7 @@ function databaseUrl() {
 }
 
 function createPrisma() {
-  const adapter = new PrismaNeonHTTP(databaseUrl(), { arrayMode: false, fullResults: true });
+  const adapter = new PrismaNeon({ connectionString: databaseUrl() });
   return new PrismaClient({ adapter });
 }
 

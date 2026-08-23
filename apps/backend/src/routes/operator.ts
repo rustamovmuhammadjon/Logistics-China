@@ -5,6 +5,7 @@ import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
+import { assertCanAddDirectTruck, assertGroupOrderActive, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
 
@@ -122,6 +123,7 @@ operatorRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await loadLinkedOrder(me.id, req.params.id);
+    await assertGroupOrderActive(req.params.id);
     const arrivedAt = optionalDate(req.body?.arrivedAt);
     const subOrder = await prisma.subOrder.create({
       data: {
@@ -142,6 +144,7 @@ operatorRouter.post(
     const me = (req as AuthedRequest).user!;
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     const data = truckFields(req.body);
+    await assertCanAddDirectTruck(req.params.subId);
     const clash = await findActivePlateConflict({
       plateNumber: data.plateNumber,
       trailerPlateNumber: data.trailerPlateNumber,
@@ -186,6 +189,28 @@ operatorRouter.patch(
   })
 );
 
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/cancel",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await cancelSubOrder(req.params.subId, req.params.id);
+    res.json({ ok: true });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/cancel",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const existing = await prisma.truck.findUnique({ where: { id: req.params.truckId } });
+    if (!existing || existing.subOrderId !== req.params.subId) notFound();
+    await cancelTruck(existing.id, existing.subOrderId);
+    res.json({ ok: true });
+  })
+);
+
 operatorRouter.delete(
   "/orders/:id/sub-orders/:subId/trucks/:truckId",
   asyncHandler(async (req, res) => {
@@ -193,7 +218,7 @@ operatorRouter.delete(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     const existing = await prisma.truck.findUnique({ where: { id: req.params.truckId } });
     if (!existing || existing.subOrderId !== req.params.subId) notFound();
-    await prisma.truck.delete({ where: { id: existing.id } });
+    await cancelTruck(existing.id, existing.subOrderId);
     res.json({ ok: true });
   })
 );

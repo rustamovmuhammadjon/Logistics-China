@@ -1,7 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { toDateInputValue, truckStats, type GroupOrderDto } from "@logistics/shared";
+import { Ban } from "lucide-react";
+import { toDateInputValue, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -17,12 +17,12 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
           <ConfirmButton
-            confirmText="Delete this whole order, including all sub-orders?"
+            confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
             disabled={pending}
-            onConfirm={() => submit(`/api/consignee/orders/${order.id}`, { method: "DELETE", redirectTo: "/dashboard" })}
+            onConfirm={() => submit(`/api/consignee/orders/${order.id}/cancel`, { method: "POST", redirectTo: "/cancelled" })}
           >
-            <Trash2 className="h-4 w-4" />
-            Delete order
+            <Ban className="h-4 w-4" />
+            Cancel order
           </ConfirmButton>
         </div>
 
@@ -41,6 +41,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
+      {!order.canceledAt && (
       <div className="card">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
         <form
@@ -70,6 +71,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
           </div>
         </form>
       </div>
+      )}
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
@@ -82,8 +84,8 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
               return (
                 <li key={sub.id} className="card space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-                      {sub.status === "CLOSED" ? "Closed" : "Open"}
+                    <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                      {subOrderStatusLabel(sub.status)}
                     </span>
                     <span className="badge-slate">{stats.total} trucks (read-only)</span>
                   </div>
@@ -116,15 +118,17 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
                     </div>
                   </form>
                   <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
-                  <ConfirmButton
-                    confirmText="Delete this sub-order?"
-                    disabled={pending}
-                    onConfirm={() =>
-                      submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`, { method: "DELETE" })
-                    }
-                  >
-                    Delete sub-order
-                  </ConfirmButton>
+                  {sub.status !== "CANCELED" && (
+                    <ConfirmButton
+                      confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
+                      disabled={pending}
+                      onConfirm={() =>
+                        submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
+                      }
+                    >
+                      Cancel sub-order
+                    </ConfirmButton>
+                  )}
                 </li>
               );
             })}

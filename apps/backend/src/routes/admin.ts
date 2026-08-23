@@ -7,6 +7,7 @@ import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
+import { assertCanAddDirectTruck, assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, cancelTruck, subOrderPatchStatus } from "../lib/lifecycle.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -107,10 +108,18 @@ adminRouter.patch(
   })
 );
 
+adminRouter.post(
+  "/orders/:id/cancel",
+  asyncHandler(async (req, res) => {
+    await cancelGroupOrder(req.params.id);
+    res.json({ ok: true });
+  })
+);
+
 adminRouter.delete(
   "/orders/:id",
   asyncHandler(async (req, res) => {
-    await prisma.groupOrder.delete({ where: { id: req.params.id } });
+    await cancelGroupOrder(req.params.id);
     res.json({ ok: true });
   })
 );
@@ -118,6 +127,7 @@ adminRouter.delete(
 adminRouter.post(
   "/orders/:id/sub-orders",
   asyncHandler(async (req, res) => {
+    await assertGroupOrderActive(req.params.id);
     const arrivedAt = optionalDate(req.body?.arrivedAt);
     const subOrder = await prisma.subOrder.create({
       data: {
@@ -186,7 +196,7 @@ adminRouter.patch(
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
         arrivedAt,
-        status: arrivedAt ? "CLOSED" : "OPEN",
+        status: subOrderPatchStatus(existing.status, arrivedAt),
         statusText,
         statusUpdatedAt: statusChanged ? new Date() : existing.statusUpdatedAt,
       },
@@ -195,10 +205,18 @@ adminRouter.patch(
   })
 );
 
+adminRouter.post(
+  "/orders/:id/sub-orders/:subId/cancel",
+  asyncHandler(async (req, res) => {
+    await cancelSubOrder(req.params.subId, req.params.id);
+    res.json({ ok: true });
+  })
+);
+
 adminRouter.delete(
   "/orders/:id/sub-orders/:subId",
   asyncHandler(async (req, res) => {
-    await prisma.subOrder.delete({ where: { id: req.params.subId } });
+    await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })
 );
@@ -207,6 +225,7 @@ adminRouter.post(
   "/orders/:id/sub-orders/:subId/trucks",
   asyncHandler(async (req, res) => {
     const data = truckFields(req.body);
+    await assertCanAddDirectTruck(req.params.subId);
     const clash = await findActivePlateConflict({
       plateNumber: data.plateNumber,
       trailerPlateNumber: data.trailerPlateNumber,
@@ -273,10 +292,18 @@ adminRouter.patch(
   })
 );
 
+adminRouter.post(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/cancel",
+  asyncHandler(async (req, res) => {
+    await cancelTruck(req.params.truckId, req.params.subId);
+    res.json({ ok: true });
+  })
+);
+
 adminRouter.delete(
   "/orders/:id/sub-orders/:subId/trucks/:truckId",
   asyncHandler(async (req, res) => {
-    await prisma.truck.delete({ where: { id: req.params.truckId } });
+    await cancelTruck(req.params.truckId, req.params.subId);
     res.json({ ok: true });
   })
 );

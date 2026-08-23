@@ -20,6 +20,7 @@ enum MediaType {
 enum SubOrderStatus {
   OPEN
   CLOSED
+  CANCELED
 }
 
 enum UserRole {
@@ -88,6 +89,8 @@ model GroupOrder {
   statusText      String?
   statusUpdatedAt DateTime?
 
+  canceledAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -146,6 +149,8 @@ model Truck {
 
   driverPaymentStatus   PaymentStatus @default(NOT_PAID)
   customerPaymentStatus PaymentStatus @default(NOT_PAID)
+
+  canceledAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

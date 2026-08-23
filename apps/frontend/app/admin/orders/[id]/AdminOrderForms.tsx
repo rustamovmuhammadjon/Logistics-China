@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Ban } from "lucide-react";
 import { formatDate, type GroupOrderDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
@@ -14,12 +14,12 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
     <div className="space-y-6">
       <div className="flex justify-end">
         <ConfirmButton
-          confirmText="Delete this whole order, including all sub-orders and trucks?"
+          confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
           disabled={pending}
-          onConfirm={() => submit(`/api/admin/orders/${order.id}`, { method: "DELETE", redirectTo: "/admin" })}
+          onConfirm={() => submit(`/api/admin/orders/${order.id}/cancel`, { method: "POST", redirectTo: "/cancelled" })}
         >
-          <Trash2 className="h-4 w-4" />
-          Delete order
+          <Ban className="h-4 w-4" />
+          Cancel order
         </ConfirmButton>
       </div>
 

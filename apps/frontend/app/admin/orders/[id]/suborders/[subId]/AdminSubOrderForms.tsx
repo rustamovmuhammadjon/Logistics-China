@@ -1,7 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { formatDate, toDateInputValue, type CargoTransferDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
+import { Ban } from "lucide-react";
+import { formatDate, isActiveTruck, toDateInputValue, type CargoTransferDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -22,17 +22,16 @@ export function AdminSubOrderForms({
     <div className="space-y-8">
       <div className="flex justify-end">
         <ConfirmButton
-          confirmText="Delete this sub-order, including all its trucks?"
-          disabled={pending}
+          confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
+          disabled={pending || sub.status === "CANCELED"}
           onConfirm={() =>
-            submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}`, {
-              method: "DELETE",
-              redirectTo: `/admin/orders/${orderId}`,
+            submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}/cancel`, {
+              method: "POST",
             })
           }
         >
-          <Trash2 className="h-4 w-4" />
-          Delete sub-order
+          <Ban className="h-4 w-4" />
+          Cancel sub-order
         </ConfirmButton>
       </div>
 
@@ -70,6 +69,7 @@ export function AdminSubOrderForms({
         </div>
       </form>
 
+      {sub.status !== "CANCELED" && !sub.trucks.some(isActiveTruck) && (
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">New truck</h2>
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
@@ -105,15 +105,21 @@ export function AdminSubOrderForms({
           </div>
         </form>
       </div>
+      )}
+      {sub.status !== "CANCELED" && sub.trucks.some(isActiveTruck) && (
+        <p className="text-sm text-slate-400">
+          This sub-order already has an active truck. Use cargo transfer to add another one, or cancel the current truck first.
+        </p>
+      )}
 
       <DriverAssignPanel
         apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
-        trucks={sub.trucks}
+        trucks={sub.trucks.filter(isActiveTruck)}
       />
 
       <CargoTransferForm
         apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
-        trucks={sub.trucks}
+        trucks={sub.trucks.filter(isActiveTruck)}
         transfers={transfers}
         canDelete
       />

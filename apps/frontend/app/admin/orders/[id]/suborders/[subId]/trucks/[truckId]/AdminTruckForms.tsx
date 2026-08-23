@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Ban } from "lucide-react";
 import { formatDateTime, type TruckDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
@@ -40,12 +40,12 @@ export function AdminTruckForms({
           />
         </div>
         <ConfirmButton
-          confirmText="Delete this truck and all its photos/videos/comments?"
-          disabled={pending}
-          onConfirm={() => submit(base, { method: "DELETE", redirectTo: `/admin/orders/${orderId}/suborders/${subId}` })}
+          confirmText="Cancel this truck? It will stay in history. You can add a new truck or record a cargo transfer after that."
+          disabled={pending || Boolean(truck.canceledAt)}
+          onConfirm={() => submit(`${base}/cancel`, { method: "POST" })}
         >
-          <Trash2 className="h-4 w-4" />
-          Delete truck
+          <Ban className="h-4 w-4" />
+          Cancel truck
         </ConfirmButton>
       </div>
 
