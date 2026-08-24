@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { formatDate, formatDirection, truckStats, type CommentDto, type GroupOrderDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
+import { formatDate, formatDirection, subOrderStatusLabel, truckStats, type CommentDto, type GroupOrderDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { CommentsSection } from "@/components/CommentsSection";
 import { AdminOrderForms } from "./AdminOrderForms";
@@ -53,12 +53,12 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                           <span className="font-medium text-slate-900">{sub.name || "Sub-order"}</span>
                           <span className="ml-2 text-xs text-slate-400">
                             Opened {formatDate(sub.openedAt)}
-                            {sub.arrivedAt ? ` · Arrived ${formatDate(sub.arrivedAt)}` : ""}
+                            {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-                            {sub.status === "CLOSED" ? "Closed" : "Open"}
+                          <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                            {subOrderStatusLabel(sub.status)}
                           </span>
                           <span className="badge-slate">{stats.total} trucks</span>
                         </div>

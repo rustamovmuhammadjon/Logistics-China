@@ -14,6 +14,7 @@ export default async function DashboardPage() {
   if (!data) redirect("/login");
 
   const isConsignee = data.user.role === "CONSIGNEE";
+  const orders = isConsignee ? data.orders.filter((order) => order.ownerId === data.user.id) : data.orders;
 
   return (
     <div className="space-y-6">
@@ -40,14 +41,14 @@ export default async function DashboardPage() {
           links={data.links}
         />
 
-        {data.orders.length === 0 ? (
+        {orders.length === 0 ? (
           <EmptyState
             icon={<Box1 size={36} variant="Bold" />}
             title={isConsignee ? "You haven't created any orders yet." : "No orders yet — link with a consignee above."}
           />
         ) : (
           <ul className="space-y-3">
-            {data.orders.map((order) => {
+            {orders.map((order) => {
               const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
               return (
                 <li key={order.id}>

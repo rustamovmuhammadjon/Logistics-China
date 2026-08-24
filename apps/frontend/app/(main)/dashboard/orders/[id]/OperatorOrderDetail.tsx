@@ -8,7 +8,6 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { TruckFields } from "@/components/TruckFields";
 import { DriverAssignPanel } from "@/components/DriverAssignPanel";
 import { CargoTransferForm } from "@/components/CargoTransferForm";
-import { LocationBadge } from "@/components/LocationBadge";
 import { TruckEditorCard } from "@/components/TruckEditorCard";
 
 export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
@@ -33,100 +32,32 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
           <span className="badge-slate">{stats.total} trucks</span>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit(`/api/operator/orders/${order.id}/location`, { method: "PATCH", body: formToJson(e.currentTarget) });
-          }}
-          className="space-y-2"
-        >
-          <label className="field-label">Current status / location</label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              className="field-input flex-1"
-              type="text"
-              name="statusText"
-              defaultValue={order.statusText ?? ""}
-              placeholder="e.g. Arrived in Bukhara"
-            />
-            <button type="submit" className="btn-primary shrink-0" disabled={pending}>
-              {pending ? "Updating…" : "Update"}
-            </button>
-          </div>
-          <p className="text-xs text-slate-400">Last updated: {formatDateTime(order.statusUpdatedAt)}</p>
-        </form>
         <OperatorComments groupOrderId={order.id} level="group" comments={order.comments ?? []} />
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
-      {!order.canceledAt && (
-      <div className="card">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
-        <p className="mb-3 text-xs text-slate-400">Add a sub-order first if this order has none, then add trucks to it.</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit(`/api/operator/orders/${order.id}/sub-orders`, { body: formToJson(e.currentTarget) });
-            e.currentTarget.reset();
-          }}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-4"
-        >
-          <div>
-            <label className="field-label">Name</label>
-            <input className="field-input" type="text" name="name" placeholder="optional" />
-          </div>
-          <div>
-            <label className="field-label">Opened date</label>
-            <input className="field-input" type="date" name="openedAt" />
-          </div>
-          <div>
-            <label className="field-label">Arrived date</label>
-            <input className="field-input" type="date" name="arrivedAt" />
-          </div>
-          <div className="flex items-end">
-            <button type="submit" className="btn-primary w-full" disabled={pending}>
-              Add sub-order
-            </button>
-          </div>
-        </form>
-      </div>
-      )}
-
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
         {order.subOrders.length === 0 ? (
-          <p className="card text-center text-slate-400">No sub-orders yet.</p>
+          <p className="card text-center text-slate-400">No sub-orders yet. The consignee needs to add a sub-order first.</p>
         ) : (
           <div className="space-y-4">
             {order.subOrders.map((sub) => (
               <details key={sub.id} className="card" open>
                 <summary className="cursor-pointer list-none">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-semibold text-slate-900">{sub.name || "Sub-order"}</span>
+                    <div>
+                      <span className="font-semibold text-slate-900">{sub.name || "Sub-order"}</span>
+                      <p className="text-xs text-slate-400">
+                        Opened {formatDate(sub.openedAt) || "—"}
+                        {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
+                      </p>
+                    </div>
                     <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
                       {subOrderStatusLabel(sub.status)}
                     </span>
                   </div>
                 </summary>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/location`, {
-                      method: "PATCH",
-                      body: formToJson(e.currentTarget),
-                    });
-                  }}
-                  className="mt-4 space-y-1"
-                >
-                  <label className="field-label">Sub-order status / location</label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <input className="field-input flex-1" type="text" name="statusText" defaultValue={sub.statusText ?? ""} />
-                    <button type="submit" className="btn-primary shrink-0" disabled={pending}>
-                      Update
-                    </button>
-                  </div>
-                </form>
 
                 <div className="mt-4">
                   <OperatorComments
@@ -138,7 +69,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  {sub.status !== "CANCELED" && !sub.trucks.some(isActiveTruck) && (
+                  {sub.status === "OPEN" && !sub.trucks.some(isActiveTruck) && (
                     <>
                       <h3 className="text-sm font-semibold text-slate-800">New truck</h3>
                       <form
@@ -158,7 +89,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                       </form>
                     </>
                   )}
-                  {sub.status !== "CANCELED" && sub.trucks.some(isActiveTruck) && (
+                  {sub.status === "OPEN" && sub.trucks.some(isActiveTruck) && (
                     <p className="text-xs text-slate-400">
                       This sub-order already has an active truck. Use cargo transfer to add another one, or cancel the current truck first.
                     </p>
@@ -180,7 +111,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                       }
                     />
                   ))}
-                  {sub.status !== "CANCELED" && (
+                  {sub.status === "OPEN" && (
                     <>
                       <DriverAssignPanel
                         apiBase={`/api/operator/orders/${order.id}/sub-orders/${sub.id}`}
@@ -193,7 +124,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                       />
                     </>
                   )}
-                  {sub.status !== "CANCELED" && (
+                  {sub.status === "OPEN" && (
                     <ConfirmButton
                       confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
                       disabled={pending}

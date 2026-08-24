@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { conflict, notFound, unauthorized } from "../lib/errors.js";
-import { optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
-import { assertCanAddDirectTruck, assertGroupOrderActive, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
+import { assertCanAddDirectTruck, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
 
@@ -31,38 +31,6 @@ operatorRouter.get(
     });
     if (!order) notFound();
     res.json({ order });
-  })
-);
-
-operatorRouter.patch(
-  "/orders/:id/location",
-  asyncHandler(async (req, res) => {
-    const me = (req as AuthedRequest).user!;
-    const order = await loadLinkedOrder(me.id, req.params.id);
-    const statusText = optionalString(req.body?.statusText);
-    const changed = statusText !== order.statusText;
-    const updated = await prisma.groupOrder.update({
-      where: { id: order.id },
-      data: { statusText, statusUpdatedAt: changed ? new Date() : order.statusUpdatedAt },
-    });
-    res.json({ order: updated });
-  })
-);
-
-operatorRouter.patch(
-  "/orders/:id/sub-orders/:subId/location",
-  asyncHandler(async (req, res) => {
-    const me = (req as AuthedRequest).user!;
-    await loadLinkedOrder(me.id, req.params.id);
-    const sub = await prisma.subOrder.findUnique({ where: { id: req.params.subId } });
-    if (!sub || sub.groupOrderId !== req.params.id) unauthorized();
-    const statusText = optionalString(req.body?.statusText);
-    const changed = statusText !== sub.statusText;
-    const updated = await prisma.subOrder.update({
-      where: { id: sub.id },
-      data: { statusText, statusUpdatedAt: changed ? new Date() : sub.statusUpdatedAt },
-    });
-    res.json({ subOrder: updated });
   })
 );
 
@@ -117,26 +85,6 @@ async function requireLinkedSubOrder(operatorId: string, orderId: string, subId:
   if (!sub || sub.groupOrderId !== orderId) notFound();
   return sub;
 }
-
-operatorRouter.post(
-  "/orders/:id/sub-orders",
-  asyncHandler(async (req, res) => {
-    const me = (req as AuthedRequest).user!;
-    await loadLinkedOrder(me.id, req.params.id);
-    await assertGroupOrderActive(req.params.id);
-    const arrivedAt = optionalDate(req.body?.arrivedAt);
-    const subOrder = await prisma.subOrder.create({
-      data: {
-        groupOrderId: req.params.id,
-        name: optionalString(req.body?.name),
-        openedAt: optionalDate(req.body?.openedAt),
-        arrivedAt,
-        status: arrivedAt ? "CLOSED" : "OPEN",
-      },
-    });
-    res.json({ subOrder });
-  })
-);
 
 operatorRouter.post(
   "/orders/:id/sub-orders/:subId/trucks",

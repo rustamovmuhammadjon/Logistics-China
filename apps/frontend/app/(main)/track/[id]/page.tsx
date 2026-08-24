@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { formatDate, formatDateTime, formatDirection, truckStats, type GroupOrderDto } from "@logistics/shared";
+import { formatDate, formatDateTime, formatDirection, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { LocationBadge } from "@/components/LocationBadge";
 import { PaymentBadge } from "@/components/PaymentBadge";
@@ -31,7 +31,6 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
             )}
             <p className="text-xs text-slate-400">
               Opened {formatDate(order.openedAt)}
-              {order.arrivedAt ? ` · Arrived ${formatDate(order.arrivedAt)}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -45,14 +44,11 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <Field label="POL" value={order.pol} />
           <Field label="Commodity" value={order.commodity} />
           <Field label="Volume" value={order.volumeInfo} />
-          <Field label="Factory load" value={formatDate(order.factoryLoadDate)} />
         </dl>
-
-        <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />
 
         {order.comments && order.comments.length > 0 && (
           <div className="mt-4">
@@ -85,19 +81,17 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
                     <span className="font-semibold text-slate-900">{sub.name || "Sub-order"}</span>
                     <span className="ml-2 text-xs text-slate-400">
                       Opened {formatDate(sub.openedAt)}
-                      {sub.arrivedAt ? ` · Arrived ${formatDate(sub.arrivedAt)}` : ""}
+                      {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-                      {sub.status === "CLOSED" ? "Closed" : "Open"}
+                    <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                      {subOrderStatusLabel(sub.status)}
                     </span>
                     <span className="badge-slate">{subStats.total} trucks</span>
                   </div>
                 </div>
               </summary>
-
-              <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
 
               <div className="mt-4 space-y-3">
                 {sub.trucks.map((truck) => (

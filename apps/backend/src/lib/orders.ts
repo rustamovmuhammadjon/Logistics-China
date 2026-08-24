@@ -2,12 +2,20 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { optionalFloat, optionalString } from "./input.js";
 
+const completedGroupWhere: Prisma.GroupOrderWhereInput = {
+  AND: [
+    { canceledAt: null },
+    { subOrders: { some: { status: "CLOSED" } } },
+    { subOrders: { none: { status: "OPEN" } } },
+  ],
+};
+
 export function buildOrderWhere(completed: boolean, q?: string, canceled = false): Prisma.GroupOrderWhereInput {
   const base: Prisma.GroupOrderWhereInput = canceled
     ? { canceledAt: { not: null } }
     : completed
-      ? { arrivedAt: { not: null }, canceledAt: null }
-      : { arrivedAt: null, canceledAt: null };
+      ? completedGroupWhere
+      : { canceledAt: null, NOT: completedGroupWhere };
   const query = q?.trim();
   if (!query) return base;
 
@@ -30,7 +38,6 @@ export function buildOrderWhere(completed: boolean, q?: string, canceled = false
 
 export function buildOrderOrderBy(sort: string | undefined): Prisma.GroupOrderOrderByWithRelationInput {
   if (sort === "oldest") return { createdAt: "asc" };
-  if (sort === "location") return { statusUpdatedAt: { sort: "desc", nulls: "last" } };
   return { createdAt: "desc" };
 }
 
@@ -136,10 +143,31 @@ export const detailInclude = {
   },
 };
 
+export async function orderVisibilityWhere(params: {
+  isAdmin: boolean;
+  user: { id: string; role: "CONSIGNEE" | "OPERATOR" } | null;
+}): Promise<Prisma.GroupOrderWhereInput> {
+  const { isAdmin, user } = params;
+  if (user?.role === "CONSIGNEE") return { ownerId: user.id };
+  if (user?.role === "OPERATOR") {
+    const links = await prisma.operatorLink.findMany({
+      where: { operatorId: user.id },
+      select: { consigneeId: true },
+    });
+    const ids = links.map((link) => link.consigneeId);
+    if (ids.length === 0) return { id: { in: [] } };
+    return { ownerId: { in: ids } };
+  }
+  if (isAdmin) return {};
+  return { id: { in: [] } };
+}
+
 export async function getViewerContext(admin: boolean, user: { id: string; role: "CONSIGNEE" | "OPERATOR" } | null) {
-  if (admin) return { kind: "admin" as const };
-  if (!user) return { kind: "guest" as const };
-  if (user.role === "CONSIGNEE") return { kind: "consignee" as const, userId: user.id };
+  if (user?.role === "CONSIGNEE") return { kind: "consignee" as const, userId: user.id };
+  if (!user) {
+    if (admin) return { kind: "admin" as const };
+    return { kind: "guest" as const };
+  }
   const links = await prisma.operatorLink.findMany({
     where: { operatorId: user.id },
     select: { consigneeId: true },
@@ -155,9 +183,16 @@ export function scopeOrderWhere(
   ctx: Awaited<ReturnType<typeof getViewerContext>>,
   where: Prisma.GroupOrderWhereInput
 ): Prisma.GroupOrderWhereInput {
-  if (ctx.kind !== "operator") return where;
-  if (ctx.linkedConsigneeIds.length === 0) return { AND: [where, { id: { in: [] } }] };
-  return { AND: [where, { ownerId: { in: ctx.linkedConsigneeIds } }] };
+  if (ctx.kind === "admin") return where;
+  if (ctx.kind === "consignee") {
+    if (!ctx.userId) return { AND: [where, { id: { in: [] } }] };
+    return { AND: [where, { ownerId: ctx.userId }] };
+  }
+  if (ctx.kind === "operator") {
+    if (ctx.linkedConsigneeIds.length === 0) return { AND: [where, { id: { in: [] } }] };
+    return { AND: [where, { ownerId: { in: ctx.linkedConsigneeIds } }] };
+  }
+  return { AND: [where, { id: { in: [] } }] };
 }
 
 export function viewerCanAccessOrder(
@@ -165,7 +200,7 @@ export function viewerCanAccessOrder(
   ownerId: string | null
 ): boolean {
   if (ctx.kind === "admin") return true;
-  if (ctx.kind === "consignee") return true;
+  if (ctx.kind === "consignee") return ownerId === ctx.userId;
   if (ctx.kind === "operator") return Boolean(ownerId && ctx.linkedConsigneeIds.includes(ownerId));
   return false;
 }
@@ -217,5 +252,5 @@ export function plateConflictMessage(
   conflict: NonNullable<Awaited<ReturnType<typeof findActivePlateConflict>>>
 ) {
   const where = `${conflict.subOrder.groupOrder.name} / ${conflict.subOrder.name || "sub-order"}`;
-  return `This truck/trailer is still active in an open sub-order (${where}). Close that sub-order (set its arrival date) before reusing it here.`;
+  return `This truck/trailer is still active in an open sub-order (${where}). Complete or cancel that sub-order before reusing it here.`;
 }

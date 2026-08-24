@@ -1,5 +1,5 @@
 import { CloseCircle, Truck, Wallet2 } from "iconsax-react";
-import { normalizeSort, type MonitoringResponse } from "@logistics/shared";
+import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
 import { OrderCard } from "@/components/OrderCard";
 import { SearchSortBar } from "@/components/SearchSortBar";
@@ -20,6 +20,7 @@ export default async function CancelledOrdersPage({
   if (q) query.set("q", q);
 
   const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
+  const scoped = data ? withOwnOrders(data, data.user) : null;
 
   return (
     <div className="space-y-6">
@@ -31,33 +32,33 @@ export default async function CancelledOrdersPage({
         </p>
       </div>
 
-      {error || !data ? (
+      {error || !scoped ? (
         <DbError message={error || "Backend did not return orders."} />
       ) : (
         <>
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard label="Orders" value={data.orders.length} icon={<CloseCircle size={20} variant="Bold" />} />
-            <StatCard label="Trucks" value={data.stats.total} icon={<Truck size={20} variant="Bold" />} />
-            <StatCard label="Driver paid" value={`${data.stats.driverPaid}/${data.stats.total}`} />
+            <StatCard label="Orders" value={scoped.orders.length} icon={<CloseCircle size={20} variant="Bold" />} />
+            <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
+            <StatCard label="Driver paid" value={`${scoped.stats.driverPaid}/${scoped.stats.total}`} />
             <StatCard
               label="Customer paid"
-              value={`${data.stats.customerPaid}/${data.stats.total}`}
+              value={`${scoped.stats.customerPaid}/${scoped.stats.total}`}
               icon={<Wallet2 size={20} variant="Bold" />}
             />
           </section>
 
           <SearchSortBar q={q ?? ""} sort={normalizedSort} />
 
-          {data.orders.length === 0 ? (
+          {scoped.orders.length === 0 ? (
             <EmptyState
               icon={<CloseCircle size={36} variant="Bold" />}
               title={q ? "No cancelled orders match your search." : "No cancelled orders yet."}
             />
           ) : (
             <ul className="space-y-4">
-              {data.orders.map((order) => (
+              {scoped.orders.map((order) => (
                 <li key={order.id}>
-                  <OrderCard order={order} ctx={data.ctx} />
+                  <OrderCard order={order} ctx={scoped.ctx} />
                 </li>
               ))}
             </ul>

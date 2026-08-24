@@ -8,7 +8,6 @@ import {
   type GroupOrderDto,
   type ViewerContext,
 } from "@logistics/shared";
-import { LocationBadge } from "./LocationBadge";
 
 export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerContext }) {
   const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
@@ -27,7 +26,6 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
           )}
           <p className="text-xs text-slate-400">
             Opened {formatDate(order.openedAt)}
-            {order.arrivedAt ? ` · Arrived ${formatDate(order.arrivedAt)}` : ""}
             {order.pol ? ` · POL: ${order.pol}` : ""}
             {order.commodity ? ` · ${order.commodity}` : ""}
           </p>
@@ -61,8 +59,6 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
         </div>
       )}
 
-      {!hasSubOrders && <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />}
-
       {hasSubOrders && (
         <ul className="mt-3 space-y-2 border-l-2 border-slate-100 pl-3">
           {order.subOrders.map((sub) => {
@@ -76,9 +72,9 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
                   <span>{sub.name || "Sub-order"}</span>
                   <span className="text-xs text-slate-400">
                     {subStats.total} truck{subStats.total === 1 ? "" : "s"}
+                    {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                   </span>
                 </div>
-                <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
               </li>
             );
           })}

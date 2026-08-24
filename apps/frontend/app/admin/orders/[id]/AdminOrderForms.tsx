@@ -1,7 +1,7 @@
 "use client";
 
 import { Ban } from "lucide-react";
-import { formatDate, type GroupOrderDto } from "@logistics/shared";
+import type { GroupOrderDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -29,8 +29,7 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
           submit(`/api/admin/orders/${order.id}`, { method: "PATCH", body: formToJson(e.currentTarget) });
         }}
       >
-        <OrderFields order={order} includeStatus />
-        <p className="mt-2 text-xs text-slate-400">Last updated: {formatDate(order.statusUpdatedAt)}</p>
+        <OrderFields order={order} />
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         <button type="submit" className="btn-primary mt-4" disabled={pending}>
           {pending ? "Saving…" : "Save changes"}
@@ -50,7 +49,7 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
               window.location.href = `/admin/orders/${order.id}/suborders/${result.subOrder.id}`;
             }
           }}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-4"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-3"
         >
           <div>
             <label className="field-label">Name</label>
@@ -59,10 +58,6 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
           <div>
             <label className="field-label">Opened date</label>
             <input className="field-input" type="date" name="openedAt" />
-          </div>
-          <div>
-            <label className="field-label">Arrived date</label>
-            <input className="field-input" type="date" name="arrivedAt" />
           </div>
           <div className="flex items-end">
             <button type="submit" className="btn-primary w-full" disabled={pending}>

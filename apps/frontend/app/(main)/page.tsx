@@ -1,5 +1,5 @@
 import { Box1, Truck, Wallet2 } from "iconsax-react";
-import { normalizeSort, type MonitoringResponse } from "@logistics/shared";
+import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
 import { OrderCard } from "@/components/OrderCard";
 import { SearchSortBar } from "@/components/SearchSortBar";
@@ -21,6 +21,7 @@ export default async function MonitoringPage({
   query.set("sort", normalizedSort);
 
   const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
+  const scoped = data ? withOwnOrders(data, data.user) : null;
 
   return (
     <div className="space-y-6">
@@ -29,33 +30,33 @@ export default async function MonitoringPage({
           <p className="text-sm text-slate-500">Live overview of every active order and truck.</p>
         </div>
 
-        {error || !data ? (
+        {error || !scoped ? (
           <DbError message={error || "Backend did not return orders."} />
         ) : (
           <>
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Orders" value={data.orders.length} icon={<Box1 size={20} variant="Bold" />} />
-          <StatCard label="Trucks" value={data.stats.total} icon={<Truck size={20} variant="Bold" />} />
+          <StatCard label="Orders" value={scoped.orders.length} icon={<Box1 size={20} variant="Bold" />} />
+          <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
           <StatCard
             label="Driver paid"
-            value={`${data.stats.driverPaid}/${data.stats.total}`}
+            value={`${scoped.stats.driverPaid}/${scoped.stats.total}`}
             icon={<Wallet2 size={20} variant="Bold" />}
           />
-          <StatCard label="Customer paid" value={`${data.stats.customerPaid}/${data.stats.total}`} />
+          <StatCard label="Customer paid" value={`${scoped.stats.customerPaid}/${scoped.stats.total}`} />
         </section>
 
         <SearchSortBar q={q ?? ""} sort={normalizedSort} />
 
-        {data.orders.length === 0 ? (
+        {scoped.orders.length === 0 ? (
           <EmptyState
             icon={<Box1 size={36} variant="Bold" />}
             title={q ? "No active orders match your search." : "No active orders."}
           />
         ) : (
           <ul className="space-y-4">
-            {data.orders.map((order) => (
+            {scoped.orders.map((order) => (
               <li key={order.id}>
-                <OrderCard order={order} ctx={data.ctx} />
+                <OrderCard order={order} ctx={scoped.ctx} />
               </li>
             ))}
           </ul>

@@ -2,7 +2,7 @@ export type UserRole = "CONSIGNEE" | "OPERATOR";
 export type PaymentStatus = "NOT_PAID" | "PAID";
 export type MediaType = "IMAGE" | "VIDEO";
 export type SubOrderStatus = "OPEN" | "CLOSED" | "CANCELED";
-export type OrderSort = "newest" | "oldest" | "location";
+export type OrderSort = "newest" | "oldest";
 
 export type UserPublic = {
   id: string;
@@ -166,6 +166,7 @@ export type MonitoringResponse = {
   orders: GroupOrderDto[];
   ctx: ViewerContext;
   stats: { total: number; driverPaid: number; customerPaid: number };
+  user?: UserPublic | null;
 };
 
 export type DashboardResponse = {
@@ -209,7 +210,7 @@ export function isActiveTruck(truck: { canceledAt?: string | Date | null }) {
 
 export function subOrderStatusLabel(status: SubOrderStatus) {
   if (status === "CANCELED") return "Cancelled";
-  if (status === "CLOSED") return "Closed";
+  if (status === "CLOSED") return "Completed";
   return "Open";
 }
 
@@ -283,7 +284,26 @@ export function freshnessBadgeClass(freshness: Freshness): string {
 }
 
 export function normalizeSort(sort: string | undefined): OrderSort {
-  return sort === "oldest" || sort === "location" ? sort : "newest";
+  return sort === "oldest" ? "oldest" : "newest";
+}
+
+export function ownOrdersOnly<T extends { ownerId: string | null }>(
+  orders: T[],
+  user: { id: string; role: string } | null | undefined,
+  ctx: ViewerContext
+): T[] {
+  if (user?.role === "CONSIGNEE") return orders.filter((order) => order.ownerId === user.id);
+  if (ctx.kind === "consignee") return orders.filter((order) => order.ownerId === ctx.userId);
+  return orders;
+}
+
+export function withOwnOrders(
+  data: MonitoringResponse,
+  user?: { id: string; role: string } | null
+): MonitoringResponse {
+  const orders = ownOrdersOnly(data.orders, user, data.ctx);
+  const stats = truckStats(orders.flatMap((order) => order.subOrders.flatMap((sub) => sub.trucks)));
+  return { ...data, orders, stats };
 }
 
 export function getOrderHref(

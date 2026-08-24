@@ -21,7 +21,6 @@ export function SearchSortBar({ q, sort }: { q: string; sort: string }) {
         <select className="field-input" name="sort" defaultValue={sort}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
-          <option value="location">Location update date</option>
         </select>
       </div>
       <button type="submit" className="btn-primary shrink-0">

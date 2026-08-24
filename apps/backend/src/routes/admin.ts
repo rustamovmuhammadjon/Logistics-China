@@ -7,7 +7,7 @@ import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
-import { assertCanAddDirectTruck, assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, cancelTruck, subOrderPatchStatus } from "../lib/lifecycle.js";
+import { assertCanAddDirectTruck, assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, cancelTruck, completeSubOrder } from "../lib/lifecycle.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -46,18 +46,14 @@ adminRouter.get(
 );
 
 function orderData(body: Record<string, unknown>) {
-  const statusText = optionalString(body.statusText);
   return {
     name: requiredString(body.name, "name"),
     openedAt: optionalDate(body.openedAt),
-    arrivedAt: optionalDate(body.arrivedAt),
     pol: optionalString(body.pol),
     origin: optionalString(body.origin),
     destination: optionalString(body.destination),
     commodity: optionalString(body.commodity),
     volumeInfo: optionalString(body.volumeInfo),
-    factoryLoadDate: optionalDate(body.factoryLoadDate),
-    statusText,
   };
 }
 
@@ -66,10 +62,7 @@ adminRouter.post(
   asyncHandler(async (req, res) => {
     const data = orderData(req.body);
     const order = await prisma.groupOrder.create({
-      data: {
-        ...data,
-        statusUpdatedAt: data.statusText ? new Date() : null,
-      },
+      data,
     });
     res.json({ order });
   })
@@ -96,13 +89,9 @@ adminRouter.patch(
     const existing = await prisma.groupOrder.findUnique({ where: { id: req.params.id } });
     if (!existing) notFound();
     const data = orderData(req.body);
-    const statusChanged = data.statusText !== existing.statusText;
     const order = await prisma.groupOrder.update({
       where: { id: existing.id },
-      data: {
-        ...data,
-        statusUpdatedAt: statusChanged ? new Date() : existing.statusUpdatedAt,
-      },
+      data,
     });
     res.json({ order });
   })
@@ -128,14 +117,12 @@ adminRouter.post(
   "/orders/:id/sub-orders",
   asyncHandler(async (req, res) => {
     await assertGroupOrderActive(req.params.id);
-    const arrivedAt = optionalDate(req.body?.arrivedAt);
     const subOrder = await prisma.subOrder.create({
       data: {
         groupOrderId: req.params.id,
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
-        arrivedAt,
-        status: arrivedAt ? "CLOSED" : "OPEN",
+        status: "OPEN",
       },
     });
     res.json({ subOrder });
@@ -187,21 +174,22 @@ adminRouter.patch(
   asyncHandler(async (req, res) => {
     const existing = await prisma.subOrder.findUnique({ where: { id: req.params.subId } });
     if (!existing || existing.groupOrderId !== req.params.id) notFound();
-    const arrivedAt = optionalDate(req.body?.arrivedAt);
-    const statusText = optionalString(req.body?.statusText);
-    const statusChanged = statusText !== existing.statusText;
     const subOrder = await prisma.subOrder.update({
       where: { id: existing.id },
       data: {
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
-        arrivedAt,
-        status: subOrderPatchStatus(existing.status, arrivedAt),
-        statusText,
-        statusUpdatedAt: statusChanged ? new Date() : existing.statusUpdatedAt,
       },
     });
     res.json({ subOrder });
+  })
+);
+
+adminRouter.post(
+  "/orders/:id/sub-orders/:subId/complete",
+  asyncHandler(async (req, res) => {
+    await completeSubOrder(req.params.subId, req.params.id);
+    res.json({ ok: true });
   })
 );
 

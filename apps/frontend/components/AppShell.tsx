@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Activity, Ban, CheckCircle2, LayoutDashboard, Plus, Shield } from "lucide-react";
 import { Truck } from "iconsax-react";
-import { displayName, getOrderHref, type SidebarOrderDto, type ViewerContext, type UserPublic } from "@logistics/shared";
+import { displayName, getOrderHref, ownOrdersOnly, type SidebarOrderDto, type ViewerContext, type UserPublic } from "@logistics/shared";
 import { Avatar } from "./Avatar";
 
 type ShellData = {
@@ -59,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   const { orders, ctx, admin, user } = data;
+  const visibleOrders = ownOrdersOnly(orders, user, ctx);
   const name = user ? displayName(user) : admin ? "Admin" : "";
 
   return (
@@ -118,11 +119,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             )}
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Active orders</h2>
-            {orders.length === 0 ? (
+            {visibleOrders.length === 0 ? (
               <p className="text-sm text-slate-400">{error ? "Orders unavailable." : "No active orders."}</p>
             ) : (
               <ul className="max-h-[70vh] space-y-1 overflow-y-auto">
-                {orders.map((order) => (
+                {visibleOrders.map((order) => (
                   <li key={order.id}>
                     <Link
                       href={getOrderHref(order, ctx)}

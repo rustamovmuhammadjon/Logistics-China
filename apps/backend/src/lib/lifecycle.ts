@@ -15,12 +15,18 @@ export async function assertSubOrderNotCanceled(subOrderId: string) {
   return sub;
 }
 
+export async function assertSubOrderOpen(subOrderId: string) {
+  const sub = await assertSubOrderNotCanceled(subOrderId);
+  if (sub.status === "CLOSED") badRequest("This sub-order is completed");
+  return sub;
+}
+
 export async function countActiveTrucks(subOrderId: string) {
   return prisma.truck.count({ where: { subOrderId, canceledAt: null } });
 }
 
 export async function assertCanAddDirectTruck(subOrderId: string) {
-  await assertSubOrderNotCanceled(subOrderId);
+  await assertSubOrderOpen(subOrderId);
   const active = await countActiveTrucks(subOrderId);
   if (active > 0) {
     badRequest("This sub-order already has a truck. Record a cargo transfer to add another truck.");
@@ -62,10 +68,18 @@ export async function cancelTruck(id: string, subOrderId: string) {
   });
 }
 
-export function subOrderPatchStatus(
-  existingStatus: "OPEN" | "CLOSED" | "CANCELED",
-  arrivedAt: Date | null
-): "OPEN" | "CLOSED" | "CANCELED" {
-  if (existingStatus === "CANCELED") return "CANCELED";
-  return arrivedAt ? "CLOSED" : "OPEN";
+export async function completeSubOrder(id: string, groupOrderId: string) {
+  await assertGroupOrderActive(groupOrderId);
+  const existing = await prisma.subOrder.findUnique({ where: { id } });
+  if (!existing || existing.groupOrderId !== groupOrderId) notFound();
+  if (existing.status === "CANCELED") badRequest("This sub-order is canceled");
+  if (existing.status === "CLOSED") return existing;
+  return prisma.subOrder.update({
+    where: { id },
+    data: {
+      status: "CLOSED",
+      arrivedAt: existing.arrivedAt ?? new Date(),
+    },
+  });
 }
+

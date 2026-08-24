@@ -1,11 +1,10 @@
 "use client";
 
-import { Ban } from "lucide-react";
-import { toDateInputValue, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
+import { Ban, CheckCircle2 } from "lucide-react";
+import { formatDate, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { LocationBadge } from "@/components/LocationBadge";
 import { OrderFields } from "@/components/OrderFields";
 
 export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
@@ -37,40 +36,35 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
             {pending ? "Saving…" : "Save changes"}
           </button>
         </form>
-        <LocationBadge statusText={order.statusText} updatedAt={order.statusUpdatedAt} />
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
       {!order.canceledAt && (
-      <div className="card">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit(`/api/consignee/orders/${order.id}/sub-orders`, { body: formToJson(e.currentTarget) });
-            e.currentTarget.reset();
-          }}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-4"
-        >
-          <div>
-            <label className="field-label">Name</label>
-            <input className="field-input" type="text" name="name" placeholder="optional" />
-          </div>
-          <div>
-            <label className="field-label">Opened date</label>
-            <input className="field-input" type="date" name="openedAt" />
-          </div>
-          <div>
-            <label className="field-label">Arrived date</label>
-            <input className="field-input" type="date" name="arrivedAt" />
-          </div>
-          <div className="flex items-end">
-            <button type="submit" className="btn-primary w-full" disabled={pending}>
-              Add sub-order
-            </button>
-          </div>
-        </form>
-      </div>
+        <div className="card">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit(`/api/consignee/orders/${order.id}/sub-orders`, { body: formToJson(e.currentTarget) });
+              e.currentTarget.reset();
+            }}
+            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+          >
+            <div>
+              <label className="field-label">Name</label>
+              <input className="field-input" type="text" name="name" placeholder="optional" />
+            </div>
+            <div>
+              <label className="field-label">Opened date</label>
+              <input className="field-input" type="date" name="openedAt" />
+            </div>
+            <div className="flex items-end">
+              <button type="submit" className="btn-primary w-full" disabled={pending}>
+                Add sub-order
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       <div>
@@ -84,50 +78,67 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
               return (
                 <li key={sub.id} className="card space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                    <span
+                      className={
+                        sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
+                      }
+                    >
                       {subOrderStatusLabel(sub.status)}
                     </span>
                     <span className="badge-slate">{stats.total} trucks (read-only)</span>
                   </div>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`, {
-                        method: "PATCH",
-                        body: formToJson(e.currentTarget),
-                      });
-                    }}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-4"
-                  >
-                    <div>
-                      <label className="field-label">Name</label>
-                      <input className="field-input" type="text" name="name" defaultValue={sub.name ?? ""} />
-                    </div>
-                    <div>
-                      <label className="field-label">Opened date</label>
-                      <input className="field-input" type="date" name="openedAt" defaultValue={toDateInputValue(sub.openedAt)} />
-                    </div>
-                    <div>
-                      <label className="field-label">Arrived date</label>
-                      <input className="field-input" type="date" name="arrivedAt" defaultValue={toDateInputValue(sub.arrivedAt)} />
-                    </div>
-                    <div className="flex items-end">
+
+                  {sub.status === "CANCELED" ? (
+                    <p className="font-medium text-slate-900">{sub.name || "Sub-order"}</p>
+                  ) : (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`, {
+                          method: "PATCH",
+                          body: formToJson(e.currentTarget),
+                        });
+                      }}
+                      className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                    >
+                      <div className="flex-1">
+                        <label className="field-label">Name</label>
+                        <input className="field-input" type="text" name="name" defaultValue={sub.name ?? ""} />
+                      </div>
                       <button type="submit" className="btn-primary" disabled={pending}>
                         Save
                       </button>
+                    </form>
+                  )}
+
+                  <p className="text-xs text-slate-400">
+                    Opened {formatDate(sub.openedAt) || "—"}
+                    {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
+                  </p>
+
+                  {sub.status === "OPEN" && !order.canceledAt && (
+                    <div className="flex flex-wrap gap-2">
+                      <ConfirmButton
+                        className="btn-primary"
+                        confirmText="Mark this sub-order as completed? The completed date will be set to today."
+                        disabled={pending}
+                        onConfirm={() =>
+                          submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/complete`, { method: "POST" })
+                        }
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Complete
+                      </ConfirmButton>
+                      <ConfirmButton
+                        confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
+                        disabled={pending}
+                        onConfirm={() =>
+                          submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
+                        }
+                      >
+                        Cancel sub-order
+                      </ConfirmButton>
                     </div>
-                  </form>
-                  <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
-                  {sub.status !== "CANCELED" && (
-                    <ConfirmButton
-                      confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
-                      disabled={pending}
-                      onConfirm={() =>
-                        submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
-                      }
-                    >
-                      Cancel sub-order
-                    </ConfirmButton>
                   )}
                 </li>
               );

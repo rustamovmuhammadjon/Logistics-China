@@ -2,7 +2,7 @@ import { Router } from "express";
 import { truckStats } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { notFound } from "../lib/errors.js";
-import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listIncludeWithPeople, scopeOrderWhere, viewerCanAccessOrder, withOrderPeople } from "../lib/orders.js";
+import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listIncludeWithPeople, orderVisibilityWhere, withOrderPeople } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAnyAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -20,15 +20,23 @@ monitoringRouter.get(
     const q = typeof req.query.q === "string" ? req.query.q : undefined;
     const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
 
-    const ctx = await getViewerContext(isAdmin, user);
+    const [ctx, visibility] = await Promise.all([
+      getViewerContext(isAdmin, user),
+      orderVisibilityWhere({ isAdmin, user }),
+    ]);
     const orders = await prisma.groupOrder.findMany({
-      where: scopeOrderWhere(ctx, buildOrderWhere(completed, q, canceled)),
+      where: { AND: [buildOrderWhere(completed, q, canceled), visibility] },
       include: listIncludeWithPeople,
       orderBy: buildOrderOrderBy(sort),
     });
 
     const stats = truckStats(orders.flatMap((o) => o.subOrders.flatMap((s) => s.trucks)));
-    res.json({ orders: orders.map(withOrderPeople), ctx, stats });
+    res.json({
+      orders: orders.map(withOrderPeople),
+      ctx,
+      stats,
+      user: user ? toPublicUser(user) : null,
+    });
   })
 );
 
@@ -36,10 +44,13 @@ monitoringRouter.get(
   "/sidebar",
   asyncHandler(async (req, res) => {
     const { isAdmin, user } = req as AuthedRequest;
-    const ctx = await getViewerContext(isAdmin, user);
+    const [ctx, visibility] = await Promise.all([
+      getViewerContext(isAdmin, user),
+      orderVisibilityWhere({ isAdmin, user }),
+    ]);
     const [orders, me] = await Promise.all([
       prisma.groupOrder.findMany({
-        where: scopeOrderWhere(ctx, { arrivedAt: null, canceledAt: null }),
+        where: { AND: [buildOrderWhere(false), visibility] },
         select: { id: true, name: true, ownerId: true },
         orderBy: { createdAt: "desc" },
       }),
@@ -58,12 +69,12 @@ monitoringRouter.get(
   "/orders/:id",
   asyncHandler(async (req, res) => {
     const { isAdmin, user } = req as AuthedRequest;
-    const ctx = await getViewerContext(isAdmin, user);
-    const order = await prisma.groupOrder.findUnique({
-      where: { id: req.params.id },
+    const visibility = await orderVisibilityWhere({ isAdmin, user });
+    const order = await prisma.groupOrder.findFirst({
+      where: { AND: [{ id: req.params.id }, visibility] },
       include: detailInclude,
     });
-    if (!order || !viewerCanAccessOrder(ctx, order.ownerId)) notFound();
+    if (!order) notFound();
     res.json({ order });
   })
 );

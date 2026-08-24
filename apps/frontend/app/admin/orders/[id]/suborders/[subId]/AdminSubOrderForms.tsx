@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import { Ban, CheckCircle2 } from "lucide-react";
 import { formatDate, isActiveTruck, toDateInputValue, type CargoTransferDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
@@ -20,10 +20,25 @@ export function AdminSubOrderForms({
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {sub.status === "OPEN" && (
+          <ConfirmButton
+            className="btn-primary"
+            confirmText="Mark this sub-order as completed? The completed date will be set to today."
+            disabled={pending}
+            onConfirm={() =>
+              submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}/complete`, {
+                method: "POST",
+              })
+            }
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Complete
+          </ConfirmButton>
+        )}
         <ConfirmButton
           confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
-          disabled={pending || sub.status === "CANCELED"}
+          disabled={pending || sub.status !== "OPEN"}
           onConfirm={() =>
             submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}/cancel`, {
               method: "POST",
@@ -43,7 +58,7 @@ export function AdminSubOrderForms({
             body: formToJson(e.currentTarget),
           });
         }}
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2"
       >
         <div>
           <label className="field-label">Name</label>
@@ -53,23 +68,17 @@ export function AdminSubOrderForms({
           <label className="field-label">Opened date</label>
           <input className="field-input" type="date" name="openedAt" defaultValue={toDateInputValue(sub.openedAt)} />
         </div>
-        <div>
-          <label className="field-label">Arrived date</label>
-          <input className="field-input" type="date" name="arrivedAt" defaultValue={toDateInputValue(sub.arrivedAt)} />
-          <p className="mt-1 text-xs text-slate-400">Setting this closes the sub-order.</p>
-        </div>
-        <div className="sm:col-span-3">
-          <label className="field-label">Current status / location</label>
-          <input className="field-input" type="text" name="statusText" defaultValue={sub.statusText ?? ""} />
-        </div>
-        <div className="sm:col-span-3">
+        {sub.status === "CLOSED" && (
+          <p className="text-sm text-slate-500 sm:col-span-2">Completed {formatDate(sub.arrivedAt) || "—"}</p>
+        )}
+        <div className="sm:col-span-2">
           <button type="submit" className="btn-primary" disabled={pending}>
             {pending ? "Saving…" : "Save changes"}
           </button>
         </div>
       </form>
 
-      {sub.status !== "CANCELED" && !sub.trucks.some(isActiveTruck) && (
+      {sub.status === "OPEN" && !sub.trucks.some(isActiveTruck) && (
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">New truck</h2>
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
@@ -106,23 +115,27 @@ export function AdminSubOrderForms({
         </form>
       </div>
       )}
-      {sub.status !== "CANCELED" && sub.trucks.some(isActiveTruck) && (
+      {sub.status === "OPEN" && sub.trucks.some(isActiveTruck) && (
         <p className="text-sm text-slate-400">
           This sub-order already has an active truck. Use cargo transfer to add another one, or cancel the current truck first.
         </p>
       )}
 
-      <DriverAssignPanel
-        apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
-        trucks={sub.trucks.filter(isActiveTruck)}
-      />
+      {sub.status === "OPEN" && (
+        <>
+          <DriverAssignPanel
+            apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
+            trucks={sub.trucks.filter(isActiveTruck)}
+          />
 
-      <CargoTransferForm
-        apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
-        trucks={sub.trucks.filter(isActiveTruck)}
-        transfers={transfers}
-        canDelete
-      />
+          <CargoTransferForm
+            apiBase={`/api/admin/orders/${orderId}/sub-orders/${sub.id}`}
+            trucks={sub.trucks.filter(isActiveTruck)}
+            transfers={transfers}
+            canDelete
+          />
+        </>
+      )}
     </div>
   );
 }

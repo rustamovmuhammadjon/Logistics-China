@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import type { CommentDto, CargoTransferDto, GroupOrderDto, SubOrderDto, TruckDto } from "@logistics/shared";
+import {
+  formatDate,
+  formatDateTime,
+  subOrderStatusLabel,
+  type CommentDto,
+  type CargoTransferDto,
+  type GroupOrderDto,
+  type SubOrderDto,
+  type TruckDto,
+} from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { CommentsSection } from "@/components/CommentsSection";
-import { LocationBadge } from "@/components/LocationBadge";
 import { PaymentBadge } from "@/components/PaymentBadge";
-import { formatDateTime } from "@logistics/shared";
 import { AdminSubOrderForms } from "./AdminSubOrderForms";
 
 export const dynamic = "force-dynamic";
@@ -31,14 +38,16 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
         </Link>
 
         <div className="card space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-bold text-slate-900">{sub.name || "Sub-order"}</h1>
-            <span className={sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-              {sub.status === "CLOSED" ? "Closed" : "Open"}
+            <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+              {subOrderStatusLabel(sub.status)}
             </span>
+            {sub.status === "CLOSED" && sub.arrivedAt ? (
+              <span className="text-xs text-slate-400">Completed {formatDate(sub.arrivedAt)}</span>
+            ) : null}
           </div>
           <AdminSubOrderForms orderId={id} sub={sub} />
-          <LocationBadge statusText={sub.statusText} updatedAt={sub.statusUpdatedAt} />
           <CommentsSection target={{ level: "sub", groupOrderId: id, subOrderId: sub.id }} comments={sub.comments ?? []} />
         </div>
 

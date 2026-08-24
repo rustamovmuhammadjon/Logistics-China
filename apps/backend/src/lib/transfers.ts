@@ -2,7 +2,7 @@ import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
 import { normalizePhone, normalizePlate, optionalDate, optionalString, requiredString, truthyFlag } from "./input.js";
-import { assertSubOrderNotCanceled } from "./lifecycle.js";
+import { assertSubOrderOpen } from "./lifecycle.js";
 
 export async function createCargoTransfer(params: {
   subOrderId: string;
@@ -17,7 +17,7 @@ export async function createCargoTransfer(params: {
   const fromTruck = await prisma.truck.findUnique({ where: { id: fromTruckId } });
   if (!fromTruck || fromTruck.subOrderId !== subOrderId) notFound("Source truck not found");
   if (fromTruck.canceledAt) badRequest("This truck is canceled");
-  await assertSubOrderNotCanceled(subOrderId);
+  await assertSubOrderOpen(subOrderId);
 
   let toTruckId = optionalString(body.toTruckId);
   const toPlateRaw = optionalString(body.toPlateNumber) ?? optionalString(body.plateNumber);

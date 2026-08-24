@@ -21,7 +21,7 @@ export function AdminNewOrderForm() {
         if (result?.order) router.push(`/admin/orders/${result.order.id}`);
       }}
     >
-      <OrderFields includeStatus />
+      <OrderFields />
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       <button type="submit" className="btn-primary mt-4" disabled={pending}>
         {pending ? "Creating…" : "Create order"}
