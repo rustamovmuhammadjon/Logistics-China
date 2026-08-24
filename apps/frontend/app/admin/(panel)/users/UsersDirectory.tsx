@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, Search } from "lucide-react";
+import { Copy, Search, Trash2 } from "lucide-react";
 import {
   ageFromDob,
   displayName,
@@ -9,6 +9,8 @@ import {
   type AdminUserDto,
 } from "@logistics/shared";
 import { Avatar } from "@/components/Avatar";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { useApiSubmit } from "@/lib/hooks";
 
 export function UsersDirectory({
   users,
@@ -19,6 +21,7 @@ export function UsersDirectory({
 }) {
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const { submit, pending, error } = useApiSubmit();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -77,6 +80,8 @@ export function UsersDirectory({
         />
       </div>
 
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
       {filtered.length === 0 ? (
         <p className="text-sm text-slate-500">No users match that search.</p>
       ) : (
@@ -99,9 +104,19 @@ export function UsersDirectory({
                       <p className="text-xs text-slate-400">Joined {formatDate(user.createdAt)}</p>
                     </div>
                   </div>
-                  <span className={user.role === "CONSIGNEE" ? "badge-green" : "badge-amber"}>
-                    {user.role === "CONSIGNEE" ? "Consignee" : "Operator"}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={user.role === "CONSIGNEE" ? "badge-green" : "badge-amber"}>
+                      {user.role === "CONSIGNEE" ? "Consignee" : "Operator"}
+                    </span>
+                    <ConfirmButton
+                      confirmText={`Delete ${displayName(user)} and all of their orders, trucks, files and account data? This cannot be undone.`}
+                      disabled={pending}
+                      onConfirm={() => submit(`/api/admin/users/${user.id}`, { method: "DELETE" })}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </ConfirmButton>
+                  </div>
                 </div>
 
                 <dl className="mt-4 grid gap-3 sm:grid-cols-2">

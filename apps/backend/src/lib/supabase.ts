@@ -61,6 +61,29 @@ export function assertSupabasePublicUrl(url: string) {
   }
 }
 
+export function storagePathFromPublicUrl(url: string): string | null {
+  const marker = `/storage/v1/object/public/${storageBucket()}/`;
+  const index = url.indexOf(marker);
+  if (index === -1) return null;
+  try {
+    return decodeURIComponent(url.slice(index + marker.length));
+  } catch {
+    return null;
+  }
+}
+
+export async function removePublicFiles(urls: Array<string | null | undefined>) {
+  const paths = urls
+    .map((url) => (url ? storagePathFromPublicUrl(url) : null))
+    .filter((path): path is string => Boolean(path));
+  if (paths.length === 0) return;
+  try {
+    await getSupabaseAdmin().storage.from(storageBucket()).remove(paths);
+  } catch {
+    // Keep account deletion even if storage cleanup fails.
+  }
+}
+
 export function safeFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "file";
 }

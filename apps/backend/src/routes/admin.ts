@@ -8,6 +8,7 @@ import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, t
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
 import { assertCanAddDirectTruck, assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, cancelTruck, completeSubOrder } from "../lib/lifecycle.js";
+import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -31,6 +32,14 @@ adminRouter.get(
         ownedOrderCount: user._count.ownedOrders,
       })),
     });
+  })
+);
+
+adminRouter.delete(
+  "/users/:id",
+  asyncHandler(async (req, res) => {
+    await deleteUserAndRelatedData(req.params.id);
+    res.json({ ok: true });
   })
 );
 

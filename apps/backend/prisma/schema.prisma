@@ -77,7 +77,7 @@ model GroupOrder {
   arrivedAt DateTime?
 
   ownerId String?
-  owner   User?   @relation("OrderOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  owner   User?   @relation("OrderOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
   pol             String?
   origin          String?
