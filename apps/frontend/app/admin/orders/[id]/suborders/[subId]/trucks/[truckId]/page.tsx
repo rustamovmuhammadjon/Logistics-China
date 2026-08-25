@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import type { CommentDto, CargoTransferDto, MediaDto, TruckDto } from "@logistics/shared";
+import type { CargoTransferDto, MediaDto, TruckDto } from "@logistics/shared";
 import { formatDate } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { CommentsSection } from "@/components/CommentsSection";
 import { MediaUploader } from "@/components/MediaUploader";
 import { AdminTruckForms } from "./AdminTruckForms";
 import { MediaGrid } from "./MediaGrid";
@@ -13,7 +12,6 @@ export const dynamic = "force-dynamic";
 
 type AdminTruck = TruckDto & {
   media: MediaDto[];
-  comments: CommentDto[];
   transfersFrom: CargoTransferDto[];
   transfersTo: CargoTransferDto[];
   subOrder: { id: string; name: string | null; groupOrderId: string; groupOrder: { name: string } };
@@ -70,13 +68,6 @@ export default async function AdminTruckPage({
           ) : (
             <MediaGrid media={truck.media} />
           )}
-        </div>
-
-        <div className="card">
-          <CommentsSection
-            target={{ level: "truck", groupOrderId: id, subOrderId: subId, truckId: truck.id }}
-            comments={truck.comments}
-          />
         </div>
       </div>
     

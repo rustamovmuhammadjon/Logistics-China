@@ -13,12 +13,10 @@ export function TruckEditorCard({
   truck,
   patchUrl,
   cancelUrl,
-  comments,
 }: {
   truck: TruckDto;
   patchUrl: string;
   cancelUrl: string;
-  comments?: React.ReactNode;
 }) {
   const { submit, pending, error } = useApiSubmit();
   const [editing, setEditing] = useState(false);
@@ -82,7 +80,6 @@ export function TruckEditorCard({
           lng={truck.lastLng}
         />
       )}
-      {comments}
     </div>
   );
 }

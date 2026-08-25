@@ -5,10 +5,7 @@ import { formatDateTime, type CommentDto } from "@logistics/shared";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "./ConfirmButton";
 
-type CommentTarget =
-  | { level: "group"; groupOrderId: string }
-  | { level: "sub"; groupOrderId: string; subOrderId: string }
-  | { level: "truck"; groupOrderId: string; subOrderId: string; truckId: string };
+type CommentTarget = { groupOrderId: string; subOrderId: string };
 
 export function CommentsSection({
   target,
@@ -55,10 +52,9 @@ export function CommentsSection({
       )}
 
       <form onSubmit={(e) => submitForm(e, "/api/admin/comments")} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <input type="hidden" name="level" value={target.level} />
+        <input type="hidden" name="level" value="sub" />
         <input type="hidden" name="groupOrderId" value={target.groupOrderId} />
-        {"subOrderId" in target && <input type="hidden" name="subOrderId" value={target.subOrderId} />}
-        {"truckId" in target && <input type="hidden" name="truckId" value={target.truckId} />}
+        <input type="hidden" name="subOrderId" value={target.subOrderId} />
         <div className="flex-1">
           <label className="field-label">Add comment</label>
           <input className="field-input" type="text" name="text" placeholder="Write a comment..." required />

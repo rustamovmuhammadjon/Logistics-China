@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { formatDate, formatDirection, subOrderStatusLabel, truckStats, type CommentDto, type GroupOrderDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
+import { formatDate, formatDirection, subOrderStatusLabel, truckStats, type GroupOrderDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { CommentsSection } from "@/components/CommentsSection";
 import { AdminOrderForms } from "./AdminOrderForms";
 
 export const dynamic = "force-dynamic";
 
 type AdminOrder = GroupOrderDto & {
-  comments: CommentDto[];
   subOrders: (SubOrderDto & { trucks: TruckDto[] })[];
 };
 
@@ -34,7 +32,6 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             )}
           </div>
           <AdminOrderForms order={order} />
-          <CommentsSection target={{ level: "group", groupOrderId: order.id }} comments={order.comments ?? []} />
         </div>
 
         <div>

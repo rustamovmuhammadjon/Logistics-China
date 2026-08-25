@@ -31,8 +31,6 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
           </div>
           <span className="badge-slate">{stats.total} trucks</span>
         </div>
-
-        <OperatorComments groupOrderId={order.id} level="group" comments={order.comments ?? []} />
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
@@ -62,7 +60,6 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                 <div className="mt-4">
                   <OperatorComments
                     groupOrderId={order.id}
-                    level="sub"
                     subOrderId={sub.id}
                     comments={sub.comments ?? []}
                   />
@@ -100,15 +97,6 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                       truck={truck}
                       patchUrl={`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${truck.id}`}
                       cancelUrl={`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${truck.id}/cancel`}
-                      comments={
-                        <OperatorComments
-                          groupOrderId={order.id}
-                          level="truck"
-                          subOrderId={sub.id}
-                          truckId={truck.id}
-                          comments={truck.comments ?? []}
-                        />
-                      }
                     />
                   ))}
                   {sub.status === "OPEN" && (
@@ -148,15 +136,11 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
 
 function OperatorComments({
   groupOrderId,
-  level,
   subOrderId,
-  truckId,
   comments,
 }: {
   groupOrderId: string;
-  level: "group" | "sub" | "truck";
-  subOrderId?: string;
-  truckId?: string;
+  subOrderId: string;
   comments: CommentDto[];
 }) {
   const { submit, pending } = useApiSubmit();
@@ -176,7 +160,7 @@ function OperatorComments({
         onSubmit={(e) => {
           e.preventDefault();
           submit("/api/operator/comments", {
-            body: { ...formToJson(e.currentTarget), groupOrderId, level, subOrderId, truckId },
+            body: { ...formToJson(e.currentTarget), groupOrderId, level: "sub", subOrderId },
           });
           e.currentTarget.reset();
         }}

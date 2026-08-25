@@ -24,7 +24,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-slate-500">
               {isConsignee
                 ? "Create and manage your own orders."
-                : "Orders from consignees linked to you. Update truck location and leave comments."}
+                : "Orders from consignees linked to you. Update truck location and add comments on sub-orders."}
             </p>
           </div>
           {isConsignee && (

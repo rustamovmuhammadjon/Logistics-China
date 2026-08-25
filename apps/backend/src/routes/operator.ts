@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { conflict, notFound, unauthorized } from "../lib/errors.js";
+import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
 import { optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
@@ -63,16 +63,14 @@ operatorRouter.post(
     const me = (req as AuthedRequest).user!;
     const groupOrderId = requiredString(req.body?.groupOrderId, "groupOrderId");
     const level = requiredString(req.body?.level, "level");
-    await loadLinkedOrder(me.id, groupOrderId);
-    const text = requiredString(req.body?.text, "text");
-
+    if (level !== "sub") badRequest("Comments are only allowed on sub-orders");
+    const subOrderId = requiredString(req.body?.subOrderId, "subOrderId");
+    await requireLinkedSubOrder(me.id, groupOrderId, subOrderId);
     const comment = await prisma.comment.create({
       data: {
-        text,
+        text: requiredString(req.body?.text, "text"),
         author: me.email,
-        groupOrderId: level === "group" ? groupOrderId : undefined,
-        subOrderId: level === "sub" ? optionalString(req.body?.subOrderId) : undefined,
-        truckId: level === "truck" ? optionalString(req.body?.truckId) : undefined,
+        subOrderId,
       },
     });
     res.json({ comment });

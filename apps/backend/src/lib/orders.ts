@@ -103,7 +103,6 @@ export function withOrderPeople<T extends { owner?: null | {
 }
 
 export const detailInclude = {
-  comments: { orderBy: { createdAt: "desc" as const } },
   subOrders: {
     orderBy: { createdAt: "asc" as const },
     include: {
@@ -112,7 +111,6 @@ export const detailInclude = {
         orderBy: { createdAt: "asc" as const },
         include: {
           media: { orderBy: { createdAt: "desc" as const } },
-          comments: { orderBy: { createdAt: "desc" as const } },
           transfersFrom: {
             include: { toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } },
           },

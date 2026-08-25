@@ -49,23 +49,6 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
           <Field label="Commodity" value={order.commodity} />
           <Field label="Volume" value={order.volumeInfo} />
         </dl>
-
-        {order.comments && order.comments.length > 0 && (
-          <div className="mt-4">
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">Comments</h3>
-            <ul className="space-y-2">
-              {order.comments.map((c) => (
-                <li key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                  <p className="whitespace-pre-wrap text-slate-800">{c.text}</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {c.author ? `${c.author} · ` : ""}
-                    {formatDateTime(c.createdAt)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </header>
 
       <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
@@ -92,6 +75,20 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
               </summary>
+
+              {sub.comments && sub.comments.length > 0 && (
+                <ul className="mt-4 space-y-2">
+                  {sub.comments.map((c) => (
+                    <li key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                      <p className="whitespace-pre-wrap text-slate-800">{c.text}</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {c.author ? `${c.author} · ` : ""}
+                        {formatDateTime(c.createdAt)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               <div className="mt-4 space-y-3">
                 {sub.trucks.map((truck) => (

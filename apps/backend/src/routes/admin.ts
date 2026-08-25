@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { PaymentStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
-import { conflict, notFound } from "../lib/errors.js";
+import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
@@ -83,7 +83,6 @@ adminRouter.get(
     const order = await prisma.groupOrder.findUnique({
       where: { id: req.params.id },
       include: {
-        comments: { orderBy: { createdAt: "desc" } },
         subOrders: { orderBy: { createdAt: "asc" }, include: { trucks: true } },
       },
     });
@@ -248,7 +247,6 @@ adminRouter.get(
       include: {
         subOrder: { include: { groupOrder: true } },
         media: { orderBy: { createdAt: "desc" } },
-        comments: { orderBy: { createdAt: "desc" } },
         transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true } } } },
         transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true } } } },
       },
@@ -377,13 +375,12 @@ adminRouter.post(
   "/comments",
   asyncHandler(async (req, res) => {
     const level = requiredString(req.body?.level, "level");
+    if (level !== "sub") badRequest("Comments are only allowed on sub-orders");
     const comment = await prisma.comment.create({
       data: {
         text: requiredString(req.body?.text, "text"),
         author: optionalString(req.body?.author),
-        groupOrderId: level === "group" ? requiredString(req.body?.groupOrderId, "groupOrderId") : undefined,
-        subOrderId: level === "sub" ? requiredString(req.body?.subOrderId, "subOrderId") : undefined,
-        truckId: level === "truck" ? requiredString(req.body?.truckId, "truckId") : undefined,
+        subOrderId: requiredString(req.body?.subOrderId, "subOrderId"),
       },
     });
     res.json({ comment });

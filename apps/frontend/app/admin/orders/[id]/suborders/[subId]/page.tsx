@@ -48,7 +48,7 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
             ) : null}
           </div>
           <AdminSubOrderForms orderId={id} sub={sub} />
-          <CommentsSection target={{ level: "sub", groupOrderId: id, subOrderId: sub.id }} comments={sub.comments ?? []} />
+          <CommentsSection target={{ groupOrderId: id, subOrderId: sub.id }} comments={sub.comments ?? []} />
         </div>
 
         <div>
