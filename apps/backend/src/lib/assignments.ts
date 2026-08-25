@@ -3,7 +3,7 @@ import { badRequest, conflict, notFound, unauthorized } from "./errors.js";
 import { hashPairingCode, issuePairingCode, pairingCodesMatch, pairingExpiryDate } from "./pairing.js";
 import { normalizePhone, normalizePlate, optionalString } from "./input.js";
 import { signDriverToken } from "./auth.js";
-import { assertCanAddDirectTruck } from "./lifecycle.js";
+import { assertCanAddDirectTruck, assertSubOrderMutable } from "./lifecycle.js";
 
 export const assignmentPublicSelect = {
   id: true,
@@ -21,7 +21,12 @@ export const assignmentPublicSelect = {
 } as const;
 
 const driverTruckInclude = {
-  truck: { include: { subOrder: { include: { groupOrder: true } } } },
+  truck: {
+    include: {
+      transfersFrom: { select: { id: true } },
+      subOrder: { include: { groupOrder: true } },
+    },
+  },
 } as const;
 
 function platesEqual(left: string | null | undefined, right: string) {
@@ -29,7 +34,9 @@ function platesEqual(left: string | null | undefined, right: string) {
 }
 
 export async function findTruckInSubOrder(subOrderId: string, plateNumber: string) {
-  const trucks = await prisma.truck.findMany({ where: { subOrderId, canceledAt: null } });
+  const trucks = await prisma.truck.findMany({
+    where: { subOrderId, canceledAt: null, transfersFrom: { none: {} } },
+  });
   return trucks.find((truck) => platesEqual(truck.plateNumber, plateNumber)) ?? null;
 }
 
@@ -44,7 +51,7 @@ export async function createDriverAssignment(params: {
   const phoneNormalized = normalizePhone(params.phone);
   const sub = await prisma.subOrder.findUnique({ where: { id: params.subOrderId } });
   if (!sub) notFound("Sub-order not found");
-  if (sub.status !== "OPEN") badRequest("This sub-order is closed");
+  await assertSubOrderMutable(sub.id);
 
   let truck = await findTruckInSubOrder(sub.id, plateNumber);
   if (!truck) {
@@ -209,14 +216,22 @@ export function assertAssignmentUsable(
   assignment: {
     status: string;
     tokenVersion: number;
-    truck: { canceledAt: Date | null; subOrder: { status: string } };
+    truck: {
+      canceledAt: Date | null;
+      transfersFrom?: { id: string }[];
+      subOrder: { status: string; groupOrder?: { canceledAt: Date | null } | null };
+    };
   },
   tokenVersion: number
 ) {
   if (assignment.status !== "ACTIVE") unauthorized("This pairing is no longer active");
   if (assignment.tokenVersion !== tokenVersion) unauthorized("Sign in again with a new code");
   if (assignment.truck.canceledAt) unauthorized("This truck is canceled");
+  if (assignment.truck.transfersFrom && assignment.truck.transfersFrom.length > 0) {
+    unauthorized("This truck already transferred cargo");
+  }
   if (assignment.truck.subOrder.status !== "OPEN") unauthorized("This trip is already closed");
+  if (assignment.truck.subOrder.groupOrder?.canceledAt) unauthorized("This order is canceled");
 }
 
 export function formatGpsLabel(lat: number, lng: number, locationText?: string | null) {
@@ -236,12 +251,21 @@ export async function recordDriverPing(params: {
 
   const assignment = await prisma.driverAssignment.findUnique({
     where: { id: assignmentId },
-    include: { truck: { include: { subOrder: true } } },
+    include: {
+      truck: {
+        include: {
+          transfersFrom: { select: { id: true } },
+          subOrder: { include: { groupOrder: true } },
+        },
+      },
+    },
   });
   if (!assignment) unauthorized();
   if (assignment.status !== "ACTIVE") unauthorized("This pairing is no longer active");
   if (assignment.truck.canceledAt) unauthorized("This truck is canceled");
+  if (assignment.truck.transfersFrom.length > 0) unauthorized("This truck already transferred cargo");
   if (assignment.truck.subOrder.status !== "OPEN") unauthorized("This trip is already closed");
+  if (assignment.truck.subOrder.groupOrder.canceledAt) unauthorized("This order is canceled");
 
   if (assignment.lastPingAt && Date.now() - assignment.lastPingAt.getTime() < 60_000) {
     conflict("Location was just sent. Wait a minute before sending again.");

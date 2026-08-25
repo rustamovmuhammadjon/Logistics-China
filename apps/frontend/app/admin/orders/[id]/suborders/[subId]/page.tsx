@@ -5,6 +5,7 @@ import {
   formatDate,
   formatDateTime,
   subOrderStatusLabel,
+  truckRoleLabel,
   type CommentDto,
   type CargoTransferDto,
   type GroupOrderDto,
@@ -14,6 +15,7 @@ import {
 import { serverApiOrNull } from "@/lib/server-api";
 import { CommentsSection } from "@/components/CommentsSection";
 import { PaymentBadge } from "@/components/PaymentBadge";
+import { SubOrderLocation } from "@/components/TruckReadout";
 import { AdminSubOrderForms } from "./AdminSubOrderForms";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +50,7 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
             ) : null}
           </div>
           <AdminSubOrderForms orderId={id} sub={sub} />
+          <SubOrderLocation trucks={sub.trucks} />
           <CommentsSection target={{ groupOrderId: id, subOrderId: sub.id }} comments={sub.comments ?? []} />
         </div>
 
@@ -57,7 +60,9 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
             <p className="card text-center text-slate-400">No trucks yet.</p>
           ) : (
             <ul className="space-y-3">
-              {sub.trucks.map((truck) => (
+              {sub.trucks.map((truck, index) => {
+                const role = truckRoleLabel(truck);
+                return (
                 <li key={truck.id}>
                   <Link
                     href={`/admin/orders/${id}/suborders/${sub.id}/trucks/${truck.id}`}
@@ -66,7 +71,7 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="font-medium text-slate-900">
-                          {truck.plateNumber || "Truck"}
+                          Truck {index + 1}: {truck.plateNumber || "Truck"}
                           {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
                         </p>
                         <p className="text-xs text-slate-400">
@@ -81,13 +86,21 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <span
+                          className={
+                            role === "Cancelled" ? "badge-red" : role === "Transferred" ? "badge-slate" : "badge-green"
+                          }
+                        >
+                          {role}
+                        </span>
                         <PaymentBadge status={truck.driverPaymentStatus} label="Driver" />
                         <PaymentBadge status={truck.customerPaymentStatus} label="Customer" />
                       </div>
                     </div>
                   </Link>
                 </li>
-              ))}
+              );
+              })}
             </ul>
           )}
         </div>

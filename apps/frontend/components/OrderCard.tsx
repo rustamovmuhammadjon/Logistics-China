@@ -4,6 +4,7 @@ import {
   formatDirection,
   getOrderHref,
   subOrderStatusLabel,
+  truckRoleLabel,
   truckStats,
   type GroupOrderDto,
   type ViewerContext,
@@ -47,8 +48,7 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
       {ctx.kind === "admin" && (
         <div className="mt-3 space-y-1 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
           <p>
-            <span className="font-medium text-slate-500">Consignee:</span>{" "}
-            {order.owner?.email ?? "Not assigned"}
+            <span className="font-medium text-slate-500">Consignee:</span> {order.owner?.email ?? "Not assigned"}
           </p>
           <p>
             <span className="font-medium text-slate-500">Operators:</span>{" "}
@@ -66,7 +66,11 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
             return (
               <li key={sub.id} className="text-sm text-slate-600">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                  <span
+                    className={
+                      sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
+                    }
+                  >
                     {subOrderStatusLabel(sub.status)}
                   </span>
                   <span>{sub.name || "Sub-order"}</span>
@@ -75,6 +79,23 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
                     {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                   </span>
                 </div>
+                {sub.trucks.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
+                    {sub.trucks.map((truck) => {
+                      const role = truckRoleLabel(truck);
+                      return (
+                        <li key={truck.id}>
+                          <span className="font-medium text-slate-700">{truck.plateNumber || "No plate"}</span>
+                          {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
+                          {truck.driverPhone ? ` · ${truck.driverPhone}` : ""}
+                          {role !== "Current" ? (
+                            <span className="text-slate-400"> · {role.toLowerCase()}</span>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}

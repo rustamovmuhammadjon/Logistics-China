@@ -11,25 +11,30 @@ export function CargoTransferForm({
   trucks,
   transfers,
   canDelete = false,
+  readOnly = false,
 }: {
   apiBase: string;
   trucks: TruckDto[];
   transfers: CargoTransferDto[];
   canDelete?: boolean;
+  readOnly?: boolean;
 }) {
   const { submit, pending, error } = useApiSubmit();
   const [keepTrailer, setKeepTrailer] = useState(false);
 
   return (
     <div className="space-y-3">
+      {!readOnly && (
       <div>
         <h3 className="text-sm font-semibold text-slate-900">Cargo transfer</h3>
         <p className="mt-1 text-xs text-slate-400">
-          Move cargo to a new truck. Keep the same trailer (only the tractor changes) or enter a new trailer plate.
+          Move cargo to a new truck. Only cargo weight is copied automatically. Keep the same trailer (only the tractor
+          changes) or enter a new trailer plate.
         </p>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {trucks.length === 0 ? (
+      )}
+      {error && !readOnly && <p className="text-sm text-red-600">{error}</p>}
+      {readOnly ? null : trucks.length === 0 ? (
         <p className="text-sm text-slate-400">Add the current truck first, then record a transfer.</p>
       ) : (
         <form
@@ -96,7 +101,9 @@ export function CargoTransferForm({
         </form>
       )}
       {transfers.length > 0 && (
-        <ul className="space-y-2">
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-slate-900">Cargo transfers</h3>
+          <ul className="space-y-2">
           {transfers.map((transfer) => (
             <li
               key={transfer.id}
@@ -127,7 +134,8 @@ export function CargoTransferForm({
               )}
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
       )}
     </div>
   );

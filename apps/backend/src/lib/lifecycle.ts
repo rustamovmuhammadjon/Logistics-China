@@ -8,6 +8,19 @@ export async function assertGroupOrderActive(orderId: string) {
   return order;
 }
 
+export async function assertGroupOrderMutable(orderId: string) {
+  const order = await prisma.groupOrder.findUnique({
+    where: { id: orderId },
+    include: { subOrders: { select: { status: true } } },
+  });
+  if (!order) notFound();
+  if (order.canceledAt) badRequest("This order is canceled and cannot be changed");
+  const hasOpen = order.subOrders.some((sub) => sub.status === "OPEN");
+  const hasClosed = order.subOrders.some((sub) => sub.status === "CLOSED");
+  if (hasClosed && !hasOpen) badRequest("This order is completed and cannot be changed");
+  return order;
+}
+
 export async function assertSubOrderNotCanceled(subOrderId: string) {
   const sub = await prisma.subOrder.findUnique({ where: { id: subOrderId } });
   if (!sub) notFound("Sub-order not found");
@@ -21,16 +34,47 @@ export async function assertSubOrderOpen(subOrderId: string) {
   return sub;
 }
 
+export async function assertSubOrderMutable(subOrderId: string) {
+  const sub = await assertSubOrderOpen(subOrderId);
+  await assertGroupOrderMutable(sub.groupOrderId);
+  return sub;
+}
+
 export async function countActiveTrucks(subOrderId: string) {
-  return prisma.truck.count({ where: { subOrderId, canceledAt: null } });
+  return prisma.truck.count({
+    where: { subOrderId, canceledAt: null, transfersFrom: { none: {} } },
+  });
 }
 
 export async function assertCanAddDirectTruck(subOrderId: string) {
-  await assertSubOrderOpen(subOrderId);
+  await assertSubOrderMutable(subOrderId);
   const active = await countActiveTrucks(subOrderId);
   if (active > 0) {
     badRequest("This sub-order already has a truck. Record a cargo transfer to add another truck.");
   }
+}
+
+export async function assertTruckNotFrozen(truckId: string, subOrderId?: string) {
+  const truck = await prisma.truck.findUnique({
+    where: { id: truckId },
+    include: {
+      transfersFrom: { select: { id: true } },
+      subOrder: true,
+    },
+  });
+  if (!truck) notFound("Truck not found");
+  if (subOrderId && truck.subOrderId !== subOrderId) notFound("Truck not found");
+  if (truck.canceledAt) badRequest("This truck is canceled");
+  if (truck.transfersFrom.length > 0) {
+    badRequest("This truck already transferred cargo and cannot be changed");
+  }
+  return truck;
+}
+
+export async function assertTruckMutable(truckId: string, subOrderId?: string) {
+  const truck = await assertTruckNotFrozen(truckId, subOrderId);
+  await assertSubOrderMutable(truck.subOrderId);
+  return truck;
 }
 
 export async function cancelGroupOrder(id: string) {
@@ -54,8 +98,14 @@ export async function cancelSubOrder(id: string, groupOrderId: string) {
 }
 
 export async function cancelTruck(id: string, subOrderId: string) {
-  const existing = await prisma.truck.findUnique({ where: { id } });
+  const existing = await prisma.truck.findUnique({
+    where: { id },
+    include: { transfersFrom: { select: { id: true } } },
+  });
   if (!existing || existing.subOrderId !== subOrderId) notFound();
+  if (existing.transfersFrom.length > 0) {
+    badRequest("This truck already transferred cargo and cannot be changed");
+  }
   if (!existing.canceledAt) {
     await prisma.truck.update({
       where: { id },

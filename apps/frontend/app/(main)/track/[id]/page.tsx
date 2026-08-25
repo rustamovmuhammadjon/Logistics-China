@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { formatDate, formatDateTime, formatDirection, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
-import { LocationBadge } from "@/components/LocationBadge";
-import { PaymentBadge } from "@/components/PaymentBadge";
+import { CargoTransferForm } from "@/components/CargoTransferForm";
+import { SubOrderLocation, TruckSequence, transferHistory } from "@/components/TruckReadout";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +76,10 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
                 </div>
               </summary>
 
+              <div className="mt-4">
+                <SubOrderLocation trucks={sub.trucks} />
+              </div>
+
               {sub.comments && sub.comments.length > 0 && (
                 <ul className="mt-4 space-y-2">
                   {sub.comments.map((c) => (
@@ -91,44 +95,13 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
               )}
 
               <div className="mt-4 space-y-3">
-                {sub.trucks.map((truck) => (
-                  <div key={truck.id} className="rounded-xl border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {truck.plateNumber || "Truck"}
-                          {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {truck.driverName ? `${truck.driverName} · ` : ""}
-                          {truck.driverPhone || ""}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <PaymentBadge status={truck.driverPaymentStatus} label="Driver" />
-                        <PaymentBadge status={truck.customerPaymentStatus} label="Customer" />
-                      </div>
-                    </div>
-                    <LocationBadge
-                      statusText={truck.currentLocation}
-                      updatedAt={truck.locationUpdatedAt}
-                      lat={truck.lastLat}
-                      lng={truck.lastLng}
-                    />
-                    {truck.media && truck.media.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {truck.media.map((m) =>
-                          m.type === "IMAGE" ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img key={m.id} src={m.url} alt={m.fileName ?? "photo"} className="h-20 w-20 rounded-md object-cover" />
-                          ) : (
-                            <video key={m.id} src={m.url} controls className="h-20 rounded-md" />
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                <TruckSequence trucks={sub.trucks} />
+                <CargoTransferForm
+                  apiBase=""
+                  trucks={[]}
+                  transfers={transferHistory(sub.trucks)}
+                  readOnly
+                />
               </div>
             </details>
           );

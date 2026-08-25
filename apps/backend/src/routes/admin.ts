@@ -7,7 +7,7 @@ import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
-import { assertCanAddDirectTruck, assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, cancelTruck, completeSubOrder } from "../lib/lifecycle.js";
+import { assertCanAddDirectTruck, assertGroupOrderActive, assertTruckNotFrozen, cancelGroupOrder, cancelSubOrder, cancelTruck, completeSubOrder } from "../lib/lifecycle.js";
 import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -265,8 +265,7 @@ adminRouter.get(
 adminRouter.patch(
   "/orders/:id/sub-orders/:subId/trucks/:truckId",
   asyncHandler(async (req, res) => {
-    const existing = await prisma.truck.findUnique({ where: { id: req.params.truckId } });
-    if (!existing || existing.subOrderId !== req.params.subId) notFound();
+    const existing = await assertTruckNotFrozen(req.params.truckId, req.params.subId);
     const data = truckFields(req.body);
     const clash = await findActivePlateConflict({
       plateNumber: data.plateNumber,
@@ -398,12 +397,14 @@ adminRouter.delete(
 adminRouter.post(
   "/media",
   asyncHandler(async (req, res) => {
+    const truckId = requiredString(req.body?.truckId, "truckId");
+    await assertTruckNotFrozen(truckId);
     const url = requiredString(req.body?.url, "url");
     assertSupabasePublicUrl(url);
     const type = req.body?.type === "VIDEO" ? "VIDEO" : "IMAGE";
     const media = await prisma.media.create({
       data: {
-        truckId: requiredString(req.body?.truckId, "truckId"),
+        truckId,
         url,
         type,
         fileName: optionalString(req.body?.fileName),

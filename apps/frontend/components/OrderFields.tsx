@@ -10,32 +10,57 @@ type OrderLike = {
   volumeInfo?: string | null;
 };
 
-export function OrderFields({ order }: { order?: OrderLike }) {
+export function OrderFields({ order, readOnly = false }: { order?: OrderLike; readOnly?: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label className="field-label">Name (required)</label>
-        <input className="field-input" type="text" name="name" defaultValue={order?.name ?? ""} required />
+        <input
+          className="field-input"
+          type="text"
+          name="name"
+          defaultValue={order?.name ?? ""}
+          required
+          readOnly={readOnly}
+        />
       </div>
       <div>
         <label className="field-label">Opened date</label>
-        <input className="field-input" type="date" name="openedAt" defaultValue={toDateInputValue(order?.openedAt)} />
+        <input
+          className="field-input"
+          type="date"
+          name="openedAt"
+          defaultValue={toDateInputValue(order?.openedAt)}
+          readOnly={readOnly}
+        />
       </div>
       <div>
         <label className="field-label">Origin (from)</label>
-        <input className="field-input" type="text" name="origin" defaultValue={order?.origin ?? ""} />
+        <input className="field-input" type="text" name="origin" defaultValue={order?.origin ?? ""} readOnly={readOnly} />
       </div>
       <div>
         <label className="field-label">Destination (to)</label>
-        <input className="field-input" type="text" name="destination" defaultValue={order?.destination ?? ""} />
+        <input
+          className="field-input"
+          type="text"
+          name="destination"
+          defaultValue={order?.destination ?? ""}
+          readOnly={readOnly}
+        />
       </div>
       <div>
         <label className="field-label">POL (place of loading)</label>
-        <input className="field-input" type="text" name="pol" defaultValue={order?.pol ?? ""} />
+        <input className="field-input" type="text" name="pol" defaultValue={order?.pol ?? ""} readOnly={readOnly} />
       </div>
       <div>
         <label className="field-label">Commodity</label>
-        <input className="field-input" type="text" name="commodity" defaultValue={order?.commodity ?? ""} />
+        <input
+          className="field-input"
+          type="text"
+          name="commodity"
+          defaultValue={order?.commodity ?? ""}
+          readOnly={readOnly}
+        />
       </div>
       <div className="sm:col-span-2">
         <label className="field-label">Volume</label>
@@ -45,6 +70,7 @@ export function OrderFields({ order }: { order?: OrderLike }) {
           name="volumeInfo"
           defaultValue={order?.volumeInfo ?? ""}
           placeholder="e.g. 8xFTL"
+          readOnly={readOnly}
         />
       </div>
     </div>

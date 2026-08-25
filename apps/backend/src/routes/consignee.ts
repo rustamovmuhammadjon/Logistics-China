@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { notFound, unauthorized } from "../lib/errors.js";
+import { badRequest, notFound, unauthorized } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude } from "../lib/orders.js";
-import { assertGroupOrderActive, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
+import { assertGroupOrderMutable, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireConsignee, type AuthedRequest } from "../middleware/auth.js";
 
@@ -72,6 +72,7 @@ consigneeRouter.patch(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     const fields = orderFields(req.body);
     const order = await prisma.groupOrder.update({
       where: { id: req.params.id },
@@ -87,6 +88,7 @@ consigneeRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     await cancelGroupOrder(req.params.id);
     res.json({ ok: true });
   })
@@ -97,6 +99,7 @@ consigneeRouter.delete(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     await cancelGroupOrder(req.params.id);
     res.json({ ok: true });
   })
@@ -107,7 +110,7 @@ consigneeRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
-    await assertGroupOrderActive(req.params.id);
+    await assertGroupOrderMutable(req.params.id);
     const subOrder = await prisma.subOrder.create({
       data: {
         groupOrderId: req.params.id,
@@ -125,8 +128,10 @@ consigneeRouter.patch(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     const existing = await prisma.subOrder.findUnique({ where: { id: req.params.subId } });
     if (!existing || existing.groupOrderId !== req.params.id) notFound();
+    if (existing.status !== "OPEN") badRequest("This sub-order cannot be changed");
     const subOrder = await prisma.subOrder.update({
       where: { id: existing.id },
       data: { name: optionalString(req.body?.name) },
@@ -140,6 +145,7 @@ consigneeRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     await completeSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })
@@ -150,6 +156,7 @@ consigneeRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })
@@ -160,6 +167,7 @@ consigneeRouter.delete(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me.id);
+    await assertGroupOrderMutable(req.params.id);
     await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })

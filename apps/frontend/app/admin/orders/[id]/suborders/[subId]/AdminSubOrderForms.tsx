@@ -103,7 +103,6 @@ export function AdminSubOrderForms({
           <Field name="widthM" label="Width (m)" type="number" />
           <Field name="heightM" label="Height (m)" type="number" />
           <Field name="cargoWeight" label="Cargo weight (kg)" type="number" />
-          <Field name="cargoDescription" label="Cargo description" />
           <div className="sm:col-span-3">
             <Field name="currentLocation" label="Current location" />
           </div>
@@ -117,7 +116,7 @@ export function AdminSubOrderForms({
       )}
       {sub.status === "OPEN" && sub.trucks.some(isActiveTruck) && (
         <p className="text-sm text-slate-400">
-          This sub-order already has an active truck. Use cargo transfer to add another one, or cancel the current truck first.
+          This sub-order already has a current truck. Use cargo transfer to add another one, or cancel the current truck first.
         </p>
       )}
 

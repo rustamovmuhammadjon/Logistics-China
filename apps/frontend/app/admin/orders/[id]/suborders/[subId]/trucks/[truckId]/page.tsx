@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { CargoTransferDto, MediaDto, TruckDto } from "@logistics/shared";
-import { formatDate } from "@logistics/shared";
+import { formatDate, hasTransferredOut } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { MediaUploader } from "@/components/MediaUploader";
 import { AdminTruckForms } from "./AdminTruckForms";
@@ -28,6 +28,7 @@ export default async function AdminTruckPage({
   );
   if (!data) notFound();
   const truck = data.truck;
+  const frozen = Boolean(truck.canceledAt) || hasTransferredOut(truck);
 
   return (
     <div className="space-y-6">
@@ -62,7 +63,7 @@ export default async function AdminTruckPage({
 
         <div className="card space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Photos & videos</h2>
-          <MediaUploader groupOrderId={id} subOrderId={subId} truckId={truck.id} />
+          {!frozen && <MediaUploader groupOrderId={id} subOrderId={subId} truckId={truck.id} />}
           {truck.media.length === 0 ? (
             <p className="text-sm text-slate-400">No media uploaded yet.</p>
           ) : (

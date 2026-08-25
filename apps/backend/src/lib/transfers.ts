@@ -2,7 +2,7 @@ import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
 import { normalizePhone, normalizePlate, optionalDate, optionalString, requiredString, truthyFlag } from "./input.js";
-import { assertSubOrderOpen } from "./lifecycle.js";
+import { assertSubOrderMutable } from "./lifecycle.js";
 
 export async function createCargoTransfer(params: {
   subOrderId: string;
@@ -14,10 +14,16 @@ export async function createCargoTransfer(params: {
   const comment = optionalString(body.comment);
   const transferDate = optionalDate(body.transferDate);
 
-  const fromTruck = await prisma.truck.findUnique({ where: { id: fromTruckId } });
+  const fromTruck = await prisma.truck.findUnique({
+    where: { id: fromTruckId },
+    include: { transfersFrom: { select: { id: true } } },
+  });
   if (!fromTruck || fromTruck.subOrderId !== subOrderId) notFound("Source truck not found");
   if (fromTruck.canceledAt) badRequest("This truck is canceled");
-  await assertSubOrderOpen(subOrderId);
+  if (fromTruck.transfersFrom.length > 0) {
+    badRequest("This truck already transferred cargo. Use the current truck.");
+  }
+  await assertSubOrderMutable(subOrderId);
 
   let toTruckId = optionalString(body.toTruckId);
   const toPlateRaw = optionalString(body.toPlateNumber) ?? optionalString(body.plateNumber);
@@ -32,19 +38,30 @@ export async function createCargoTransfer(params: {
   }
 
   if (toTruckId) {
-    const existing = await prisma.truck.findUnique({ where: { id: toTruckId } });
+    const existing = await prisma.truck.findUnique({
+      where: { id: toTruckId },
+      include: { transfersFrom: { select: { id: true } } },
+    });
     if (!existing || existing.subOrderId !== subOrderId) notFound("Destination truck not found");
     if (existing.canceledAt) badRequest("Destination truck is canceled");
+    if (existing.transfersFrom.length > 0) badRequest("Destination truck already transferred cargo");
     if (existing.id === fromTruck.id) badRequest("Choose a different destination truck");
     toPlate = existing.plateNumber ? existing.plateNumber.replace(/\s+/g, "").toUpperCase() : toPlate;
   } else {
     if (!toPlate) badRequest("Enter the destination truck plate number");
-    const trucks = await prisma.truck.findMany({ where: { subOrderId, canceledAt: null } });
+    const trucks = await prisma.truck.findMany({
+      where: { subOrderId },
+      include: { transfersFrom: { select: { id: true } } },
+    });
     const existing = trucks.find(
       (truck) => truck.plateNumber && truck.plateNumber.replace(/\s+/g, "").toUpperCase() === toPlate
     );
     if (existing) {
       if (existing.id === fromTruck.id) badRequest("Destination truck must be different from the source");
+      if (existing.canceledAt) badRequest("Destination truck is canceled");
+      if (existing.transfersFrom.length > 0) {
+        badRequest("That truck already transferred cargo. Enter a new truck plate.");
+      }
       toTruckId = existing.id;
     }
   }
@@ -66,36 +83,29 @@ export async function createCargoTransfer(params: {
         driverName: optionalString(body.driverName),
         driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : null,
         cargoWeight: fromTruck.cargoWeight,
-        cargoDescription: fromTruck.cargoDescription,
-        lengthM: fromTruck.lengthM,
-        widthM: fromTruck.widthM,
-        heightM: fromTruck.heightM,
       },
     });
     toTruckId = created.id;
-  } else if (keepTrailer || toTrailer) {
+  } else {
+    const driverName = optionalString(body.driverName);
+    const driverPhoneRaw = optionalString(body.driverPhone);
     await prisma.truck.update({
       where: { id: toTruckId },
       data: {
-        trailerPlateNumber: toTrailer,
-        driverName: optionalString(body.driverName) ?? undefined,
-        driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : undefined,
+        cargoWeight: fromTruck.cargoWeight,
+        ...(toTrailer ? { trailerPlateNumber: toTrailer } : {}),
+        ...(driverName ? { driverName } : {}),
+        ...(driverPhoneRaw ? { driverPhone: normalizePhone(driverPhoneRaw) } : {}),
       },
     });
   }
 
   const snapshotFromTrailer = fromTruck.trailerPlateNumber;
-  if (keepTrailer) {
-    await prisma.truck.update({
-      where: { id: fromTruck.id },
-      data: { trailerPlateNumber: null },
-    });
-  }
 
   const toTruck = await prisma.truck.findUnique({ where: { id: toTruckId } });
   if (!toTruck) notFound("Destination truck not found");
 
-  return prisma.cargoTransfer.create({
+  const transfer = await prisma.cargoTransfer.create({
     data: {
       fromTruckId: fromTruck.id,
       toTruckId: toTruck.id,
@@ -112,4 +122,11 @@ export async function createCargoTransfer(params: {
       toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } },
     },
   });
+
+  await prisma.driverAssignment.updateMany({
+    where: { truckId: fromTruck.id, status: { in: ["PENDING", "ACTIVE"] } },
+    data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
+  });
+
+  return transfer;
 }

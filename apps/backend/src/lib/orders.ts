@@ -42,7 +42,15 @@ export function buildOrderOrderBy(sort: string | undefined): Prisma.GroupOrderOr
 }
 
 export const listInclude = {
-  subOrders: { include: { trucks: true }, orderBy: { createdAt: "asc" as const } },
+  subOrders: {
+    orderBy: { createdAt: "asc" as const },
+    include: {
+      trucks: {
+        orderBy: { createdAt: "asc" as const },
+        include: { transfersFrom: { select: { id: true } } },
+      },
+    },
+  },
 };
 
 const personSelect = {
@@ -213,7 +221,6 @@ export function truckFields(body: Record<string, unknown>) {
     widthM: optionalFloat(body.widthM),
     heightM: optionalFloat(body.heightM),
     cargoWeight: optionalFloat(body.cargoWeight),
-    cargoDescription: optionalString(body.cargoDescription),
     currentLocation: optionalString(body.currentLocation),
   };
 }
@@ -239,6 +246,7 @@ export async function findActivePlateConflict(params: {
       id: excludeTruckId ? { not: excludeTruckId } : undefined,
       subOrderId: { not: subOrderId },
       canceledAt: null,
+      transfersFrom: { none: {} },
       subOrder: { status: "OPEN", groupOrder: { canceledAt: null } },
       OR: or,
     },

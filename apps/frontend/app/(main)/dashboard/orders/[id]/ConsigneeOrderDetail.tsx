@@ -1,45 +1,68 @@
 "use client";
 
 import { Ban, CheckCircle2 } from "lucide-react";
-import { formatDate, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
+import {
+  formatDate,
+  formatDateTime,
+  isGroupOrderLocked,
+  subOrderStatusLabel,
+  truckStats,
+  type CommentDto,
+  type GroupOrderDto,
+} from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { OrderFields } from "@/components/OrderFields";
+import { SubOrderLocation, TruckSequence, transferHistory } from "@/components/TruckReadout";
+import { CargoTransferForm } from "@/components/CargoTransferForm";
 
 export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
   const { submit, pending, error } = useApiSubmit();
+  const locked = isGroupOrderLocked(order);
 
   return (
     <div className="space-y-6">
       <div className="card space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
-          <ConfirmButton
-            confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
-            disabled={pending}
-            onConfirm={() => submit(`/api/consignee/orders/${order.id}/cancel`, { method: "POST", redirectTo: "/cancelled" })}
-          >
-            <Ban className="h-4 w-4" />
-            Cancel order
-          </ConfirmButton>
+          {!locked && (
+            <ConfirmButton
+              confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
+              disabled={pending}
+              onConfirm={() => submit(`/api/consignee/orders/${order.id}/cancel`, { method: "POST", redirectTo: "/cancelled" })}
+            >
+              <Ban className="h-4 w-4" />
+              Cancel order
+            </ConfirmButton>
+          )}
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit(`/api/consignee/orders/${order.id}`, { method: "PATCH", body: formToJson(e.currentTarget) });
-          }}
-        >
-          <OrderFields order={order} />
-          <button type="submit" className="btn-primary mt-4" disabled={pending}>
-            {pending ? "Saving…" : "Save changes"}
-          </button>
-        </form>
+        {locked && (
+          <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            This order is {order.canceledAt ? "cancelled" : "completed"} and cannot be changed.
+          </p>
+        )}
+
+        {locked ? (
+          <OrderFields order={order} readOnly />
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit(`/api/consignee/orders/${order.id}`, { method: "PATCH", body: formToJson(e.currentTarget) });
+            }}
+          >
+            <OrderFields order={order} />
+            <button type="submit" className="btn-primary mt-4" disabled={pending}>
+              {pending ? "Saving…" : "Save changes"}
+            </button>
+          </form>
+        )}
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
-      {!order.canceledAt && (
+      {!locked && (
         <div className="card">
           <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
           <form
@@ -75,6 +98,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
           <ul className="space-y-3">
             {order.subOrders.map((sub) => {
               const stats = truckStats(sub.trucks);
+              const subLocked = locked || sub.status !== "OPEN";
               return (
                 <li key={sub.id} className="card space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -85,10 +109,10 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
                     >
                       {subOrderStatusLabel(sub.status)}
                     </span>
-                    <span className="badge-slate">{stats.total} trucks (read-only)</span>
+                    <span className="badge-slate">{stats.total} trucks</span>
                   </div>
 
-                  {sub.status === "CANCELED" ? (
+                  {subLocked ? (
                     <p className="font-medium text-slate-900">{sub.name || "Sub-order"}</p>
                   ) : (
                     <form
@@ -116,7 +140,31 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
                     {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                   </p>
 
-                  {sub.status === "OPEN" && !order.canceledAt && (
+                  <SubOrderLocation trucks={sub.trucks} />
+
+                  {sub.comments && sub.comments.length > 0 && (
+                    <ul className="space-y-2">
+                      {sub.comments.map((comment: CommentDto) => (
+                        <li key={comment.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                          <p className="whitespace-pre-wrap text-slate-800">{comment.text}</p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {comment.author ? `${comment.author} · ` : ""}
+                            {formatDateTime(comment.createdAt)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <TruckSequence trucks={sub.trucks} />
+                  <CargoTransferForm
+                    apiBase={`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`}
+                    trucks={[]}
+                    transfers={transferHistory(sub.trucks)}
+                    readOnly
+                  />
+
+                  {sub.status === "OPEN" && !locked && (
                     <div className="flex flex-wrap gap-2">
                       <ConfirmButton
                         className="btn-primary"

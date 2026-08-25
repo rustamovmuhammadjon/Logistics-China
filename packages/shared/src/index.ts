@@ -204,8 +204,58 @@ export function truckStats(
   return { total, driverPaid, customerPaid };
 }
 
-export function isActiveTruck(truck: { canceledAt?: string | Date | null }) {
-  return !truck.canceledAt;
+export function hasTransferredOut(truck: { transfersFrom?: unknown[] | null }) {
+  return Array.isArray(truck.transfersFrom) && truck.transfersFrom.length > 0;
+}
+
+export function isCurrentTruck(truck: {
+  canceledAt?: string | Date | null;
+  transfersFrom?: unknown[] | null;
+}) {
+  return !truck.canceledAt && !hasTransferredOut(truck);
+}
+
+export function isActiveTruck(truck: {
+  canceledAt?: string | Date | null;
+  transfersFrom?: unknown[] | null;
+}) {
+  return isCurrentTruck(truck);
+}
+
+export function currentTruckOf<T extends {
+  canceledAt?: string | Date | null;
+  transfersFrom?: unknown[] | null;
+  createdAt?: string | Date;
+}>(trucks: T[]): T | null {
+  const current = trucks.filter(isCurrentTruck);
+  if (current.length === 0) return null;
+  return [...current].sort((a, b) => String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""))).at(-1) ?? null;
+}
+
+export function isGroupOrderCompleted(order: {
+  canceledAt?: string | Date | null;
+  subOrders: { status: SubOrderStatus }[];
+}) {
+  if (order.canceledAt) return false;
+  const hasOpen = order.subOrders.some((sub) => sub.status === "OPEN");
+  const hasClosed = order.subOrders.some((sub) => sub.status === "CLOSED");
+  return hasClosed && !hasOpen;
+}
+
+export function isGroupOrderLocked(order: {
+  canceledAt?: string | Date | null;
+  subOrders: { status: SubOrderStatus }[];
+}) {
+  return Boolean(order.canceledAt) || isGroupOrderCompleted(order);
+}
+
+export function truckRoleLabel(truck: {
+  canceledAt?: string | Date | null;
+  transfersFrom?: unknown[] | null;
+}) {
+  if (truck.canceledAt) return "Cancelled";
+  if (hasTransferredOut(truck)) return "Transferred";
+  return "Current";
 }
 
 export function subOrderStatusLabel(status: SubOrderStatus) {
