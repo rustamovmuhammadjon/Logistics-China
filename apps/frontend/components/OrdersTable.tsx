@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   currentTruckOf,
@@ -9,7 +8,6 @@ import {
   formatDateTime,
   formatDirection,
   freshnessBadgeClass,
-  getOrderHref,
   locationFreshness,
   subOrderStatusLabel,
   truckStats,
@@ -32,8 +30,29 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
   }
 
   return (
-    <div className="card overflow-x-auto p-0">
-      <table className="w-full min-w-[720px] text-sm">
+    <div className="card w-full overflow-x-auto p-0">
+      <table className="w-full min-w-[900px] table-fixed text-sm">
+        <colgroup>
+          {isAdmin ? (
+            <>
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "21%" }} />
+              <col style={{ width: "21%" }} />
+            </>
+          ) : (
+            <>
+              <col style={{ width: "30%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+            </>
+          )}
+        </colgroup>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <th className="px-4 py-3">Order</th>
@@ -62,23 +81,28 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
                       ) : (
                         <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
                       )}
-                      <Link
-                        href={getOrderHref(order, ctx)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium text-brand-700 hover:underline"
-                      >
+                      <span className="truncate font-medium text-slate-900" title={order.name}>
                         {order.name}
-                      </Link>
-                      {order.canceledAt ? <span className="badge-red text-xs">Cancelled</span> : null}
+                      </span>
+                      {order.canceledAt ? <span className="badge-red shrink-0 text-xs">Cancelled</span> : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{formatDirection(order.origin, order.destination) || "—"}</td>
+                  <td className="truncate px-4 py-3 text-slate-600">
+                    {formatDirection(order.origin, order.destination) || "—"}
+                  </td>
                   <td className="px-4 py-3 text-slate-600">{formatDate(order.openedAt)}</td>
                   <td className="px-4 py-3 text-slate-600">{order.subOrders.length}</td>
                   <td className="px-4 py-3 text-slate-600">{stats.total}</td>
-                  {isAdmin && <td className="px-4 py-3 text-slate-600">{order.owner?.email ?? "Not assigned"}</td>}
                   {isAdmin && (
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="truncate px-4 py-3 text-slate-600" title={order.owner?.email ?? undefined}>
+                      {order.owner?.email ?? "Not assigned"}
+                    </td>
+                  )}
+                  {isAdmin && (
+                    <td
+                      className="truncate px-4 py-3 text-slate-600"
+                      title={order.operators?.map((p) => p.email).join(", ") ?? undefined}
+                    >
                       {order.operators && order.operators.length > 0
                         ? order.operators.map((person) => person.email).join(", ")
                         : "None linked"}
@@ -107,8 +131,19 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table className="w-full min-w-[960px] text-sm">
+    <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <table className="w-full min-w-[1100px] table-fixed text-sm">
+        <colgroup>
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "12%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "14%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "12%" }} />
+        </colgroup>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <th className="px-4 py-3">Sub-order</th>
@@ -131,7 +166,9 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
             const comment = sub.comments?.[0]?.text ?? null;
             return (
               <tr key={sub.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-800">{sub.name || "Sub-order"}</td>
+                <td className="truncate px-4 py-3 font-medium text-slate-800" title={sub.name ?? undefined}>
+                  {sub.name || "Sub-order"}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={
@@ -141,13 +178,15 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
                     {subOrderStatusLabel(sub.status)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{current?.plateNumber || "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{current?.trailerPlateNumber || "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{current?.driverPhone || "—"}</td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="truncate px-4 py-3 text-slate-600">{current?.plateNumber || "—"}</td>
+                <td className="truncate px-4 py-3 text-slate-600">{current?.trailerPlateNumber || "—"}</td>
+                <td className="truncate px-4 py-3 text-slate-600">{current?.driverPhone || "—"}</td>
+                <td className="truncate px-4 py-3 text-slate-600">
                   {current?.cargoWeight != null ? `${current.cargoWeight} kg` : "—"}
                 </td>
-                <td className="px-4 py-3 text-slate-600">{current?.currentLocation || "—"}</td>
+                <td className="truncate px-4 py-3 text-slate-600" title={current?.currentLocation ?? undefined}>
+                  {current?.currentLocation || "—"}
+                </td>
                 <td className="px-4 py-3">
                   {current?.locationUpdatedAt ? (
                     <span className={freshnessBadgeClass(freshness)}>{formatDateTime(current.locationUpdatedAt)}</span>
@@ -155,7 +194,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
                     <span className="text-slate-400">—</span>
                   )}
                 </td>
-                <td className="max-w-[220px] truncate px-4 py-3 text-slate-600" title={comment ?? undefined}>
+                <td className="truncate px-4 py-3 text-slate-600" title={comment ?? undefined}>
                   {comment || "—"}
                 </td>
               </tr>
