@@ -7,7 +7,6 @@ import {
   type TruckDto,
 } from "@logistics/shared";
 import { LocationBadge } from "@/components/LocationBadge";
-import { PaymentBadge } from "@/components/PaymentBadge";
 
 export function TruckReadout({
   truck,
@@ -48,11 +47,6 @@ export function TruckReadout({
           {role}
         </span>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <PaymentBadge status={truck.driverPaymentStatus} label="Driver" />
-        <PaymentBadge status={truck.customerPaymentStatus} label="Customer" />
-      </div>
-
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         <Fact label="Truck plate" value={truck.plateNumber} />
         <Fact label="Trailer plate" value={truck.trailerPlateNumber} />
@@ -61,7 +55,7 @@ export function TruckReadout({
         <Fact label="Length (m)" value={formatNum(truck.lengthM)} />
         <Fact label="Width (m)" value={formatNum(truck.widthM)} />
         <Fact label="Height (m)" value={formatNum(truck.heightM)} />
-        <Fact label="Cargo weight (kg)" value={formatNum(truck.cargoWeight)} />
+        <Fact label="Gross weight (kg)" value={formatNum(truck.cargoWeight)} />
       </dl>
 
       <LocationBadge

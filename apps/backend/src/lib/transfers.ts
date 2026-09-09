@@ -1,3 +1,4 @@
+import { MAX_TRANSFERS_PER_SUB_ORDER } from "@logistics/shared";
 import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
@@ -24,6 +25,11 @@ export async function createCargoTransfer(params: {
     badRequest("This truck already transferred cargo. Use the current truck.");
   }
   await assertSubOrderMutable(subOrderId);
+
+  const transferCount = await prisma.cargoTransfer.count({ where: { fromTruck: { subOrderId } } });
+  if (transferCount >= MAX_TRANSFERS_PER_SUB_ORDER) {
+    badRequest(`This sub-order has already reached the maximum of ${MAX_TRANSFERS_PER_SUB_ORDER} cargo transfers.`);
+  }
 
   let toTruckId = optionalString(body.toTruckId);
   const toPlateRaw = optionalString(body.toPlateNumber) ?? optionalString(body.plateNumber);

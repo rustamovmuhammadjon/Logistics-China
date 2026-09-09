@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { PaymentStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
@@ -299,25 +298,6 @@ adminRouter.delete(
   asyncHandler(async (req, res) => {
     await cancelTruck(req.params.truckId, req.params.subId);
     res.json({ ok: true });
-  })
-);
-
-adminRouter.patch(
-  "/orders/:id/sub-orders/:subId/trucks/:truckId/payment",
-  asyncHandler(async (req, res) => {
-    const field = req.body?.field as "driverPaymentStatus" | "customerPaymentStatus";
-    const value = req.body?.value as PaymentStatus;
-    if (
-      (field !== "driverPaymentStatus" && field !== "customerPaymentStatus") ||
-      (value !== "PAID" && value !== "NOT_PAID")
-    ) {
-      throw new Error("Invalid payment update");
-    }
-    const truck = await prisma.truck.update({
-      where: { id: req.params.truckId },
-      data: { [field]: value },
-    });
-    res.json({ truck });
   })
 );
 

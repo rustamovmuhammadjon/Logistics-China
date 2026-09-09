@@ -14,7 +14,6 @@ import {
 } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { CommentsSection } from "@/components/CommentsSection";
-import { PaymentBadge } from "@/components/PaymentBadge";
 import { SubOrderLocation } from "@/components/TruckReadout";
 import { AdminSubOrderForms } from "./AdminSubOrderForms";
 
@@ -93,8 +92,6 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
                         >
                           {role}
                         </span>
-                        <PaymentBadge status={truck.driverPaymentStatus} label="Driver" />
-                        <PaymentBadge status={truck.customerPaymentStatus} label="Customer" />
                       </div>
                     </div>
                   </Link>

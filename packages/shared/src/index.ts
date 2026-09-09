@@ -1,8 +1,11 @@
 export type UserRole = "CONSIGNEE" | "OPERATOR";
-export type PaymentStatus = "NOT_PAID" | "PAID";
 export type MediaType = "IMAGE" | "VIDEO";
 export type SubOrderStatus = "OPEN" | "CLOSED" | "CANCELED";
 export type OrderSort = "newest" | "oldest";
+
+// A sub-order's cargo can only be moved (перекид) this many times before
+// transferring is disabled for it.
+export const MAX_TRANSFERS_PER_SUB_ORDER = 3;
 
 export type UserPublic = {
   id: string;
@@ -95,8 +98,6 @@ export type TruckDto = {
   locationUpdatedAt: string | null;
   lastLat?: number | null;
   lastLng?: number | null;
-  driverPaymentStatus: PaymentStatus;
-  customerPaymentStatus: PaymentStatus;
   canceledAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -165,7 +166,7 @@ export type SidebarOrderDto = {
 export type MonitoringResponse = {
   orders: GroupOrderDto[];
   ctx: ViewerContext;
-  stats: { total: number; driverPaid: number; customerPaid: number };
+  stats: { total: number };
   user?: UserPublic | null;
 };
 
@@ -190,18 +191,18 @@ export function isLettersOnly(value: string): boolean {
   return NAME_PATTERN.test(value);
 }
 
-export function truckStats(
-  trucks: {
-    driverPaymentStatus: PaymentStatus;
-    customerPaymentStatus: PaymentStatus;
-    canceledAt?: string | Date | null;
-  }[]
-) {
+export function truckStats(trucks: { canceledAt?: string | Date | null }[]) {
   const active = trucks.filter((t) => !t.canceledAt);
-  const total = active.length;
-  const driverPaid = active.filter((t) => t.driverPaymentStatus === "PAID").length;
-  const customerPaid = active.filter((t) => t.customerPaymentStatus === "PAID").length;
-  return { total, driverPaid, customerPaid };
+  return { total: active.length };
+}
+
+/** Total перекид transfers already recorded for a sub-order's trucks. */
+export function transferCountOf(trucks: { transfersFrom?: unknown[] | null }[]): number {
+  return trucks.reduce((sum, t) => sum + (t.transfersFrom?.length ?? 0), 0);
+}
+
+export function canAddTransfer(trucks: { transfersFrom?: unknown[] | null }[]): boolean {
+  return transferCountOf(trucks) < MAX_TRANSFERS_PER_SUB_ORDER;
 }
 
 export function hasTransferredOut(truck: { transfersFrom?: unknown[] | null }) {

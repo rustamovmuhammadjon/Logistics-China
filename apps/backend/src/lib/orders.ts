@@ -49,6 +49,8 @@ export const listInclude = {
         orderBy: { createdAt: "asc" as const },
         include: { transfersFrom: { select: { id: true } } },
       },
+      // Just the latest comment — enough for a table cell, not the full thread.
+      comments: { orderBy: { createdAt: "desc" as const }, take: 1 },
     },
   },
 };

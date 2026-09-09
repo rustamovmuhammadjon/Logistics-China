@@ -21,25 +21,7 @@ export function AdminTruckForms({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          <PaymentToggle
-            label="Driver payment"
-            status={truck.driverPaymentStatus}
-            pending={pending}
-            onChange={(value) =>
-              submit(`${base}/payment`, { method: "PATCH", body: { field: "driverPaymentStatus", value } })
-            }
-          />
-          <PaymentToggle
-            label="Customer payment"
-            status={truck.customerPaymentStatus}
-            pending={pending}
-            onChange={(value) =>
-              submit(`${base}/payment`, { method: "PATCH", body: { field: "customerPaymentStatus", value } })
-            }
-          />
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <ConfirmButton
           confirmText="Cancel this truck? It will stay in history. You can add a new truck or record a cargo transfer after that."
           disabled={pending || frozen}
@@ -75,7 +57,7 @@ export function AdminTruckForms({
         <Field name="lengthM" label="Length (m)" type="number" defaultValue={truck.lengthM} readOnly={frozen} />
         <Field name="widthM" label="Width (m)" type="number" defaultValue={truck.widthM} readOnly={frozen} />
         <Field name="heightM" label="Height (m)" type="number" defaultValue={truck.heightM} readOnly={frozen} />
-        <Field name="cargoWeight" label="Cargo weight (kg)" type="number" defaultValue={truck.cargoWeight} readOnly={frozen} />
+        <Field name="cargoWeight" label="Gross weight (kg)" type="number" defaultValue={truck.cargoWeight} readOnly={frozen} />
         <div className="sm:col-span-3">
           <Field name="currentLocation" label="Current location" defaultValue={truck.currentLocation} readOnly={frozen} />
           <p className="mt-1 text-xs text-slate-400">Last updated: {formatDateTime(truck.locationUpdatedAt)}</p>
@@ -116,33 +98,6 @@ function Field({
         defaultValue={defaultValue ?? ""}
         readOnly={readOnly}
       />
-    </div>
-  );
-}
-
-function PaymentToggle({
-  label,
-  status,
-  pending,
-  onChange,
-}: {
-  label: string;
-  status: "PAID" | "NOT_PAID";
-  pending: boolean;
-  onChange: (value: "PAID" | "NOT_PAID") => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2">
-      <span className="text-sm font-medium text-slate-700">{label}:</span>
-      <span className={status === "PAID" ? "badge-green" : "badge-amber"}>{status === "PAID" ? "Paid" : "Not paid"}</span>
-      <button
-        type="button"
-        disabled={pending}
-        className="text-xs text-brand-600 underline"
-        onClick={() => onChange(status === "PAID" ? "NOT_PAID" : "PAID")}
-      >
-        {status === "PAID" ? "Mark not paid" : "Mark paid"}
-      </button>
     </div>
   );
 }

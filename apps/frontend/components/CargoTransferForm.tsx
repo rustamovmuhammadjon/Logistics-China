@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDate, type CargoTransferDto, type TruckDto } from "@logistics/shared";
+import { formatDate, MAX_TRANSFERS_PER_SUB_ORDER, type CargoTransferDto, type TruckDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -21,6 +21,7 @@ export function CargoTransferForm({
 }) {
   const { submit, pending, error } = useApiSubmit();
   const [keepTrailer, setKeepTrailer] = useState(false);
+  const limitReached = transfers.length >= MAX_TRANSFERS_PER_SUB_ORDER;
 
   return (
     <div className="space-y-3">
@@ -28,13 +29,19 @@ export function CargoTransferForm({
       <div>
         <h3 className="text-sm font-semibold text-slate-900">Cargo transfer</h3>
         <p className="mt-1 text-xs text-slate-400">
-          Move cargo to a new truck. Only cargo weight is copied automatically. Keep the same trailer (only the tractor
-          changes) or enter a new trailer plate.
+          Move cargo to a new truck. Only gross weight is copied automatically. Keep the same trailer (only the tractor
+          changes) or enter a new trailer plate. Up to {MAX_TRANSFERS_PER_SUB_ORDER} transfers per sub-order
+          ({transfers.length}/{MAX_TRANSFERS_PER_SUB_ORDER} used).
         </p>
       </div>
       )}
       {error && !readOnly && <p className="text-sm text-red-600">{error}</p>}
-      {readOnly ? null : trucks.length === 0 ? (
+      {readOnly ? null : limitReached ? (
+        <p className="text-sm text-amber-600">
+          This sub-order has reached the maximum of {MAX_TRANSFERS_PER_SUB_ORDER} cargo transfers. No more transfers
+          can be recorded here.
+        </p>
+      ) : trucks.length === 0 ? (
         <p className="text-sm text-slate-400">Add the current truck first, then record a transfer.</p>
       ) : (
         <form

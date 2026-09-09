@@ -1,7 +1,7 @@
-import { CloseCircle, Truck, Wallet2 } from "iconsax-react";
+import { CloseCircle, Truck } from "iconsax-react";
 import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { OrderCard } from "@/components/OrderCard";
+import { OrdersTable } from "@/components/OrdersTable";
 import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -39,12 +39,6 @@ export default async function CancelledOrdersPage({
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard label="Orders" value={scoped.orders.length} icon={<CloseCircle size={20} variant="Bold" />} />
             <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
-            <StatCard label="Driver paid" value={`${scoped.stats.driverPaid}/${scoped.stats.total}`} />
-            <StatCard
-              label="Customer paid"
-              value={`${scoped.stats.customerPaid}/${scoped.stats.total}`}
-              icon={<Wallet2 size={20} variant="Bold" />}
-            />
           </section>
 
           <SearchSortBar q={q ?? ""} sort={normalizedSort} />
@@ -55,13 +49,7 @@ export default async function CancelledOrdersPage({
               title={q ? "No cancelled orders match your search." : "No cancelled orders yet."}
             />
           ) : (
-            <ul className="space-y-4">
-              {scoped.orders.map((order) => (
-                <li key={order.id}>
-                  <OrderCard order={order} ctx={scoped.ctx} />
-                </li>
-              ))}
-            </ul>
+            <OrdersTable orders={scoped.orders} ctx={scoped.ctx} />
           )}
         </>
       )}

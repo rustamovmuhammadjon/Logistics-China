@@ -35,12 +35,6 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="badge-slate">{stats.total} trucks</span>
-            <span className={stats.driverPaid === stats.total && stats.total > 0 ? "badge-green" : "badge-amber"}>
-              Driver paid {stats.driverPaid}/{stats.total}
-            </span>
-            <span className={stats.customerPaid === stats.total && stats.total > 0 ? "badge-green" : "badge-amber"}>
-              Customer paid {stats.customerPaid}/{stats.total}
-            </span>
           </div>
         </div>
 

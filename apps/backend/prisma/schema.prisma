@@ -7,11 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum PaymentStatus {
-  NOT_PAID
-  PAID
-}
-
 enum MediaType {
   IMAGE
   VIDEO
@@ -146,9 +141,6 @@ model Truck {
   locationUpdatedAt DateTime?
   lastLat           Float?
   lastLng           Float?
-
-  driverPaymentStatus   PaymentStatus @default(NOT_PAID)
-  customerPaymentStatus PaymentStatus @default(NOT_PAID)
 
   canceledAt DateTime?
 
