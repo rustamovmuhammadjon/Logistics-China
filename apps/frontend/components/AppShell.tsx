@@ -109,9 +109,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:flex-row">
-        <aside className="w-full shrink-0 lg:w-60">
-          <div className="card lg:sticky lg:top-24">
+      <div className="flex flex-col lg:flex-row">
+        <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-60 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200">
+          <div className="px-4 py-6">
             {user?.role === "CONSIGNEE" && (
               <Link href="/dashboard/orders/new" className="btn-primary mb-4 w-full">
                 <Plus className="h-4 w-4" />
@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {visibleOrders.length === 0 ? (
               <p className="text-sm text-slate-400">{error ? "Orders unavailable." : "No active orders."}</p>
             ) : (
-              <ul className="max-h-[70vh] space-y-1 overflow-y-auto">
+              <ul className="max-h-[70vh] space-y-1 overflow-y-auto lg:max-h-none">
                 {visibleOrders.map((order) => (
                   <li key={order.id}>
                     <Link
@@ -139,7 +139,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </aside>
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-8">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
       </div>
     </div>
   );

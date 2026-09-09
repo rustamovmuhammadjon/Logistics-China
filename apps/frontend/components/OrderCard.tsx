@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
+  currentTruckOf,
   formatDate,
   formatDirection,
   getOrderHref,
   subOrderStatusLabel,
-  truckRoleLabel,
   truckStats,
   type GroupOrderDto,
   type ViewerContext,
@@ -63,38 +63,35 @@ export function OrderCard({ order, ctx }: { order: GroupOrderDto; ctx: ViewerCon
         <ul className="mt-3 space-y-2 border-l-2 border-slate-100 pl-3">
           {order.subOrders.map((sub) => {
             const subStats = truckStats(sub.trucks);
+            // Cancelled sub-orders don't need their truck to be shown at all.
+            // Otherwise, a sub-order's cargo lives in exactly one truck at a
+            // time (it may have moved there via a перекид transfer) — show
+            // only that current truck, not every truck it ever touched.
+            const current = sub.status === "CANCELED" ? null : currentTruckOf(sub.trucks);
             return (
               <li key={sub.id} className="text-sm text-slate-600">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={
-                      sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
-                    }
-                  >
-                    {subOrderStatusLabel(sub.status)}
-                  </span>
-                  <span>{sub.name || "Sub-order"}</span>
-                  <span className="text-xs text-slate-400">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={
+                        sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
+                      }
+                    >
+                      {subOrderStatusLabel(sub.status)}
+                    </span>
+                    <span>{sub.name || "Sub-order"}</span>
+                  </div>
+                  <span className="shrink-0 text-xs text-slate-400">
                     {subStats.total} truck{subStats.total === 1 ? "" : "s"}
                     {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                   </span>
                 </div>
-                {sub.trucks.length > 0 && (
-                  <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
-                    {sub.trucks.map((truck) => {
-                      const role = truckRoleLabel(truck);
-                      return (
-                        <li key={truck.id}>
-                          <span className="font-medium text-slate-700">{truck.plateNumber || "No plate"}</span>
-                          {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
-                          {truck.driverPhone ? ` · ${truck.driverPhone}` : ""}
-                          {role !== "Current" ? (
-                            <span className="text-slate-400"> · {role.toLowerCase()}</span>
-                          ) : null}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                {current && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    <span className="font-medium text-slate-700">{current.plateNumber || "No plate"}</span>
+                    {current.trailerPlateNumber ? ` / ${current.trailerPlateNumber}` : ""}
+                    {current.driverPhone ? ` · ${current.driverPhone}` : ""}
+                  </p>
                 )}
               </li>
             );
