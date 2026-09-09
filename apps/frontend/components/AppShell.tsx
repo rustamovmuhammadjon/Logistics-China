@@ -110,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <div className="flex flex-col lg:flex-row">
-        <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-60 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200">
+        <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-52 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200">
           <div className="px-4 py-6">
             {user?.role === "CONSIGNEE" && (
               <Link href="/dashboard/orders/new" className="btn-primary mb-4 w-full">
@@ -139,9 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </aside>
-        <main className="min-w-0 flex-1 px-4 py-8">
-          <div className="mx-auto w-full max-w-[1680px]">{children}</div>
-        </main>
+        <main className="min-w-0 flex-1 px-4 py-8">{children}</main>
       </div>
     </div>
   );
