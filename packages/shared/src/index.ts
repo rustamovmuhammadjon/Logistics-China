@@ -136,7 +136,6 @@ export type GroupOrderDto = {
   origin: string | null;
   destination: string | null;
   commodity: string | null;
-  volumeInfo: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
   canceledAt?: string | null;
@@ -271,6 +270,13 @@ export function formatDirection(
 ): string | null {
   if (!origin && !destination) return null;
   return `${origin || "?"} → ${destination || "?"}`;
+}
+
+// Volume is derived from the sub-order count, not entered by hand — a
+// transfer only moves cargo between trucks, it never changes how many
+// FTL loads the order represents.
+export function formatVolume(subOrderCount: number): string {
+  return `${subOrderCount}xFTL`;
 }
 
 export function toDate(value: string | Date | null | undefined): Date | null {

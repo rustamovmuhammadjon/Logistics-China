@@ -21,7 +21,7 @@ export function NewOrderForm() {
         if (result?.order) router.push(`/dashboard/orders/${result.order.id}`);
       }}
     >
-      <OrderFields />
+      <OrderFields polReadOnly />
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       <div className="mt-4">
         <button type="submit" className="btn-primary" disabled={pending}>

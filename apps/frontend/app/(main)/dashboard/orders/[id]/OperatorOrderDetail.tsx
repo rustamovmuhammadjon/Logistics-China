@@ -8,6 +8,7 @@ import {
   isActiveTruck,
   isGroupOrderLocked,
   subOrderStatusLabel,
+  toDateInputValue,
   truckStats,
   type CommentDto,
   type GroupOrderDto,
@@ -37,7 +38,6 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
             )}
             <p className="text-xs text-slate-400">
               Opened {formatDate(order.openedAt)}
-              {order.pol ? ` · POL: ${order.pol}` : ""}
               {order.commodity ? ` · ${order.commodity}` : ""}
             </p>
           </div>
@@ -48,6 +48,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
             This order is {order.canceledAt ? "cancelled" : "completed"} and cannot be changed.
           </p>
         )}
+        <OrderPolForm orderId={order.id} pol={order.pol} />
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
@@ -87,6 +88,10 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
 
                   <div className="mt-4">
                     <SubOrderLocation trucks={sub.trucks} />
+                  </div>
+
+                  <div className="mt-4">
+                    <SubOrderFldForm orderId={order.id} subId={sub.id} factoryLoadDate={sub.factoryLoadDate} />
                   </div>
 
                   <div className="mt-4">
@@ -222,5 +227,65 @@ function OperatorComments({
         </form>
       )}
     </div>
+  );
+}
+
+function OrderPolForm({ orderId, pol }: { orderId: string; pol: string | null }) {
+  const { submit, pending } = useApiSubmit();
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(`/api/operator/orders/${orderId}`, { method: "PATCH", body: formToJson(e.currentTarget) });
+      }}
+      className="flex flex-wrap items-end gap-2"
+    >
+      <div className="flex-1">
+        <label className="field-label">POL (place of loading)</label>
+        <input className="field-input" type="text" name="pol" defaultValue={pol ?? ""} />
+      </div>
+      <button type="submit" className="btn-secondary shrink-0" disabled={pending}>
+        Save
+      </button>
+    </form>
+  );
+}
+
+function SubOrderFldForm({
+  orderId,
+  subId,
+  factoryLoadDate,
+}: {
+  orderId: string;
+  subId: string;
+  factoryLoadDate: string | null;
+}) {
+  const { submit, pending } = useApiSubmit();
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(`/api/operator/orders/${orderId}/sub-orders/${subId}`, {
+          method: "PATCH",
+          body: formToJson(e.currentTarget),
+        });
+      }}
+      className="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3"
+    >
+      <div className="flex-1">
+        <label className="field-label">Factory load date</label>
+        <input
+          className="field-input"
+          type="date"
+          name="factoryLoadDate"
+          defaultValue={toDateInputValue(factoryLoadDate)}
+        />
+      </div>
+      <button type="submit" className="btn-secondary shrink-0" disabled={pending}>
+        Save
+      </button>
+    </form>
   );
 }

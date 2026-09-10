@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
-import { optionalString, requiredString } from "../lib/input.js";
+import { optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
@@ -31,6 +31,35 @@ operatorRouter.get(
     });
     if (!order) notFound();
     res.json({ order });
+  })
+);
+
+operatorRouter.patch(
+  "/orders/:id",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    const existing = await loadLinkedOrder(me.id, req.params.id);
+    const order = await prisma.groupOrder.update({
+      where: { id: existing.id },
+      data: { pol: optionalString(req.body?.pol) },
+    });
+    res.json({ order });
+  })
+);
+
+operatorRouter.patch(
+  "/orders/:id/sub-orders/:subId",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    const sub = await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    // The factory load date can be corrected at any time, even after the
+    // sub-order is completed or cancelled — unlike other sub-order fields
+    // it isn't frozen by status.
+    const updated = await prisma.subOrder.update({
+      where: { id: sub.id },
+      data: { factoryLoadDate: optionalDate(req.body?.factoryLoadDate) },
+    });
+    res.json({ subOrder: updated });
   })
 );
 

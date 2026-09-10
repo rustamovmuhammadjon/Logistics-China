@@ -57,7 +57,7 @@ export function AdminTruckForms({
         <Field name="lengthM" label="Length (m)" type="number" defaultValue={truck.lengthM} readOnly={frozen} />
         <Field name="widthM" label="Width (m)" type="number" defaultValue={truck.widthM} readOnly={frozen} />
         <Field name="heightM" label="Height (m)" type="number" defaultValue={truck.heightM} readOnly={frozen} />
-        <Field name="cargoWeight" label="Gross weight (kg)" type="number" defaultValue={truck.cargoWeight} readOnly={frozen} />
+        <Field name="cargoWeight" label="Gross weight (tons)" type="number" defaultValue={truck.cargoWeight} readOnly={frozen} />
         <div className="sm:col-span-3">
           <Field name="currentLocation" label="Current location" defaultValue={truck.currentLocation} readOnly={frozen} />
           <p className="mt-1 text-xs text-slate-400">Last updated: {formatDateTime(truck.locationUpdatedAt)}</p>

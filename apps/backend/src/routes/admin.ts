@@ -61,7 +61,6 @@ function orderData(body: Record<string, unknown>) {
     origin: optionalString(body.origin),
     destination: optionalString(body.destination),
     commodity: optionalString(body.commodity),
-    volumeInfo: optionalString(body.volumeInfo),
   };
 }
 

@@ -55,7 +55,7 @@ export function TruckReadout({
         <Fact label="Length (m)" value={formatNum(truck.lengthM)} />
         <Fact label="Width (m)" value={formatNum(truck.widthM)} />
         <Fact label="Height (m)" value={formatNum(truck.heightM)} />
-        <Fact label="Gross weight (kg)" value={formatNum(truck.cargoWeight)} />
+        <Fact label="Gross weight (tons)" value={formatNum(truck.cargoWeight)} />
       </dl>
 
       <LocationBadge

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { formatDate, formatDateTime, formatDirection, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
+import { formatDate, formatDateTime, formatDirection, formatVolume, subOrderStatusLabel, truckStats, type GroupOrderDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { CargoTransferForm } from "@/components/CargoTransferForm";
 import { SubOrderLocation, TruckSequence, transferHistory } from "@/components/TruckReadout";
@@ -41,7 +41,7 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <Field label="POL" value={order.pol} />
           <Field label="Commodity" value={order.commodity} />
-          <Field label="Volume" value={order.volumeInfo} />
+          <Field label="Volume" value={formatVolume(order.subOrders.length)} />
         </dl>
       </header>
 

@@ -21,11 +21,9 @@ function orderFields(body: Record<string, unknown>) {
   return {
     name: requiredString(body.name, "name"),
     openedAt: optionalDate(body.openedAt),
-    pol: optionalString(body.pol),
     origin: optionalString(body.origin),
     destination: optionalString(body.destination),
     commodity: optionalString(body.commodity),
-    volumeInfo: optionalString(body.volumeInfo),
   };
 }
 

@@ -53,7 +53,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
               submit(`/api/consignee/orders/${order.id}`, { method: "PATCH", body: formToJson(e.currentTarget) });
             }}
           >
-            <OrderFields order={order} />
+            <OrderFields order={order} polReadOnly />
             <button type="submit" className="btn-primary mt-4" disabled={pending}>
               {pending ? "Saving…" : "Save changes"}
             </button>

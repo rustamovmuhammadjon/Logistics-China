@@ -22,7 +22,7 @@ export function TruckFields({
       <Field name="lengthM" label="Length (m)" type="number" defaultValue={truck?.lengthM} />
       <Field name="widthM" label="Width (m)" type="number" defaultValue={truck?.widthM} />
       <Field name="heightM" label="Height (m)" type="number" defaultValue={truck?.heightM} />
-      <Field name="cargoWeight" label="Gross weight (kg)" type="number" defaultValue={truck?.cargoWeight} />
+      <Field name="cargoWeight" label="Gross weight (tons)" type="number" defaultValue={truck?.cargoWeight} />
       <div className="sm:col-span-3">
         <Field name="currentLocation" label="Current location" defaultValue={truck?.currentLocation} />
       </div>

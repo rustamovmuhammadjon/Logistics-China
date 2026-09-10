@@ -156,7 +156,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
             <th className={TH}>Truck #</th>
             <th className={TH}>Trailer #</th>
             <th className={TH}>Driver #</th>
-            <th className={TH}>Gross weight</th>
+            <th className={TH}>Gross weight (tons)</th>
             <th className={TH}>Current location</th>
             <th className={TH}>Last update</th>
             <th className={TH}>Comment</th>
@@ -188,7 +188,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>
-                  {current?.cargoWeight != null ? `${current.cargoWeight} kg` : "—"}
+                  {current?.cargoWeight != null ? `${current.cargoWeight} t` : "—"}
                 </td>
                 <td className={`${TD} truncate text-slate-600`} title={current?.currentLocation ?? undefined}>
                   {current?.currentLocation || "—"}

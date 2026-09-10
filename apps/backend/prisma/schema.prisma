@@ -78,7 +78,6 @@ model GroupOrder {
   origin      String?
   destination String?
   commodity   String?
-  volumeInfo  String?
 
   statusText      String?
   statusUpdatedAt DateTime?

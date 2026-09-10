@@ -111,7 +111,7 @@ export function AdminSubOrderForms({
           <Field name="lengthM" label="Length (m)" type="number" />
           <Field name="widthM" label="Width (m)" type="number" />
           <Field name="heightM" label="Height (m)" type="number" />
-          <Field name="cargoWeight" label="Gross weight (kg)" type="number" />
+          <Field name="cargoWeight" label="Gross weight (tons)" type="number" />
           <div className="sm:col-span-3">
             <Field name="currentLocation" label="Current location" />
           </div>

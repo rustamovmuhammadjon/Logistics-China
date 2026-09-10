@@ -41,6 +41,14 @@ type ExportOrder = {
   operators?: { email: string }[];
 };
 
+// Alternating white / light-gray banding so each order's rows (and its
+// sub-orders' rows, on the other sheet) are visually grouped together.
+const BAND_COLORS = ["FFFFFFFF", "FFF3F4F6"];
+
+function bandFill(orderIndex: number): ExcelJS.Fill {
+  return { type: "pattern", pattern: "solid", fgColor: { argb: BAND_COLORS[orderIndex % 2] } };
+}
+
 export async function buildOrdersWorkbook(
   orders: ExportOrder[],
   opts: { includePeople: boolean }
@@ -67,9 +75,9 @@ export async function buildOrdersWorkbook(
   ];
   ordersSheet.getRow(1).font = { bold: true };
 
-  for (const order of orders) {
+  orders.forEach((order, orderIndex) => {
     const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
-    ordersSheet.addRow({
+    const row = ordersSheet.addRow({
       name: order.name,
       direction: formatDirection(order.origin, order.destination) || "",
       pol: order.pol || "",
@@ -87,7 +95,8 @@ export async function buildOrdersWorkbook(
           }
         : {}),
     });
-  }
+    row.fill = bandFill(orderIndex);
+  });
 
   const subSheet = workbook.addWorksheet("Sub-orders");
   subSheet.columns = [
@@ -98,21 +107,21 @@ export async function buildOrdersWorkbook(
     { header: "Truck #", key: "truck", width: 14 },
     { header: "Trailer #", key: "trailer", width: 14 },
     { header: "Driver #", key: "driver", width: 16 },
-    { header: "Gross weight (kg)", key: "weight", width: 16 },
+    { header: "Gross weight (tons)", key: "weight", width: 16 },
     { header: "Current location", key: "location", width: 26 },
     { header: "Last update", key: "updated", width: 18 },
     { header: "Comment", key: "comment", width: 32 },
   ];
   subSheet.getRow(1).font = { bold: true };
 
-  for (const order of orders) {
+  orders.forEach((order, orderIndex) => {
     for (const sub of order.subOrders) {
       // Same rule as the on-screen table: a cancelled sub-order shows no
       // truck, an open/closed one shows only the truck currently holding
       // the cargo (the end of any transfer chain).
       const current = sub.status === "CANCELED" ? null : currentTruckOf(sub.trucks);
       const comment = sub.comments?.[0]?.text ?? "";
-      subSheet.addRow({
+      const row = subSheet.addRow({
         order: order.name,
         subOrder: sub.name || "Sub-order",
         status: subOrderStatusLabel(sub.status),
@@ -125,8 +134,11 @@ export async function buildOrdersWorkbook(
         updated: current?.locationUpdatedAt ? formatDateTime(current.locationUpdatedAt) : "",
         comment,
       });
+      // Same order → same band color as this order's row in the Orders
+      // sheet; the next order's sub-orders flip to the alternate color.
+      row.fill = bandFill(orderIndex);
     }
-  }
+  });
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);

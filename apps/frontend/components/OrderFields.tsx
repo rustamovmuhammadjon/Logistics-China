@@ -7,10 +7,17 @@ type OrderLike = {
   destination?: string | null;
   pol?: string | null;
   commodity?: string | null;
-  volumeInfo?: string | null;
 };
 
-export function OrderFields({ order, readOnly = false }: { order?: OrderLike; readOnly?: boolean }) {
+export function OrderFields({
+  order,
+  readOnly = false,
+  polReadOnly = false,
+}: {
+  order?: OrderLike;
+  readOnly?: boolean;
+  polReadOnly?: boolean;
+}) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
@@ -50,7 +57,14 @@ export function OrderFields({ order, readOnly = false }: { order?: OrderLike; re
       </div>
       <div>
         <label className="field-label">POL (place of loading)</label>
-        <input className="field-input" type="text" name="pol" defaultValue={order?.pol ?? ""} readOnly={readOnly} />
+        <input
+          className="field-input"
+          type="text"
+          name="pol"
+          defaultValue={order?.pol ?? ""}
+          readOnly={readOnly || polReadOnly}
+          placeholder={polReadOnly ? "Set by the operator" : undefined}
+        />
       </div>
       <div>
         <label className="field-label">Commodity</label>
@@ -59,17 +73,6 @@ export function OrderFields({ order, readOnly = false }: { order?: OrderLike; re
           type="text"
           name="commodity"
           defaultValue={order?.commodity ?? ""}
-          readOnly={readOnly}
-        />
-      </div>
-      <div className="sm:col-span-2">
-        <label className="field-label">Volume</label>
-        <input
-          className="field-input"
-          type="text"
-          name="volumeInfo"
-          defaultValue={order?.volumeInfo ?? ""}
-          placeholder="e.g. 8xFTL"
           readOnly={readOnly}
         />
       </div>
