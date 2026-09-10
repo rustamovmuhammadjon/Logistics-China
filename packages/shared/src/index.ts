@@ -114,6 +114,7 @@ export type SubOrderDto = {
   openedAt: string | null;
   arrivedAt: string | null;
   status: SubOrderStatus;
+  factoryLoadDate: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
   groupOrderId: string;
@@ -136,7 +137,6 @@ export type GroupOrderDto = {
   destination: string | null;
   commodity: string | null;
   volumeInfo: string | null;
-  factoryLoadDate: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
   canceledAt?: string | null;

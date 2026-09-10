@@ -24,6 +24,7 @@ type ExportTruck = {
 type ExportSubOrder = {
   name: string | null;
   status: SubOrderStatus;
+  factoryLoadDate: Date | null;
   trucks: ExportTruck[];
   comments?: { text: string }[];
 };
@@ -33,6 +34,8 @@ type ExportOrder = {
   origin: string | null;
   destination: string | null;
   openedAt: Date | null;
+  pol: string | null;
+  commodity: string | null;
   subOrders: ExportSubOrder[];
   owner?: { email: string } | null;
   operators?: { email: string }[];
@@ -50,6 +53,8 @@ export async function buildOrdersWorkbook(
   ordersSheet.columns = [
     { header: "Order", key: "name", width: 22 },
     { header: "Direction", key: "direction", width: 20 },
+    { header: "POL", key: "pol", width: 18 },
+    { header: "Commodity", key: "commodity", width: 20 },
     { header: "Opened", key: "opened", width: 14 },
     { header: "Sub-orders", key: "subOrders", width: 12 },
     { header: "Trucks", key: "trucks", width: 10 },
@@ -67,6 +72,8 @@ export async function buildOrdersWorkbook(
     ordersSheet.addRow({
       name: order.name,
       direction: formatDirection(order.origin, order.destination) || "",
+      pol: order.pol || "",
+      commodity: order.commodity || "",
       opened: formatDate(order.openedAt),
       subOrders: order.subOrders.length,
       trucks: stats.total,
@@ -87,6 +94,7 @@ export async function buildOrdersWorkbook(
     { header: "Order", key: "order", width: 20 },
     { header: "Sub-order", key: "subOrder", width: 16 },
     { header: "Status", key: "status", width: 12 },
+    { header: "FLD", key: "fld", width: 14 },
     { header: "Truck #", key: "truck", width: 14 },
     { header: "Trailer #", key: "trailer", width: 14 },
     { header: "Driver #", key: "driver", width: 16 },
@@ -108,6 +116,7 @@ export async function buildOrdersWorkbook(
         order: order.name,
         subOrder: sub.name || "Sub-order",
         status: subOrderStatusLabel(sub.status),
+        fld: formatDate(sub.factoryLoadDate),
         truck: current?.plateNumber || "",
         trailer: current?.trailerPlateNumber || "",
         driver: current?.driverPhone || "",

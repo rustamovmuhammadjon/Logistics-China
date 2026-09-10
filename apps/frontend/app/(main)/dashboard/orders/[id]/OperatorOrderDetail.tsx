@@ -67,6 +67,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                         <span className="font-semibold text-slate-900">{sub.name || "Sub-order"}</span>
                         <p className="text-xs text-slate-400">
                           Opened {formatDate(sub.openedAt) || "—"}
+                          {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
                           {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                         </p>
                       </div>

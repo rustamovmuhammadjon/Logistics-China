@@ -137,20 +137,22 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
     <div className="overflow-x-auto border-t border-slate-200">
       <table className="w-full min-w-[1100px] table-fixed">
         <colgroup>
-          <col style={{ width: "10%" }} />
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "11%" }} />
-          <col style={{ width: "11%" }} />
-          <col style={{ width: "12%" }} />
           <col style={{ width: "9%" }} />
-          <col style={{ width: "14%" }} />
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "8%" }} />
           <col style={{ width: "13%" }} />
           <col style={{ width: "12%" }} />
+          <col style={{ width: "11%" }} />
         </colgroup>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100 text-left font-semibold uppercase tracking-wide text-slate-500">
             <th className={TH}>Sub-order</th>
             <th className={TH}>Status</th>
+            <th className={TH}>FLD</th>
             <th className={TH}>Truck #</th>
             <th className={TH}>Trailer #</th>
             <th className={TH}>Driver #</th>
@@ -181,6 +183,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
                     {subOrderStatusLabel(sub.status)}
                   </span>
                 </td>
+                <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>

@@ -129,6 +129,7 @@ adminRouter.post(
         groupOrderId: req.params.id,
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
+        factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
         status: "OPEN",
       },
     });
@@ -186,6 +187,7 @@ adminRouter.patch(
       data: {
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
+        factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
       },
     });
     res.json({ subOrder });

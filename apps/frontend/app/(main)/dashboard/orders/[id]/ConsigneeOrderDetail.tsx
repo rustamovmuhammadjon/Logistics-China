@@ -81,6 +81,10 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
               <label className="field-label">Opened date</label>
               <input className="field-input" type="date" name="openedAt" />
             </div>
+            <div>
+              <label className="field-label">Factory load date</label>
+              <input className="field-input" type="date" name="factoryLoadDate" />
+            </div>
             <div className="flex items-end">
               <button type="submit" className="btn-primary w-full" disabled={pending}>
                 Add sub-order
@@ -137,6 +141,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
 
                   <p className="text-xs text-slate-400">
                     Opened {formatDate(sub.openedAt) || "—"}
+                    {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
                     {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                   </p>
 

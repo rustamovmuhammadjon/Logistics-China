@@ -68,6 +68,15 @@ export function AdminSubOrderForms({
           <label className="field-label">Opened date</label>
           <input className="field-input" type="date" name="openedAt" defaultValue={toDateInputValue(sub.openedAt)} />
         </div>
+        <div>
+          <label className="field-label">Factory load date</label>
+          <input
+            className="field-input"
+            type="date"
+            name="factoryLoadDate"
+            defaultValue={toDateInputValue(sub.factoryLoadDate)}
+          />
+        </div>
         {sub.status === "CLOSED" && (
           <p className="text-sm text-slate-500 sm:col-span-2">Completed {formatDate(sub.arrivedAt) || "—"}</p>
         )}

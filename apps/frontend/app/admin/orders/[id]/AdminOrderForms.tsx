@@ -59,6 +59,10 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
             <label className="field-label">Opened date</label>
             <input className="field-input" type="date" name="openedAt" />
           </div>
+          <div>
+            <label className="field-label">Factory load date</label>
+            <input className="field-input" type="date" name="factoryLoadDate" />
+          </div>
           <div className="flex items-end">
             <button type="submit" className="btn-primary w-full" disabled={pending}>
               Add sub-order

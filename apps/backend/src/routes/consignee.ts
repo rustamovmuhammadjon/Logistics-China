@@ -116,6 +116,7 @@ consigneeRouter.post(
         groupOrderId: req.params.id,
         name: optionalString(req.body?.name),
         openedAt: optionalDate(req.body?.openedAt),
+        factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
         status: "OPEN",
       },
     });

@@ -74,12 +74,11 @@ model GroupOrder {
   ownerId String?
   owner   User?   @relation("OrderOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
-  pol             String?
-  origin          String?
-  destination     String?
-  commodity       String?
-  volumeInfo      String?
-  factoryLoadDate DateTime?
+  pol         String?
+  origin      String?
+  destination String?
+  commodity   String?
+  volumeInfo  String?
 
   statusText      String?
   statusUpdatedAt DateTime?
@@ -102,6 +101,8 @@ model SubOrder {
   openedAt  DateTime?
   arrivedAt DateTime?
   status    SubOrderStatus @default(OPEN)
+
+  factoryLoadDate DateTime?
 
   statusText      String?
   statusUpdatedAt DateTime?
