@@ -41,7 +41,7 @@ export default async function CancelledOrdersPage({
             <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
           </section>
 
-          <SearchSortBar q={q ?? ""} sort={normalizedSort} />
+          <SearchSortBar q={q ?? ""} sort={normalizedSort} exportHref="/api/monitoring/export?canceled=1" />
 
           {scoped.orders.length === 0 ? (
             <EmptyState

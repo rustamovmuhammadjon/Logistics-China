@@ -3,6 +3,7 @@ import { truckStats } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { notFound } from "../lib/errors.js";
 import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listIncludeWithPeople, orderVisibilityWhere, withOrderPeople } from "../lib/orders.js";
+import { buildOrdersWorkbook } from "../lib/export.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAnyAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -37,6 +38,34 @@ monitoringRouter.get(
       stats,
       user: user ? toPublicUser(user) : null,
     });
+  })
+);
+
+monitoringRouter.get(
+  "/export",
+  asyncHandler(async (req, res) => {
+    const { isAdmin, user } = req as AuthedRequest;
+    const completed = req.query.completed === "1" || req.query.completed === "true";
+    const canceled = req.query.canceled === "1" || req.query.canceled === "true";
+
+    // Same visibility scoping as the on-screen list — a consignee only ever
+    // gets their own orders, an operator only their linked consignees', so
+    // this can never leak another user's data regardless of what's passed
+    // in the query string.
+    const visibility = await orderVisibilityWhere({ isAdmin, user });
+    const orders = await prisma.groupOrder.findMany({
+      where: { AND: [buildOrderWhere(completed, undefined, canceled), visibility] },
+      include: listIncludeWithPeople,
+      orderBy: buildOrderOrderBy(undefined),
+    });
+
+    const buffer = await buildOrdersWorkbook(orders.map(withOrderPeople), { includePeople: isAdmin });
+    const label = canceled ? "cancelled" : completed ? "completed" : "active";
+    const filename = `orders-${label}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
   })
 );
 

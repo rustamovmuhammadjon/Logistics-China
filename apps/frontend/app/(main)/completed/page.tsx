@@ -40,7 +40,7 @@ export default async function CompletedOrdersPage({
               <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
             </section>
 
-            <SearchSortBar q={q ?? ""} sort={normalizedSort} />
+            <SearchSortBar q={q ?? ""} sort={normalizedSort} exportHref="/api/monitoring/export?completed=1" />
 
             {scoped.orders.length === 0 ? (
               <EmptyState
