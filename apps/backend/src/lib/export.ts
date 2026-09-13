@@ -65,6 +65,8 @@ function bandFill(orderIndex: number): ExcelJS.Fill {
   return { type: "pattern", pattern: "solid", fgColor: { argb: BAND_COLORS[orderIndex % 2] } };
 }
 
+const ROW_BORDER: Partial<ExcelJS.Borders> = { bottom: { style: "thin" } };
+
 export async function buildOrdersWorkbook(
   orders: ExportOrder[],
   opts: { includePeople: boolean }
@@ -90,6 +92,7 @@ export async function buildOrdersWorkbook(
       : []),
   ];
   ordersSheet.getRow(1).font = { bold: true };
+  ordersSheet.getRow(1).border = ROW_BORDER;
 
   orders.forEach((order, orderIndex) => {
     const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
@@ -112,9 +115,16 @@ export async function buildOrdersWorkbook(
         : {}),
     });
     row.fill = bandFill(orderIndex);
+    row.border = ROW_BORDER;
   });
 
-  const vehicleColumns = Array.from({ length: MAX_VEHICLES_PER_SUB_ORDER }, (_, i) => i + 1).flatMap((n) => [
+  // Only as many Vehicle/Country column pairs as this export actually needs
+  // — e.g. a Vehicle 3 column only appears once some sub-order really has a
+  // third vehicle, up to the transfer cap.
+  const chainsByOrder = orders.map((order) => order.subOrders.map((sub) => vehicleChain(sub.trucks)));
+  const longestChain = chainsByOrder.flat().reduce((max, chain) => Math.max(max, chain.length), 0);
+  const vehicleColumnCount = Math.max(1, Math.min(MAX_VEHICLES_PER_SUB_ORDER, longestChain));
+  const vehicleColumns = Array.from({ length: vehicleColumnCount }, (_, i) => i + 1).flatMap((n) => [
     { header: `Vehicle ${n}`, key: `vehicle${n}`, width: 20 },
     { header: `Country ${n}`, key: `country${n}`, width: 14 },
   ]);
@@ -133,18 +143,19 @@ export async function buildOrdersWorkbook(
     { header: "Comment", key: "comment", width: 32 },
   ];
   subSheet.getRow(1).font = { bold: true };
+  subSheet.getRow(1).border = ROW_BORDER;
 
   orders.forEach((order, orderIndex) => {
-    for (const sub of order.subOrders) {
+    order.subOrders.forEach((sub, subIndex) => {
       // Every vehicle that actually carried this sub-order's cargo, in
       // order — a cancelled vehicle is dropped entirely (it never counts
       // as one of the numbered slots); the last one is the current holder.
-      const chain = vehicleChain(sub.trucks);
+      const chain = chainsByOrder[orderIndex][subIndex];
       const last = chain.at(-1) ?? null;
       const comment = sub.comments?.[0]?.text ?? "";
 
       const vehicleData: Record<string, string> = {};
-      chain.slice(0, MAX_VEHICLES_PER_SUB_ORDER).forEach((truck, i) => {
+      chain.slice(0, vehicleColumnCount).forEach((truck, i) => {
         vehicleData[`vehicle${i + 1}`] = vehicleLabel(truck);
         vehicleData[`country${i + 1}`] = truck.country || "";
       });
@@ -164,7 +175,8 @@ export async function buildOrdersWorkbook(
       // Same order → same band color as this order's row in the Orders
       // sheet; the next order's sub-orders flip to the alternate color.
       row.fill = bandFill(orderIndex);
-    }
+      row.border = ROW_BORDER;
+    });
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
