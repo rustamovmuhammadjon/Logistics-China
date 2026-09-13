@@ -127,6 +127,7 @@ model Truck {
 
   plateNumber        String?
   trailerPlateNumber String?
+  country            String?
   driverName         String?
   driverPhone        String?
 

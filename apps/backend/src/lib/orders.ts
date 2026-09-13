@@ -217,6 +217,7 @@ export function truckFields(body: Record<string, unknown>) {
   return {
     plateNumber: optionalString(body.plateNumber),
     trailerPlateNumber: optionalString(body.trailerPlateNumber),
+    country: optionalString(body.country),
     driverName: optionalString(body.driverName),
     driverPhone: optionalString(body.driverPhone),
     lengthM: optionalFloat(body.lengthM),

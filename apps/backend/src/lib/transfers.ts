@@ -86,6 +86,7 @@ export async function createCargoTransfer(params: {
         subOrderId,
         plateNumber: toPlate,
         trailerPlateNumber: toTrailer,
+        country: optionalString(body.country),
         driverName: optionalString(body.driverName),
         driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : null,
         cargoWeight: fromTruck.cargoWeight,
@@ -95,11 +96,13 @@ export async function createCargoTransfer(params: {
   } else {
     const driverName = optionalString(body.driverName);
     const driverPhoneRaw = optionalString(body.driverPhone);
+    const country = optionalString(body.country);
     await prisma.truck.update({
       where: { id: toTruckId },
       data: {
         cargoWeight: fromTruck.cargoWeight,
         ...(toTrailer ? { trailerPlateNumber: toTrailer } : {}),
+        ...(country ? { country } : {}),
         ...(driverName ? { driverName } : {}),
         ...(driverPhoneRaw ? { driverPhone: normalizePhone(driverPhoneRaw) } : {}),
       },

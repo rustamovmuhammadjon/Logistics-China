@@ -85,6 +85,10 @@ export function CargoTransferForm({
             </div>
           )}
           <div>
+            <label className="field-label">New vehicle country</label>
+            <input className="field-input" name="country" placeholder="optional" />
+          </div>
+          <div>
             <label className="field-label">New driver phone</label>
             <input className="field-input" name="driverPhone" placeholder="optional" />
           </div>

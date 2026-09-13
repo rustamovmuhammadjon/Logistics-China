@@ -1,17 +1,21 @@
 import ExcelJS from "exceljs";
 import {
-  currentTruckOf,
   formatDate,
   formatDateTime,
   formatDirection,
+  MAX_TRANSFERS_PER_SUB_ORDER,
   subOrderStatusLabel,
   truckStats,
   type SubOrderStatus,
 } from "@logistics/shared";
 
+// A sub-order can have at most one original truck plus this many transfers.
+const MAX_VEHICLES_PER_SUB_ORDER = MAX_TRANSFERS_PER_SUB_ORDER + 1;
+
 type ExportTruck = {
   plateNumber: string | null;
   trailerPlateNumber: string | null;
+  country: string | null;
   driverPhone: string | null;
   cargoWeight: number | null;
   currentLocation: string | null;
@@ -20,6 +24,18 @@ type ExportTruck = {
   transfersFrom?: unknown[] | null;
   createdAt: Date;
 };
+
+function vehicleLabel(truck: ExportTruck): string {
+  return [truck.plateNumber, truck.trailerPlateNumber].filter(Boolean).join(" | ");
+}
+
+// The full history of vehicles that actually carried this sub-order's cargo,
+// oldest first — a cancelled vehicle never counts as one of the sequence.
+function vehicleChain(trucks: ExportTruck[]): ExportTruck[] {
+  return [...trucks]
+    .filter((t) => !t.canceledAt)
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+}
 
 type ExportSubOrder = {
   name: string | null;
@@ -98,14 +114,18 @@ export async function buildOrdersWorkbook(
     row.fill = bandFill(orderIndex);
   });
 
+  const vehicleColumns = Array.from({ length: MAX_VEHICLES_PER_SUB_ORDER }, (_, i) => i + 1).flatMap((n) => [
+    { header: `Vehicle ${n}`, key: `vehicle${n}`, width: 20 },
+    { header: `Country ${n}`, key: `country${n}`, width: 14 },
+  ]);
+
   const subSheet = workbook.addWorksheet("Sub-orders");
   subSheet.columns = [
     { header: "Order", key: "order", width: 20 },
     { header: "Sub-order", key: "subOrder", width: 16 },
     { header: "Status", key: "status", width: 12 },
     { header: "FLD", key: "fld", width: 14 },
-    { header: "Truck #", key: "truck", width: 14 },
-    { header: "Trailer #", key: "trailer", width: 14 },
+    ...vehicleColumns,
     { header: "Driver #", key: "driver", width: 16 },
     { header: "Gross weight (tons)", key: "weight", width: 16 },
     { header: "Current location", key: "location", width: 26 },
@@ -116,22 +136,29 @@ export async function buildOrdersWorkbook(
 
   orders.forEach((order, orderIndex) => {
     for (const sub of order.subOrders) {
-      // Same rule as the on-screen table: a cancelled sub-order shows no
-      // truck, an open/closed one shows only the truck currently holding
-      // the cargo (the end of any transfer chain).
-      const current = sub.status === "CANCELED" ? null : currentTruckOf(sub.trucks);
+      // Every vehicle that actually carried this sub-order's cargo, in
+      // order — a cancelled vehicle is dropped entirely (it never counts
+      // as one of the numbered slots); the last one is the current holder.
+      const chain = vehicleChain(sub.trucks);
+      const last = chain.at(-1) ?? null;
       const comment = sub.comments?.[0]?.text ?? "";
+
+      const vehicleData: Record<string, string> = {};
+      chain.slice(0, MAX_VEHICLES_PER_SUB_ORDER).forEach((truck, i) => {
+        vehicleData[`vehicle${i + 1}`] = vehicleLabel(truck);
+        vehicleData[`country${i + 1}`] = truck.country || "";
+      });
+
       const row = subSheet.addRow({
         order: order.name,
         subOrder: sub.name || "Sub-order",
         status: subOrderStatusLabel(sub.status),
         fld: formatDate(sub.factoryLoadDate),
-        truck: current?.plateNumber || "",
-        trailer: current?.trailerPlateNumber || "",
-        driver: current?.driverPhone || "",
-        weight: current?.cargoWeight ?? "",
-        location: current?.currentLocation || "",
-        updated: current?.locationUpdatedAt ? formatDateTime(current.locationUpdatedAt) : "",
+        ...vehicleData,
+        driver: last?.driverPhone || "",
+        weight: last?.cargoWeight ?? "",
+        location: last?.currentLocation || "",
+        updated: last?.locationUpdatedAt ? formatDateTime(last.locationUpdatedAt) : "",
         comment,
       });
       // Same order → same band color as this order's row in the Orders

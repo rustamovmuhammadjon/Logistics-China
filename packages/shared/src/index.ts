@@ -87,6 +87,7 @@ export type TruckDto = {
   subOrderId: string;
   plateNumber: string | null;
   trailerPlateNumber: string | null;
+  country: string | null;
   driverName: string | null;
   driverPhone: string | null;
   lengthM: number | null;

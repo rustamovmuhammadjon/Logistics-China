@@ -50,6 +50,7 @@ export function TruckReadout({
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         <Fact label="Truck plate" value={truck.plateNumber} />
         <Fact label="Trailer plate" value={truck.trailerPlateNumber} />
+        <Fact label="Country" value={truck.country} />
         <Fact label="Driver name" value={truck.driverName} />
         <Fact label="Driver phone" value={truck.driverPhone} />
         <Fact label="Length (m)" value={formatNum(truck.lengthM)} />

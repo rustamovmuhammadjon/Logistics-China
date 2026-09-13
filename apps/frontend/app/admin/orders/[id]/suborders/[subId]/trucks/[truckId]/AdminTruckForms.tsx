@@ -52,6 +52,7 @@ export function AdminTruckForms({
       >
         <Field name="plateNumber" label="Truck plate number" defaultValue={truck.plateNumber} readOnly={frozen} />
         <Field name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck.trailerPlateNumber} readOnly={frozen} />
+        <Field name="country" label="Country" defaultValue={truck.country} readOnly={frozen} />
         <Field name="driverName" label="Driver name" defaultValue={truck.driverName} readOnly={frozen} />
         <Field name="driverPhone" label="Driver phone" defaultValue={truck.driverPhone} readOnly={frozen} />
         <Field name="lengthM" label="Length (m)" type="number" defaultValue={truck.lengthM} readOnly={frozen} />

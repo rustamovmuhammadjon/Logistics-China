@@ -4,6 +4,7 @@ export function TruckFields({
   truck?: {
     plateNumber?: string | null;
     trailerPlateNumber?: string | null;
+    country?: string | null;
     driverName?: string | null;
     driverPhone?: string | null;
     lengthM?: number | null;
@@ -17,6 +18,7 @@ export function TruckFields({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Field name="plateNumber" label="Truck plate number" defaultValue={truck?.plateNumber} />
       <Field name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck?.trailerPlateNumber} />
+      <Field name="country" label="Country" defaultValue={truck?.country} />
       <Field name="driverName" label="Driver name" defaultValue={truck?.driverName} />
       <Field name="driverPhone" label="Driver phone" defaultValue={truck?.driverPhone} />
       <Field name="lengthM" label="Length (m)" type="number" defaultValue={truck?.lengthM} />

@@ -106,6 +106,7 @@ export function AdminSubOrderForms({
         >
           <Field name="plateNumber" label="Truck plate number" />
           <Field name="trailerPlateNumber" label="Trailer plate number" />
+          <Field name="country" label="Country" />
           <Field name="driverName" label="Driver name" />
           <Field name="driverPhone" label="Driver phone" />
           <Field name="lengthM" label="Length (m)" type="number" />
