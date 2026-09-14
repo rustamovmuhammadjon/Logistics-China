@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import type { AuthMe } from "@logistics/shared";
-import { serverApi } from "@/lib/server-api";
+import type { DashboardResponse } from "@logistics/shared";
+import { serverApiOrNull } from "@/lib/server-api";
 import { NewOrderForm } from "./NewOrderForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
-  const me = await serverApi<AuthMe>("/api/auth/me");
-  if (!me.user) redirect("/login");
-  if (me.user.role !== "CONSIGNEE") redirect("/dashboard");
+  const data = await serverApiOrNull<DashboardResponse>("/api/dashboard");
+  if (!data) redirect("/login");
+  if (data.user.role !== "CONSIGNEE") redirect("/dashboard");
 
   return (
     <>
@@ -20,7 +20,7 @@ export default async function NewOrderPage() {
       </Link>
       <div className="card mt-3 space-y-4">
         <h1 className="text-xl font-bold text-slate-900">New order</h1>
-        <NewOrderForm />
+        <NewOrderForm operators={data.links} />
       </div>
     </>
   );

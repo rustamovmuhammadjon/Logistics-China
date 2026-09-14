@@ -44,6 +44,12 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
           </p>
         )}
 
+        {order.lastEditedByEmail && (
+          <p className="text-xs text-slate-400">
+            Last edited by {order.lastEditedByEmail} · {formatDateTime(order.lastEditedAt)}
+          </p>
+        )}
+
         {locked ? (
           <OrderFields order={order} readOnly />
         ) : (
@@ -53,7 +59,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
               submit(`/api/consignee/orders/${order.id}`, { method: "PATCH", body: formToJson(e.currentTarget) });
             }}
           >
-            <OrderFields order={order} polReadOnly />
+            <OrderFields order={order} />
             <button type="submit" className="btn-primary mt-4" disabled={pending}>
               {pending ? "Saving…" : "Save changes"}
             </button>
@@ -144,6 +150,11 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
                     {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
                     {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                   </p>
+                  {sub.lastEditedByEmail && (
+                    <p className="text-xs text-slate-400">
+                      Last edited by {sub.lastEditedByEmail} · {formatDateTime(sub.lastEditedAt)}
+                    </p>
+                  )}
 
                   <SubOrderLocation trucks={sub.trucks} />
 

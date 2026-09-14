@@ -56,6 +56,11 @@ export function optionalDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+/** Same as optionalDate, but falls back to today when nothing was entered. */
+export function dateOrToday(value: unknown): Date {
+  return optionalDate(value) ?? new Date();
+}
+
 export function parseDateOfBirth(value: unknown, required = false): Date | null {
   const parsed = optionalDate(value);
   if (!parsed) {

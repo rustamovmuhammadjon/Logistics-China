@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound, unauthorized } from "../lib/errors.js";
-import { optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude } from "../lib/orders.js";
 import { assertGroupOrderMutable, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -21,6 +21,7 @@ function orderFields(body: Record<string, unknown>) {
   return {
     name: requiredString(body.name, "name"),
     openedAt: optionalDate(body.openedAt),
+    pol: optionalString(body.pol),
     origin: optionalString(body.origin),
     destination: optionalString(body.destination),
     commodity: optionalString(body.commodity),
@@ -33,8 +34,28 @@ consigneeRouter.post(
     const me = (req as AuthedRequest).user!;
     const fields = orderFields(req.body);
     const order = await prisma.groupOrder.create({
-      data: { ownerId: me.id, ...fields },
+      data: { ownerId: me.id, ...fields, openedAt: fields.openedAt ?? new Date() },
     });
+
+    // Only relevant once a consignee has multiple SELECTED-scope operators —
+    // grants this order to whichever links were picked at creation time.
+    // ALL-scope operators already see every order and need no grant.
+    const linkIds = Array.isArray(req.body?.linkIds)
+      ? req.body.linkIds.filter((id: unknown): id is string => typeof id === "string")
+      : [];
+    if (linkIds.length > 0) {
+      const selectedLinks = await prisma.operatorLink.findMany({
+        where: { id: { in: linkIds }, consigneeId: me.id, scope: "SELECTED" },
+        select: { id: true },
+      });
+      if (selectedLinks.length > 0) {
+        await prisma.operatorOrderGrant.createMany({
+          data: selectedLinks.map((link) => ({ operatorLinkId: link.id, groupOrderId: order.id })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     res.json({ order });
   })
 );
@@ -113,7 +134,7 @@ consigneeRouter.post(
       data: {
         groupOrderId: req.params.id,
         name: optionalString(req.body?.name),
-        openedAt: optionalDate(req.body?.openedAt),
+        openedAt: dateOrToday(req.body?.openedAt),
         factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
         status: "OPEN",
       },

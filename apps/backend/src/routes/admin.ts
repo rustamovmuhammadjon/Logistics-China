@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
-import { optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
@@ -69,7 +69,7 @@ adminRouter.post(
   asyncHandler(async (req, res) => {
     const data = orderData(req.body);
     const order = await prisma.groupOrder.create({
-      data,
+      data: { ...data, openedAt: data.openedAt ?? new Date() },
     });
     res.json({ order });
   })
@@ -127,7 +127,7 @@ adminRouter.post(
       data: {
         groupOrderId: req.params.id,
         name: optionalString(req.body?.name),
-        openedAt: optionalDate(req.body?.openedAt),
+        openedAt: dateOrToday(req.body?.openedAt),
         factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
         status: "OPEN",
       },

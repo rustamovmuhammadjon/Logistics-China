@@ -9,15 +9,7 @@ type OrderLike = {
   commodity?: string | null;
 };
 
-export function OrderFields({
-  order,
-  readOnly = false,
-  polReadOnly = false,
-}: {
-  order?: OrderLike;
-  readOnly?: boolean;
-  polReadOnly?: boolean;
-}) {
+export function OrderFields({ order, readOnly = false }: { order?: OrderLike; readOnly?: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
@@ -57,14 +49,7 @@ export function OrderFields({
       </div>
       <div>
         <label className="field-label">POL (place of loading)</label>
-        <input
-          className="field-input"
-          type="text"
-          name="pol"
-          defaultValue={order?.pol ?? ""}
-          readOnly={readOnly || polReadOnly}
-          placeholder={polReadOnly ? "Set by the operator" : undefined}
-        />
+        <input className="field-input" type="text" name="pol" defaultValue={order?.pol ?? ""} readOnly={readOnly} />
       </div>
       <div>
         <label className="field-label">Commodity</label>

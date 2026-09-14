@@ -118,6 +118,8 @@ export type SubOrderDto = {
   factoryLoadDate: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
+  lastEditedByEmail: string | null;
+  lastEditedAt: string | null;
   groupOrderId: string;
   createdAt: string;
   updatedAt: string;
@@ -139,6 +141,8 @@ export type GroupOrderDto = {
   commodity: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
+  lastEditedByEmail: string | null;
+  lastEditedAt: string | null;
   canceledAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -151,10 +155,15 @@ export type AdminUserDto = UserPublic & {
   ownedOrderCount: number;
 };
 
+export type OperatorLinkScope = "ALL" | "SELECTED";
+
 export type LinkedAccountDto = {
   linkId: string;
   email: string;
   createdAt: string;
+  // Only present on the consignee's own view of their linked operators.
+  scope?: OperatorLinkScope;
+  grantedOrderIds?: string[];
 };
 
 export type SidebarOrderDto = {

@@ -29,6 +29,11 @@ enum DriverAssignmentStatus {
   REVOKED
 }
 
+enum OperatorLinkScope {
+  ALL
+  SELECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -59,10 +64,30 @@ model OperatorLink {
   operatorId String
   operator   User   @relation("OperatorLinks", fields: [operatorId], references: [id], onDelete: Cascade)
 
+  // ALL: operator sees every order this consignee owns, present and future.
+  // SELECTED: operator only sees orders explicitly granted below.
+  scope       OperatorLinkScope    @default(ALL)
+  orderGrants OperatorOrderGrant[]
+
   createdAt DateTime @default(now())
 
   @@unique([consigneeId, operatorId])
   @@index([operatorId])
+}
+
+model OperatorOrderGrant {
+  id String @id @default(cuid())
+
+  operatorLinkId String
+  operatorLink   OperatorLink @relation(fields: [operatorLinkId], references: [id], onDelete: Cascade)
+
+  groupOrderId String
+  groupOrder   GroupOrder @relation(fields: [groupOrderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([operatorLinkId, groupOrderId])
+  @@index([groupOrderId])
 }
 
 model GroupOrder {
@@ -82,13 +107,19 @@ model GroupOrder {
   statusText      String?
   statusUpdatedAt DateTime?
 
+  // Set whenever a linked operator edits this order (e.g. POL) — shown to
+  // the consignee so they know who last touched it.
+  lastEditedByEmail String?
+  lastEditedAt      DateTime?
+
   canceledAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subOrders SubOrder[]
-  comments  Comment[]
+  subOrders      SubOrder[]
+  comments       Comment[]
+  operatorGrants OperatorOrderGrant[]
 
   @@index([name])
   @@index([ownerId])
@@ -105,6 +136,11 @@ model SubOrder {
 
   statusText      String?
   statusUpdatedAt DateTime?
+
+  // Set whenever a linked operator edits this sub-order or one of its
+  // trucks — shown to the consignee so they know who last touched it.
+  lastEditedByEmail String?
+  lastEditedAt      DateTime?
 
   groupOrderId String
   groupOrder   GroupOrder @relation(fields: [groupOrderId], references: [id], onDelete: Cascade)

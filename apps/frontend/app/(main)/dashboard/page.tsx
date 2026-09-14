@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Box1 } from "iconsax-react";
-import { formatDate, formatDirection, truckStats, type DashboardResponse } from "@logistics/shared";
+import { formatDate, formatDirection, isGroupOrderLocked, truckStats, type DashboardResponse } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkPanel } from "./LinkPanel";
@@ -39,6 +39,12 @@ export default async function DashboardPage() {
           myCode={data.user.linkCode}
           counterpartLabel={isConsignee ? "operator" : "consignee"}
           links={data.links}
+          isConsignee={isConsignee}
+          activeOrders={
+            isConsignee
+              ? orders.filter((order) => !isGroupOrderLocked(order)).map((order) => ({ id: order.id, name: order.name }))
+              : undefined
+          }
         />
 
         {orders.length === 0 ? (

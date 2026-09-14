@@ -2,7 +2,13 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
 import { optionalDate, optionalString, requiredString } from "../lib/input.js";
-import { detailInclude, findActivePlateConflict, plateConflictMessage, truckFields } from "../lib/orders.js";
+import {
+  detailInclude,
+  findActivePlateConflict,
+  plateConflictMessage,
+  touchSubOrderEditor,
+  truckFields,
+} from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
 import { assertCanAddDirectTruck, assertSubOrderMutable, assertTruckMutable, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
@@ -16,7 +22,7 @@ operatorRouter.use(requireOperator);
 async function loadLinkedOrder(operatorId: string, orderId: string) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });
   if (!order) notFound();
-  await assertOperatorLinked(operatorId, order.ownerId);
+  await assertOperatorLinked(operatorId, order.ownerId, orderId);
   return order;
 }
 
@@ -41,7 +47,7 @@ operatorRouter.patch(
     const existing = await loadLinkedOrder(me.id, req.params.id);
     const order = await prisma.groupOrder.update({
       where: { id: existing.id },
-      data: { pol: optionalString(req.body?.pol) },
+      data: { pol: optionalString(req.body?.pol), lastEditedByEmail: me.email, lastEditedAt: new Date() },
     });
     res.json({ order });
   })
@@ -57,7 +63,11 @@ operatorRouter.patch(
     // it isn't frozen by status.
     const updated = await prisma.subOrder.update({
       where: { id: sub.id },
-      data: { factoryLoadDate: optionalDate(req.body?.factoryLoadDate) },
+      data: {
+        factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
+        lastEditedByEmail: me.email,
+        lastEditedAt: new Date(),
+      },
     });
     res.json({ subOrder: updated });
   })
@@ -72,13 +82,16 @@ operatorRouter.patch(
     if (truck.subOrder.groupOrderId !== req.params.id) unauthorized();
     const currentLocation = optionalString(req.body?.currentLocation);
     const changed = currentLocation !== truck.currentLocation;
-    const updated = await prisma.truck.update({
-      where: { id: truck.id },
-      data: {
-        currentLocation,
-        locationUpdatedAt: changed ? new Date() : truck.locationUpdatedAt,
-      },
-    });
+    const [updated] = await Promise.all([
+      prisma.truck.update({
+        where: { id: truck.id },
+        data: {
+          currentLocation,
+          locationUpdatedAt: changed ? new Date() : truck.locationUpdatedAt,
+        },
+      }),
+      touchSubOrderEditor(truck.subOrderId, me.email),
+    ]);
     res.json({ truck: updated });
   })
 );
@@ -124,13 +137,16 @@ operatorRouter.post(
       subOrderId: req.params.subId,
     });
     if (clash) conflict(plateConflictMessage(clash));
-    const truck = await prisma.truck.create({
-      data: {
-        subOrderId: req.params.subId,
-        ...data,
-        locationUpdatedAt: data.currentLocation ? new Date() : null,
-      },
-    });
+    const [truck] = await Promise.all([
+      prisma.truck.create({
+        data: {
+          subOrderId: req.params.subId,
+          ...data,
+          locationUpdatedAt: data.currentLocation ? new Date() : null,
+        },
+      }),
+      touchSubOrderEditor(req.params.subId, me.email),
+    ]);
     res.json({ truck });
   })
 );
@@ -150,13 +166,16 @@ operatorRouter.patch(
     });
     if (clash) conflict(plateConflictMessage(clash));
     const locationChanged = data.currentLocation !== existing.currentLocation;
-    const truck = await prisma.truck.update({
-      where: { id: existing.id },
-      data: {
-        ...data,
-        locationUpdatedAt: locationChanged ? new Date() : existing.locationUpdatedAt,
-      },
-    });
+    const [truck] = await Promise.all([
+      prisma.truck.update({
+        where: { id: existing.id },
+        data: {
+          ...data,
+          locationUpdatedAt: locationChanged ? new Date() : existing.locationUpdatedAt,
+        },
+      }),
+      touchSubOrderEditor(req.params.subId, me.email),
+    ]);
     res.json({ truck });
   })
 );
@@ -238,10 +257,13 @@ operatorRouter.post(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
-    const transfer = await createCargoTransfer({
-      subOrderId: req.params.subId,
-      body: req.body as Record<string, unknown>,
-    });
+    const [transfer] = await Promise.all([
+      createCargoTransfer({
+        subOrderId: req.params.subId,
+        body: req.body as Record<string, unknown>,
+      }),
+      touchSubOrderEditor(req.params.subId, me.email),
+    ]);
     res.json({ transfer });
   })
 );

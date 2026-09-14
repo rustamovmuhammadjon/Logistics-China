@@ -2,7 +2,7 @@ import { MAX_TRANSFERS_PER_SUB_ORDER } from "@logistics/shared";
 import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
-import { normalizePhone, normalizePlate, optionalDate, optionalString, requiredString, truthyFlag } from "./input.js";
+import { dateOrToday, normalizePhone, normalizePlate, optionalString, requiredString, truthyFlag } from "./input.js";
 import { assertSubOrderMutable } from "./lifecycle.js";
 
 export async function createCargoTransfer(params: {
@@ -13,7 +13,7 @@ export async function createCargoTransfer(params: {
   const fromTruckId = requiredString(body.fromTruckId, "fromTruckId");
   const keepTrailer = truthyFlag(body.keepTrailer);
   const comment = optionalString(body.comment);
-  const transferDate = optionalDate(body.transferDate);
+  const transferDate = dateOrToday(body.transferDate);
 
   const fromTruck = await prisma.truck.findUnique({
     where: { id: fromTruckId },

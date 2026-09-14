@@ -10,6 +10,10 @@ export const linksRouter = Router();
 
 linksRouter.use(requireRegisteredUser);
 
+function orderIdsFromBody(body: Record<string, unknown>): string[] {
+  return Array.isArray(body.orderIds) ? body.orderIds.filter((id): id is string => typeof id === "string") : [];
+}
+
 linksRouter.post(
   "/",
   asyncHandler(async (req, res) => {
@@ -24,8 +28,26 @@ linksRouter.post(
     const consigneeId = me.role === "CONSIGNEE" ? me.id : other.id;
     const operatorId = me.role === "OPERATOR" ? me.id : other.id;
 
+    // Visibility scope is the consignee's call — only apply it when the
+    // consignee is the one initiating the link. When an operator links in
+    // (using the consignee's ID), it always starts as ALL; the consignee
+    // can narrow it down afterward from their linked-accounts list.
+    const scope = me.role === "CONSIGNEE" && req.body?.scope === "SELECTED" ? "SELECTED" : "ALL";
+    const orderIds = me.role === "CONSIGNEE" ? orderIdsFromBody(req.body ?? {}) : [];
+
     try {
-      const link = await prisma.operatorLink.create({ data: { consigneeId, operatorId } });
+      const link = await prisma.operatorLink.create({ data: { consigneeId, operatorId, scope } });
+      if (scope === "SELECTED" && orderIds.length > 0) {
+        const owned = await prisma.groupOrder.findMany({
+          where: { id: { in: orderIds }, ownerId: consigneeId },
+          select: { id: true },
+        });
+        if (owned.length > 0) {
+          await prisma.operatorOrderGrant.createMany({
+            data: owned.map((o) => ({ operatorLinkId: link.id, groupOrderId: o.id })),
+          });
+        }
+      }
       res.json({ link });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -33,6 +55,55 @@ linksRouter.post(
       }
       throw err;
     }
+  })
+);
+
+// Consignee-only: change an operator's visibility scope, and (for SELECTED
+// scope) update which orders are granted — but only within the set of
+// orders actually shown in the edit UI (e.g. a since-completed order the
+// consignee never saw in this session keeps whatever grant it already had).
+linksRouter.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    const link = await prisma.operatorLink.findUnique({ where: { id: req.params.id } });
+    if (!link || link.consigneeId !== me.id) unauthorized();
+
+    const scope = req.body?.scope === "SELECTED" ? "SELECTED" : "ALL";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.operatorLink.update({ where: { id: link.id }, data: { scope } });
+      if (scope === "ALL") {
+        // Grants are meaningless once the link sees everything — clear
+        // them so a later switch back to SELECTED starts from a clean slate.
+        await tx.operatorOrderGrant.deleteMany({ where: { operatorLinkId: link.id } });
+        return;
+      }
+
+      const checkedIds = orderIdsFromBody(req.body ?? {});
+      const visibleIds: string[] = Array.isArray(req.body?.visibleOrderIds)
+        ? req.body.visibleOrderIds.filter((id: unknown): id is string => typeof id === "string")
+        : checkedIds;
+
+      const owned = await tx.groupOrder.findMany({
+        where: { id: { in: checkedIds }, ownerId: me.id },
+        select: { id: true },
+      });
+      const ownedIds = new Set(owned.map((o) => o.id));
+      const toRemove = visibleIds.filter((id: string) => !ownedIds.has(id));
+
+      if (toRemove.length > 0) {
+        await tx.operatorOrderGrant.deleteMany({ where: { operatorLinkId: link.id, groupOrderId: { in: toRemove } } });
+      }
+      if (ownedIds.size > 0) {
+        await tx.operatorOrderGrant.createMany({
+          data: [...ownedIds].map((id) => ({ operatorLinkId: link.id, groupOrderId: id })),
+          skipDuplicates: true,
+        });
+      }
+    });
+
+    res.json({ ok: true });
   })
 );
 

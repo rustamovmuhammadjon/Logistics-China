@@ -60,12 +60,19 @@ export function requireRegisteredUser(req: Request, _res: Response, next: NextFu
   next();
 }
 
-export async function assertOperatorLinked(operatorId: string, ownerId: string | null) {
+export async function assertOperatorLinked(operatorId: string, ownerId: string | null, orderId?: string) {
   if (!ownerId) unauthorized();
   const link = await prisma.operatorLink.findUnique({
     where: { consigneeId_operatorId: { consigneeId: ownerId, operatorId } },
   });
   if (!link) unauthorized();
+  if (link.scope === "SELECTED") {
+    if (!orderId) unauthorized();
+    const grant = await prisma.operatorOrderGrant.findUnique({
+      where: { operatorLinkId_groupOrderId: { operatorLinkId: link.id, groupOrderId: orderId } },
+    });
+    if (!grant) unauthorized();
+  }
 }
 
 export function currentUserPublic(req: Request) {

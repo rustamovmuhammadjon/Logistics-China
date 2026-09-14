@@ -72,7 +72,13 @@ export const listIncludeWithPeople = {
   owner: {
     select: {
       ...personSelect,
-      linksAsConsignee: { select: { operator: { select: personSelect } } },
+      linksAsConsignee: {
+        select: {
+          scope: true,
+          orderGrants: { select: { groupOrderId: true } },
+          operator: { select: personSelect },
+        },
+      },
     },
   },
 };
@@ -101,14 +107,26 @@ function toPerson(user: {
   };
 }
 
-export function withOrderPeople<T extends { owner?: null | {
-  linksAsConsignee?: { operator: Parameters<typeof toPerson>[0] }[];
-} & Parameters<typeof toPerson>[0] }>(order: T) {
+export function withOrderPeople<T extends {
+  id: string;
+  owner?: null | {
+    linksAsConsignee?: {
+      scope: "ALL" | "SELECTED";
+      orderGrants: { groupOrderId: string }[];
+      operator: Parameters<typeof toPerson>[0];
+    }[];
+  } & Parameters<typeof toPerson>[0];
+}>(order: T) {
   const { owner, ...rest } = order;
+  // Only list operators who can actually see THIS order — an ALL-scope
+  // link always qualifies, a SELECTED-scope one only if explicitly granted.
+  const operators = (owner?.linksAsConsignee ?? [])
+    .filter((link) => link.scope === "ALL" || link.orderGrants.some((g) => g.groupOrderId === order.id))
+    .map((link) => toPerson(link.operator));
   return {
     ...rest,
     owner: owner ? toPerson(owner) : null,
-    operators: owner?.linksAsConsignee?.map((link) => toPerson(link.operator)) ?? [],
+    operators,
   };
 }
 
@@ -160,11 +178,22 @@ export async function orderVisibilityWhere(params: {
   if (user?.role === "OPERATOR") {
     const links = await prisma.operatorLink.findMany({
       where: { operatorId: user.id },
-      select: { consigneeId: true },
+      select: { id: true, consigneeId: true, scope: true },
     });
-    const ids = links.map((link) => link.consigneeId);
-    if (ids.length === 0) return { id: { in: [] } };
-    return { ownerId: { in: ids } };
+    if (links.length === 0) return { id: { in: [] } };
+
+    // ALL-scope links see every order the consignee owns; SELECTED-scope
+    // links only see orders explicitly granted to that specific link.
+    const allScopeConsigneeIds = links.filter((l) => l.scope === "ALL").map((l) => l.consigneeId);
+    const selectedLinkIds = links.filter((l) => l.scope === "SELECTED").map((l) => l.id);
+
+    const or: Prisma.GroupOrderWhereInput[] = [];
+    if (allScopeConsigneeIds.length > 0) or.push({ ownerId: { in: allScopeConsigneeIds } });
+    if (selectedLinkIds.length > 0) {
+      or.push({ operatorGrants: { some: { operatorLinkId: { in: selectedLinkIds } } } });
+    }
+    if (or.length === 0) return { id: { in: [] } };
+    return { OR: or };
   }
   if (isAdmin) return {};
   return { id: { in: [] } };
@@ -187,32 +216,6 @@ export async function getViewerContext(admin: boolean, user: { id: string; role:
   };
 }
 
-export function scopeOrderWhere(
-  ctx: Awaited<ReturnType<typeof getViewerContext>>,
-  where: Prisma.GroupOrderWhereInput
-): Prisma.GroupOrderWhereInput {
-  if (ctx.kind === "admin") return where;
-  if (ctx.kind === "consignee") {
-    if (!ctx.userId) return { AND: [where, { id: { in: [] } }] };
-    return { AND: [where, { ownerId: ctx.userId }] };
-  }
-  if (ctx.kind === "operator") {
-    if (ctx.linkedConsigneeIds.length === 0) return { AND: [where, { id: { in: [] } }] };
-    return { AND: [where, { ownerId: { in: ctx.linkedConsigneeIds } }] };
-  }
-  return { AND: [where, { id: { in: [] } }] };
-}
-
-export function viewerCanAccessOrder(
-  ctx: Awaited<ReturnType<typeof getViewerContext>>,
-  ownerId: string | null
-): boolean {
-  if (ctx.kind === "admin") return true;
-  if (ctx.kind === "consignee") return ownerId === ctx.userId;
-  if (ctx.kind === "operator") return Boolean(ownerId && ctx.linkedConsigneeIds.includes(ownerId));
-  return false;
-}
-
 export function truckFields(body: Record<string, unknown>) {
   return {
     plateNumber: optionalString(body.plateNumber),
@@ -226,6 +229,14 @@ export function truckFields(body: Record<string, unknown>) {
     cargoWeight: optionalFloat(body.cargoWeight),
     currentLocation: optionalString(body.currentLocation),
   };
+}
+
+/** Stamp who last touched this sub-order (covers its trucks/location too), so the consignee can see which operator edited it. */
+export function touchSubOrderEditor(subOrderId: string, operatorEmail: string) {
+  return prisma.subOrder.update({
+    where: { id: subOrderId },
+    data: { lastEditedByEmail: operatorEmail, lastEditedAt: new Date() },
+  });
 }
 
 export async function findActivePlateConflict(params: {

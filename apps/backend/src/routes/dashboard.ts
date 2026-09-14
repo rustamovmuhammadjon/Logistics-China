@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { listInclude } from "../lib/orders.js";
+import { listInclude, orderVisibilityWhere } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js";
@@ -23,7 +23,7 @@ dashboardRouter.get(
         }),
         prisma.operatorLink.findMany({
           where: { consigneeId: me.id },
-          include: { operator: true },
+          include: { operator: true, orderGrants: { select: { groupOrderId: true } } },
           orderBy: { createdAt: "desc" },
         }),
       ]);
@@ -34,24 +34,26 @@ dashboardRouter.get(
           linkId: l.id,
           email: l.operator.email,
           createdAt: l.createdAt,
+          scope: l.scope,
+          grantedOrderIds: l.orderGrants.map((g) => g.groupOrderId),
         })),
       });
       return;
     }
 
-    const links = await prisma.operatorLink.findMany({
-      where: { operatorId: me.id },
-      include: { consignee: true },
+    const [links, visibility] = await Promise.all([
+      prisma.operatorLink.findMany({
+        where: { operatorId: me.id },
+        include: { consignee: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      orderVisibilityWhere({ isAdmin: false, user: me }),
+    ]);
+    const orders = await prisma.groupOrder.findMany({
+      where: visibility,
+      include: listInclude,
       orderBy: { createdAt: "desc" },
     });
-    const consigneeIds = links.map((l) => l.consigneeId);
-    const orders = consigneeIds.length
-      ? await prisma.groupOrder.findMany({
-          where: { ownerId: { in: consigneeIds } },
-          include: listInclude,
-          orderBy: { createdAt: "desc" },
-        })
-      : [];
 
     res.json({
       user: toPublicUser(me),
