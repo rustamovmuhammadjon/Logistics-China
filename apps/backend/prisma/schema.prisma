@@ -167,10 +167,6 @@ model Truck {
   driverName         String?
   driverPhone        String?
 
-  lengthM Float?
-  widthM  Float?
-  heightM Float?
-
   cargoWeight      Float?
   cargoDescription String?
 

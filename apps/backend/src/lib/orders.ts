@@ -223,9 +223,6 @@ export function truckFields(body: Record<string, unknown>) {
     country: optionalString(body.country),
     driverName: optionalString(body.driverName),
     driverPhone: optionalString(body.driverPhone),
-    lengthM: optionalFloat(body.lengthM),
-    widthM: optionalFloat(body.widthM),
-    heightM: optionalFloat(body.heightM),
     cargoWeight: optionalFloat(body.cargoWeight),
     currentLocation: optionalString(body.currentLocation),
   };

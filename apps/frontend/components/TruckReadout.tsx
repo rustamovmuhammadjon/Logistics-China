@@ -53,9 +53,6 @@ export function TruckReadout({
         <Fact label="Country" value={truck.country} />
         <Fact label="Driver name" value={truck.driverName} />
         <Fact label="Driver phone" value={truck.driverPhone} />
-        <Fact label="Length (m)" value={formatNum(truck.lengthM)} />
-        <Fact label="Width (m)" value={formatNum(truck.widthM)} />
-        <Fact label="Height (m)" value={formatNum(truck.heightM)} />
         <Fact label="Gross weight (tons)" value={formatNum(truck.cargoWeight)} />
       </dl>
 

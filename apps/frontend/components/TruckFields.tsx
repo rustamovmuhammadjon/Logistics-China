@@ -7,9 +7,6 @@ export function TruckFields({
     country?: string | null;
     driverName?: string | null;
     driverPhone?: string | null;
-    lengthM?: number | null;
-    widthM?: number | null;
-    heightM?: number | null;
     cargoWeight?: number | null;
     currentLocation?: string | null;
   };
@@ -21,9 +18,6 @@ export function TruckFields({
       <Field name="country" label="Country" defaultValue={truck?.country} />
       <Field name="driverName" label="Driver name" defaultValue={truck?.driverName} />
       <Field name="driverPhone" label="Driver phone" defaultValue={truck?.driverPhone} />
-      <Field name="lengthM" label="Length (m)" type="number" defaultValue={truck?.lengthM} />
-      <Field name="widthM" label="Width (m)" type="number" defaultValue={truck?.widthM} />
-      <Field name="heightM" label="Height (m)" type="number" defaultValue={truck?.heightM} />
       <Field name="cargoWeight" label="Gross weight (tons)" type="number" defaultValue={truck?.cargoWeight} />
       <div className="sm:col-span-3">
         <Field name="currentLocation" label="Current location" defaultValue={truck?.currentLocation} />

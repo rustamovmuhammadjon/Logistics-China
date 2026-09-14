@@ -90,9 +90,6 @@ export type TruckDto = {
   country: string | null;
   driverName: string | null;
   driverPhone: string | null;
-  lengthM: number | null;
-  widthM: number | null;
-  heightM: number | null;
   cargoWeight: number | null;
   cargoDescription: string | null;
   currentLocation: string | null;
