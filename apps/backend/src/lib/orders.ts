@@ -66,6 +66,7 @@ const personSelect = {
   id: true,
   email: true,
   role: true,
+  companyName: true,
   firstName: true,
   lastName: true,
   phone: true,
@@ -88,12 +89,16 @@ export const listIncludeWithPeople = {
       },
     },
   },
+  // Who actually created the order — meaningful when the owner is a
+  // company and the creator is one of its employees.
+  createdBy: { select: personSelect },
 };
 
 function toPerson(user: {
   id: string;
   email: string;
   role: UserRole;
+  companyName: string | null;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
@@ -105,6 +110,7 @@ function toPerson(user: {
     id: user.id,
     email: user.email,
     role: user.role,
+    companyName: user.companyName,
     firstName: user.firstName,
     lastName: user.lastName,
     phone: user.phone,
@@ -123,8 +129,9 @@ export function withOrderPeople<T extends {
       operator: Parameters<typeof toPerson>[0];
     }[];
   } & Parameters<typeof toPerson>[0];
+  createdBy?: Parameters<typeof toPerson>[0] | null;
 }>(order: T) {
-  const { owner, ...rest } = order;
+  const { owner, createdBy, ...rest } = order;
   // Only list operators who can actually see THIS order — an ALL-scope
   // link always qualifies, a SELECTED-scope one only if explicitly granted.
   const operators = (owner?.linksAsConsignee ?? [])
@@ -134,6 +141,7 @@ export function withOrderPeople<T extends {
     ...rest,
     owner: owner ? toPerson(owner) : null,
     operators,
+    createdBy: createdBy ? toPerson(createdBy) : null,
   };
 }
 

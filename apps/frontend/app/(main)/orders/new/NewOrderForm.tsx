@@ -34,7 +34,7 @@ export function NewOrderForm({ operators }: { operators: LinkedAccountDto[] }) {
           body,
           refresh: false,
         });
-        if (result?.order) router.push(`/dashboard/orders/${result.order.id}`);
+        if (result?.order) router.push(`/orders/${result.order.id}`);
       }}
     >
       <OrderFields />

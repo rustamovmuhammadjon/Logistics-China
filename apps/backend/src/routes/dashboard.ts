@@ -42,16 +42,35 @@ dashboardRouter.get(
     }
 
     if (me.role === "EMPLOYEE") {
-      // An employee's orders are owned by their company, not themselves —
-      // and employees never manage operator links (their company does).
-      const orders = me.companyId
-        ? await prisma.groupOrder.findMany({
-            where: { ownerId: me.companyId },
-            include: listInclude,
-            orderBy: { createdAt: "desc" },
-          })
-        : [];
-      res.json({ user: toPublicUser(me), orders, links: [] });
+      // An employee's orders are owned by their company, not themselves.
+      // Employees never manage operator links themselves (their company
+      // does), but they still see the company's links read-only — needed to
+      // pick which operators can see a new order they create.
+      const [orders, links] = me.companyId
+        ? await Promise.all([
+            prisma.groupOrder.findMany({
+              where: { ownerId: me.companyId },
+              include: listInclude,
+              orderBy: { createdAt: "desc" },
+            }),
+            prisma.operatorLink.findMany({
+              where: { consigneeId: me.companyId },
+              include: { operator: true, orderGrants: { select: { groupOrderId: true } } },
+              orderBy: { createdAt: "desc" },
+            }),
+          ])
+        : [[], []];
+      res.json({
+        user: toPublicUser(me),
+        orders,
+        links: links.map((l) => ({
+          linkId: l.id,
+          email: l.operator.email,
+          createdAt: l.createdAt,
+          scope: l.scope,
+          grantedOrderIds: l.orderGrants.map((g) => g.groupOrderId),
+        })),
+      });
       return;
     }
 

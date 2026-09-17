@@ -6,6 +6,7 @@ import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
 import { EmptyState } from "@/components/EmptyState";
 import { DbError } from "@/components/DbError";
+import { MonitoringTabs } from "@/components/MonitoringTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export default async function CompletedOrdersPage({
             Orders whose sub-orders are all completed. Hidden from the main monitoring page.
           </p>
         </div>
+
+        <MonitoringTabs />
 
         {error || !scoped ? (
           <DbError message={error || "Backend did not return orders."} />

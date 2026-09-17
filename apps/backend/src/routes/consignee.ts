@@ -1,19 +1,28 @@
 import { Router } from "express";
+import type { User } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound, unauthorized } from "../lib/errors.js";
 import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, effectiveOwnerId } from "../lib/orders.js";
 import { assertGroupOrderMutable, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
-import { requireOrderCreator, type AuthedRequest } from "../middleware/auth.js";
+import { requireOrderCreator, requireOrderWriter, type AuthedRequest } from "../middleware/auth.js";
 
 export const consigneeRouter = Router();
 
+// Baseline: individual entrepreneurs, companies, and a company's employees
+// can all view orders scoped to effectiveOwnerId. Mutating routes add
+// requireOrderWriter on top (a company itself can never write) and, for an
+// employee, requireOwnedOrder also checks they created the specific order —
+// employees can see every company order but never edit each other's.
 consigneeRouter.use(requireOrderCreator);
 
-async function requireOwnedOrder(orderId: string, ownerId: string) {
+async function requireOwnedOrder(orderId: string, me: Pick<User, "id" | "role" | "companyId">) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });
-  if (!order || order.ownerId !== ownerId) unauthorized();
+  if (!order || order.ownerId !== effectiveOwnerId(me)) unauthorized();
+  if (me.role === "EMPLOYEE" && order.createdByUserId !== me.id) {
+    unauthorized("Only the employee who created this order can change it.");
+  }
   return order;
 }
 
@@ -30,6 +39,7 @@ function orderFields(body: Record<string, unknown>) {
 
 consigneeRouter.post(
   "/orders",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     const ownerId = effectiveOwnerId(me);
@@ -89,9 +99,10 @@ consigneeRouter.get(
 
 consigneeRouter.patch(
   "/orders/:id",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     const fields = orderFields(req.body);
     const order = await prisma.groupOrder.update({
@@ -105,9 +116,10 @@ consigneeRouter.patch(
 
 consigneeRouter.post(
   "/orders/:id/cancel",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     await cancelGroupOrder(req.params.id);
     res.json({ ok: true });
@@ -116,9 +128,10 @@ consigneeRouter.post(
 
 consigneeRouter.delete(
   "/orders/:id",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     await cancelGroupOrder(req.params.id);
     res.json({ ok: true });
@@ -127,9 +140,10 @@ consigneeRouter.delete(
 
 consigneeRouter.post(
   "/orders/:id/sub-orders",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     const subOrder = await prisma.subOrder.create({
       data: {
@@ -146,9 +160,10 @@ consigneeRouter.post(
 
 consigneeRouter.patch(
   "/orders/:id/sub-orders/:subId",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     const existing = await prisma.subOrder.findUnique({ where: { id: req.params.subId } });
     if (!existing || existing.groupOrderId !== req.params.id) notFound();
@@ -163,9 +178,10 @@ consigneeRouter.patch(
 
 consigneeRouter.post(
   "/orders/:id/sub-orders/:subId/complete",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     await completeSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
@@ -174,9 +190,10 @@ consigneeRouter.post(
 
 consigneeRouter.post(
   "/orders/:id/sub-orders/:subId/cancel",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
@@ -185,9 +202,10 @@ consigneeRouter.post(
 
 consigneeRouter.delete(
   "/orders/:id/sub-orders/:subId",
+  requireOrderWriter,
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    await requireOwnedOrder(req.params.id, effectiveOwnerId(me));
+    await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
     await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });

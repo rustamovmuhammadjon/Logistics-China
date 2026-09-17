@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   currentTruckOf,
+  displayName,
   formatDate,
   formatDateTime,
   formatDirection,
@@ -20,8 +21,9 @@ const TD = "px-3 py-2 text-xs";
 
 export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: ViewerContext }) {
   const isAdmin = ctx.kind === "admin";
+  const isCompany = ctx.kind === "company";
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const colSpan = isAdmin ? 7 : 5;
+  const colSpan = isAdmin ? 7 : isCompany ? 6 : 5;
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -46,6 +48,15 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
               <col style={{ width: "21%" }} />
               <col style={{ width: "21%" }} />
             </>
+          ) : isCompany ? (
+            <>
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "26%" }} />
+            </>
           ) : (
             <>
               <col style={{ width: "30%" }} />
@@ -65,6 +76,7 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
             <th className={TH}>Trucks</th>
             {isAdmin && <th className={TH}>Consignee</th>}
             {isAdmin && <th className={TH}>Operators</th>}
+            {isCompany && <th className={TH}>Created by</th>}
           </tr>
         </thead>
         <tbody>
@@ -109,6 +121,11 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
                       {order.operators && order.operators.length > 0
                         ? order.operators.map((person) => person.email).join(", ")
                         : "None linked"}
+                    </td>
+                  )}
+                  {isCompany && (
+                    <td className={`${TD} truncate text-slate-600`} title={order.createdBy?.email ?? undefined}>
+                      {order.createdBy ? displayName(order.createdBy) : "—"}
                     </td>
                   )}
                 </tr>

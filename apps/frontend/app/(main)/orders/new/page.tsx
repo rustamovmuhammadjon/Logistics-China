@@ -10,15 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function NewOrderPage() {
   const data = await serverApiOrNull<DashboardResponse>("/api/dashboard");
   if (!data) redirect("/login");
-  if (data.user.role !== "CONSIGNEE" && data.user.role !== "COMPANY" && data.user.role !== "EMPLOYEE") {
-    redirect("/dashboard");
+  // A company can never create an order itself — only its employees do.
+  if (data.user.role !== "CONSIGNEE" && data.user.role !== "EMPLOYEE") {
+    redirect("/orders");
   }
 
   return (
     <>
-      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
+      <Link href="/orders" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
-        My orders
+        Orders
       </Link>
       <div className="card mt-3 space-y-4">
         <h1 className="text-xl font-bold text-slate-900">New order</h1>

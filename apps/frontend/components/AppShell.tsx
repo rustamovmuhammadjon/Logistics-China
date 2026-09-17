@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Activity, Ban, CheckCircle2, LayoutDashboard, Plus, Shield, Users } from "lucide-react";
+import { Activity, LayoutDashboard, Plus, Shield, ShoppingBag, Users } from "lucide-react";
 import { Truck } from "iconsax-react";
 import {
   displayName,
@@ -79,18 +79,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Truck size={22} variant="Bold" color="#1d4e89" />
               China–Iran Logistics
             </Link>
-            <NavLink href="/" icon={<Activity className="h-4 w-4" />}>
+            <NavLink href="/" icon={<Activity className="h-4 w-4" />} match={["/", "/completed", "/cancelled"]}>
               Monitoring
             </NavLink>
-            <NavLink href="/completed" icon={<CheckCircle2 className="h-4 w-4" />}>
-              Completed
-            </NavLink>
-            <NavLink href="/cancelled" icon={<Ban className="h-4 w-4" />}>
-              Cancelled
-            </NavLink>
-            {user && (
+            {(user?.role === "CONSIGNEE" || user?.role === "COMPANY" || user?.role === "EMPLOYEE") && (
+              <NavLink href="/orders" icon={<ShoppingBag className="h-4 w-4" />}>
+                Orders
+              </NavLink>
+            )}
+            {user?.role === "COMPANY" && (
+              <NavLink href="/employees" icon={<Users className="h-4 w-4" />}>
+                Employees
+              </NavLink>
+            )}
+            {(user?.role === "OPERATOR" || user?.role === "COMPANY") && (
               <NavLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>
-                My dashboard
+                {user.role === "COMPANY" ? "Dashboard" : "My dashboard"}
               </NavLink>
             )}
             {admin && (
@@ -120,19 +124,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col lg:flex-row">
         <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-52 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200">
           <div className="px-4 pb-6 pt-3">
-            {(user?.role === "CONSIGNEE" || user?.role === "COMPANY" || user?.role === "EMPLOYEE") && (
-              <Link href="/dashboard/orders/new" className="btn-primary mb-4 w-full">
+            {(user?.role === "CONSIGNEE" || user?.role === "EMPLOYEE") && (
+              <Link href="/orders/new" className="btn-primary mb-4 w-full">
                 <Plus className="h-4 w-4" />
                 New order
-              </Link>
-            )}
-            {user?.role === "COMPANY" && (
-              <Link
-                href="/dashboard/employees"
-                className="btn-secondary mb-4 w-full"
-              >
-                <Users className="h-4 w-4" />
-                Employees
               </Link>
             )}
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Active orders</h2>
@@ -162,9 +157,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
+function NavLink({
+  href,
+  icon,
+  children,
+  match,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  match?: string[];
+}) {
   const pathname = usePathname();
-  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const paths = match ?? [href];
+  const active = paths.some((path) => (path === "/" ? pathname === "/" : pathname.startsWith(path)));
   return (
     <Link
       href={href}

@@ -17,16 +17,25 @@ import { OrderFields } from "@/components/OrderFields";
 import { SubOrderLocation, TruckSequence, transferHistory } from "@/components/TruckReadout";
 import { CargoTransferForm } from "@/components/CargoTransferForm";
 
-export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
+export function ConsigneeOrderDetail({
+  order,
+  canWrite,
+  readOnlyReason,
+}: {
+  order: GroupOrderDto;
+  canWrite: boolean;
+  readOnlyReason?: string;
+}) {
   const { submit, pending, error } = useApiSubmit();
   const locked = isGroupOrderLocked(order);
+  const editable = canWrite && !locked;
 
   return (
     <div className="space-y-6">
       <div className="card space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
-          {!locked && (
+          {editable && (
             <ConfirmButton
               confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
               disabled={pending}
@@ -43,6 +52,9 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
             This order is {order.canceledAt ? "cancelled" : "completed"} and cannot be changed.
           </p>
         )}
+        {!locked && !canWrite && readOnlyReason && (
+          <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">{readOnlyReason}</p>
+        )}
 
         {order.lastEditedByEmail && (
           <p className="text-xs text-slate-400">
@@ -50,7 +62,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
           </p>
         )}
 
-        {locked ? (
+        {!editable ? (
           <OrderFields order={order} readOnly />
         ) : (
           <form
@@ -68,7 +80,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
-      {!locked && (
+      {editable && (
         <div className="card">
           <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
           <form
@@ -108,7 +120,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
           <ul className="space-y-3">
             {order.subOrders.map((sub) => {
               const stats = truckStats(sub.trucks);
-              const subLocked = locked || sub.status !== "OPEN";
+              const subEditable = editable && sub.status === "OPEN";
               return (
                 <li key={sub.id} className="card space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -122,7 +134,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
                     <span className="badge-slate">{stats.total} trucks</span>
                   </div>
 
-                  {subLocked ? (
+                  {!subEditable ? (
                     <p className="font-medium text-slate-900">{sub.name || "Sub-order"}</p>
                   ) : (
                     <form
@@ -180,7 +192,7 @@ export function ConsigneeOrderDetail({ order }: { order: GroupOrderDto }) {
                     readOnly
                   />
 
-                  {sub.status === "OPEN" && !locked && (
+                  {sub.status === "OPEN" && editable && (
                     <div className="flex flex-wrap gap-2">
                       <ConfirmButton
                         className="btn-primary"

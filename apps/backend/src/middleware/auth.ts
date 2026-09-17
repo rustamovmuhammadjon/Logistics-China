@@ -56,12 +56,21 @@ export function requireCompany(req: Request, _res: Response, next: NextFunction)
   next();
 }
 
-// Individual entrepreneurs (role CONSIGNEE), companies, and a company's
-// employees all manage orders through the same routes — an employee's
-// orders are owned by their company, a company's by itself.
+// Read baseline: individual entrepreneurs (role CONSIGNEE), companies, and
+// a company's employees can all VIEW orders through the same routes — an
+// employee's orders are owned by their company, a company's by itself.
 export function requireOrderCreator(req: Request, _res: Response, next: NextFunction) {
   const user = (req as AuthedRequest).user;
   if (!user || (user.role !== "CONSIGNEE" && user.role !== "COMPANY" && user.role !== "EMPLOYEE")) unauthorized();
+  next();
+}
+
+// Write access is narrower than read access: a company can never create,
+// edit, cancel, or complete an order itself — only an individual
+// entrepreneur or one of a company's employees can.
+export function requireOrderWriter(req: Request, _res: Response, next: NextFunction) {
+  const user = (req as AuthedRequest).user;
+  if (!user || (user.role !== "CONSIGNEE" && user.role !== "EMPLOYEE")) unauthorized();
   next();
 }
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
-import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
+import { EMAIL_PATTERN, isGroupOrderCompleted, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { optionalString } from "../lib/input.js";
@@ -142,5 +142,83 @@ companyRouter.post(
     const existing = await requireOwnEmployee(me.id, req.params.id);
     await prisma.user.update({ where: { id: existing.id }, data: { active: true } });
     res.json({ ok: true });
+  })
+);
+
+function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+companyRouter.get(
+  "/analytics",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+
+    const [employeeCounts, orders] = await Promise.all([
+      prisma.user.groupBy({ by: ["active"], where: { companyId: me.id }, _count: { _all: true } }),
+      prisma.groupOrder.findMany({
+        where: { ownerId: me.id },
+        select: {
+          id: true,
+          createdAt: true,
+          canceledAt: true,
+          subOrders: { select: { status: true, arrivedAt: true } },
+        },
+      }),
+    ]);
+
+    const employeeCount = employeeCounts.reduce((sum, row) => sum + row._count._all, 0);
+    const activeEmployeeCount = employeeCounts.find((row) => row.active)?._count._all ?? 0;
+
+    let active = 0;
+    let completed = 0;
+    let cancelled = 0;
+    const completedDurationsDays: number[] = [];
+    const monthly = new Map<string, { created: number; completed: number; cancelled: number }>();
+
+    function bump(key: string, field: "created" | "completed" | "cancelled") {
+      const entry = monthly.get(key) ?? { created: 0, completed: 0, cancelled: 0 };
+      entry[field] += 1;
+      monthly.set(key, entry);
+    }
+
+    for (const order of orders) {
+      bump(monthKey(order.createdAt), "created");
+
+      if (order.canceledAt) {
+        cancelled += 1;
+        bump(monthKey(order.canceledAt), "cancelled");
+        continue;
+      }
+
+      if (isGroupOrderCompleted({ canceledAt: order.canceledAt, subOrders: order.subOrders })) {
+        completed += 1;
+        // The order finishes the moment its last sub-order closes.
+        const completedAt = order.subOrders.reduce<Date | null>((max, sub) => {
+          if (!sub.arrivedAt) return max;
+          return !max || sub.arrivedAt > max ? sub.arrivedAt : max;
+        }, null);
+        if (completedAt) {
+          bump(monthKey(completedAt), "completed");
+          completedDurationsDays.push((completedAt.getTime() - order.createdAt.getTime()) / 86_400_000);
+        }
+      } else {
+        active += 1;
+      }
+    }
+
+    const avgDaysToComplete = completedDurationsDays.length
+      ? completedDurationsDays.reduce((sum, days) => sum + days, 0) / completedDurationsDays.length
+      : null;
+
+    res.json({
+      employeeCount,
+      activeEmployeeCount,
+      orders: { active, completed, cancelled, total: orders.length },
+      avgDaysToComplete,
+      monthly: [...monthly.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, counts]) => ({ month, ...counts })),
+    });
   })
 );

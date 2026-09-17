@@ -6,6 +6,7 @@ import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
 import { EmptyState } from "@/components/EmptyState";
 import { DbError } from "@/components/DbError";
+import { MonitoringTabs } from "@/components/MonitoringTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export default async function CancelledOrdersPage({
           parent order and do not move a whole order here.
         </p>
       </div>
+
+      <MonitoringTabs />
 
       {error || !scoped ? (
         <DbError message={error || "Backend did not return orders."} />

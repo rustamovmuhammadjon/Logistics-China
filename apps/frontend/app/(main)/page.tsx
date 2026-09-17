@@ -6,6 +6,7 @@ import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
 import { EmptyState } from "@/components/EmptyState";
 import { DbError } from "@/components/DbError";
+import { MonitoringTabs } from "@/components/MonitoringTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ export default async function MonitoringPage({
           <h1 className="text-2xl font-bold text-slate-900">Monitoring</h1>
           <p className="text-sm text-slate-500">Live overview of every active order and truck.</p>
         </div>
+
+        <MonitoringTabs />
 
         {error || !scoped ? (
           <DbError message={error || "Backend did not return orders."} />

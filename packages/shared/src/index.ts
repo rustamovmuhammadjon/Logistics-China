@@ -153,6 +153,7 @@ export type GroupOrderDto = {
   owner?: UserPublic | null;
   operators?: UserPublic[];
   createdByUserId: string | null;
+  createdBy?: UserPublic | null;
   pol: string | null;
   origin: string | null;
   destination: string | null;
@@ -201,6 +202,21 @@ export type EmployeeDto = {
   orderCount: number;
   completedCount: number;
   cancelledCount: number;
+};
+
+export type CompanyAnalyticsMonth = {
+  month: string; // "YYYY-MM"
+  created: number;
+  completed: number;
+  cancelled: number;
+};
+
+export type CompanyAnalyticsDto = {
+  employeeCount: number;
+  activeEmployeeCount: number;
+  orders: { active: number; completed: number; cancelled: number; total: number };
+  avgDaysToComplete: number | null;
+  monthly: CompanyAnalyticsMonth[];
 };
 
 export type MonitoringResponse = {
@@ -414,9 +430,9 @@ export function getOrderHref(
 ): string {
   if (ctx.kind === "admin") return `/admin/orders/${order.id}`;
   if ((ctx.kind === "consignee" || ctx.kind === "company") && order.ownerId === ctx.userId) {
-    return `/dashboard/orders/${order.id}`;
+    return `/orders/${order.id}`;
   }
-  if (ctx.kind === "employee" && order.ownerId === ctx.companyId) return `/dashboard/orders/${order.id}`;
+  if (ctx.kind === "employee" && order.ownerId === ctx.companyId) return `/orders/${order.id}`;
   if (ctx.kind === "operator" && order.ownerId && ctx.linkedConsigneeIds.includes(order.ownerId)) {
     return `/dashboard/orders/${order.id}`;
   }
