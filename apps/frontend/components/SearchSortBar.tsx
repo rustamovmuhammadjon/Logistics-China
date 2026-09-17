@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter, usePathname } from "next/navigation";
 import { Download, Search } from "lucide-react";
 
 export function SearchSortBar({
@@ -9,9 +12,23 @@ export function SearchSortBar({
   sort: string;
   exportHref: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const params = new URLSearchParams();
+    const qValue = String(form.get("q") ?? "").trim();
+    const sortValue = String(form.get("sort") ?? "");
+    if (qValue) params.set("q", qValue);
+    if (sortValue) params.set("sort", sortValue);
+    router.push(params.size > 0 ? `${pathname}?${params.toString()}` : pathname);
+  }
+
   return (
     <form
-      method="GET"
+      onSubmit={handleSubmit}
       className="-mx-4 flex flex-col gap-3 border-y border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-end"
     >
       <div className="flex-1">
