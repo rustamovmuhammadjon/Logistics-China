@@ -1,10 +1,24 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { Request, Response } from "express";
 import type { User } from "@prisma/client";
+import { prisma } from "./prisma.js";
 
 export const ADMIN_COOKIE_NAME = "logistics_admin_session";
 export const USER_COOKIE_NAME = "logistics_user_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
+
+function generateCandidateLinkCode() {
+  return String(Math.floor(10000000 + Math.random() * 90000000));
+}
+
+export async function generateUniqueLinkCode() {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = generateCandidateLinkCode();
+    const existing = await prisma.user.findUnique({ where: { linkCode: code } });
+    if (!existing) return code;
+  }
+  throw new Error("Could not generate a unique link code, please try again");
+}
 
 export type ViewerSession = { role: "viewer"; userId: string; email: string };
 export type DriverSession = { role: "driver"; assignmentId: string; truckId: string; tokenVersion: number };
@@ -85,12 +99,15 @@ export function toPublicUser(user: User) {
     id: user.id,
     email: user.email,
     role: user.role,
+    companyName: user.companyName,
     firstName: user.firstName,
     lastName: user.lastName,
     phone: user.phone,
     photoUrl: user.photoUrl,
     linkCode: user.linkCode,
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString() : null,
+    active: user.active,
+    companyId: user.companyId,
   };
 }
 

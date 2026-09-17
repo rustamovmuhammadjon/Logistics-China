@@ -12,24 +12,12 @@ import {
   createUserSession,
   destroyAdminSession,
   destroyUserSession,
+  generateUniqueLinkCode,
 } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { currentUserPublic, type AuthedRequest } from "../middleware/auth.js";
 
 const DUMMY_HASH = "$2a$10$QxidxGB1WlzKVEb2kIUyPO3Sv.8jD0yb3oB1.cxSoXeGzksG38nNa";
-
-function generateCandidateCode() {
-  return String(Math.floor(10000000 + Math.random() * 90000000));
-}
-
-async function generateUniqueLinkCode() {
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const code = generateCandidateCode();
-    const existing = await prisma.user.findUnique({ where: { linkCode: code } });
-    if (!existing) return code;
-  }
-  throw new Error("Could not generate a unique link code, please try again");
-}
 
 export const authRouter = Router();
 
@@ -48,6 +36,7 @@ authRouter.post(
     const user = await prisma.user.findUnique({ where: { email } });
     const isValid = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !isValid) badRequest("Invalid email or password");
+    if (!user.active) badRequest("This account has been deactivated. Contact your company.");
     await createUserSession(res, user.id, user.email);
     res.json({ ok: true });
   })
@@ -61,19 +50,37 @@ authRouter.post(
     const confirmPassword = String(req.body?.confirmPassword ?? "");
     const inviteCode = String(req.body?.inviteCode ?? "");
     const roleRaw = String(req.body?.role ?? "");
-    const firstName = String(req.body?.firstName ?? "").trim();
-    const lastName = String(req.body?.lastName ?? "").trim();
-    const dateOfBirth = parseDateOfBirth(req.body?.dateOfBirth, true);
     const expectedCode = process.env.REGISTRATION_CODE ?? "";
 
     if (!expectedCode || inviteCode !== expectedCode) badRequest("Invalid invite code");
-    if (roleRaw !== "CONSIGNEE" && roleRaw !== "OPERATOR") badRequest("Choose an account type");
-    if (!firstName || !isLettersOnly(firstName)) {
-      badRequest("First name is required and may only contain letters");
+    if (roleRaw !== "CONSIGNEE" && roleRaw !== "OPERATOR" && roleRaw !== "COMPANY") {
+      badRequest("Choose an account type");
     }
-    if (!lastName || !isLettersOnly(lastName)) {
-      badRequest("Last name is required and may only contain letters");
+    const role = roleRaw as UserRole;
+
+    // Companies don't have a first/last name or a date of birth — they have
+    // a company name instead. Individuals (consignee/operator) keep the
+    // existing person-shaped fields.
+    let companyName: string | null = null;
+    let firstName: string | null = null;
+    let lastName: string | null = null;
+    let dateOfBirth: Date | null = null;
+
+    if (role === "COMPANY") {
+      companyName = String(req.body?.companyName ?? "").trim();
+      if (!companyName) badRequest("Company name is required");
+    } else {
+      firstName = String(req.body?.firstName ?? "").trim();
+      lastName = String(req.body?.lastName ?? "").trim();
+      if (!firstName || !isLettersOnly(firstName)) {
+        badRequest("First name is required and may only contain letters");
+      }
+      if (!lastName || !isLettersOnly(lastName)) {
+        badRequest("Last name is required and may only contain letters");
+      }
+      dateOfBirth = parseDateOfBirth(req.body?.dateOfBirth, true);
     }
+
     if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
     if (password.length < MIN_PASSWORD_LENGTH) {
       badRequest(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
@@ -82,11 +89,10 @@ authRouter.post(
 
     const passwordHash = await bcrypt.hash(password, 10);
     const linkCode = await generateUniqueLinkCode();
-    const role = roleRaw as UserRole;
 
     try {
       const user = await prisma.user.create({
-        data: { email, passwordHash, role, linkCode, firstName, lastName, dateOfBirth },
+        data: { email, passwordHash, role, linkCode, companyName, firstName, lastName, dateOfBirth },
       });
       await createUserSession(res, user.id, user.email);
       res.json({ ok: true });

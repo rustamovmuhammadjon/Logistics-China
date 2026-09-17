@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Activity, Ban, CheckCircle2, LayoutDashboard, Plus, Shield } from "lucide-react";
+import { Activity, Ban, CheckCircle2, LayoutDashboard, Plus, Shield, Users } from "lucide-react";
 import { Truck } from "iconsax-react";
-import { displayName, getOrderHref, ownOrdersOnly, type SidebarOrderDto, type ViewerContext, type UserPublic } from "@logistics/shared";
+import {
+  displayName,
+  getOrderHref,
+  ownOrdersOnly,
+  roleLabel,
+  type SidebarOrderDto,
+  type ViewerContext,
+  type UserPublic,
+} from "@logistics/shared";
 import { Avatar } from "./Avatar";
 
 type ShellData = {
@@ -96,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/profile" className="flex items-center gap-2">
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-medium leading-tight text-slate-900">{name || "…"}</p>
-                <p className="text-xs leading-tight text-slate-500">{user ? user.role.toLowerCase() : "admin"}</p>
+                <p className="text-xs leading-tight text-slate-500">{user ? roleLabel(user.role) : "Admin"}</p>
               </div>
               <Avatar
                 photoUrl={user?.photoUrl}
@@ -112,10 +120,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col lg:flex-row">
         <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-52 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200">
           <div className="px-4 pb-6 pt-3">
-            {user?.role === "CONSIGNEE" && (
+            {(user?.role === "CONSIGNEE" || user?.role === "COMPANY" || user?.role === "EMPLOYEE") && (
               <Link href="/dashboard/orders/new" className="btn-primary mb-4 w-full">
                 <Plus className="h-4 w-4" />
                 New order
+              </Link>
+            )}
+            {user?.role === "COMPANY" && (
+              <Link
+                href="/dashboard/employees"
+                className="btn-secondary mb-4 w-full"
+              >
+                <Users className="h-4 w-4" />
+                Employees
               </Link>
             )}
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Active orders</h2>

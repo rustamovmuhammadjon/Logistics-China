@@ -13,21 +13,25 @@ export default async function DashboardPage() {
   const data = await serverApiOrNull<DashboardResponse>("/api/dashboard");
   if (!data) redirect("/login");
 
-  const isConsignee = data.user.role === "CONSIGNEE";
-  const orders = isConsignee ? data.orders.filter((order) => order.ownerId === data.user.id) : data.orders;
+  const role = data.user.role;
+  const canManageLinks = role === "CONSIGNEE" || role === "COMPANY";
+  const canCreateOrders = canManageLinks || role === "EMPLOYEE";
+  // The backend already scopes `orders` correctly per role — no client-side
+  // filtering needed here.
+  const orders = data.orders;
 
   return (
     <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">{isConsignee ? "My orders" : "Orders to track"}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{canCreateOrders ? "My orders" : "Orders to track"}</h1>
             <p className="text-sm text-slate-500">
-              {isConsignee
-                ? "Create and manage your own orders."
+              {canCreateOrders
+                ? "Create and manage your orders."
                 : "Orders from consignees linked to you. Update truck location and add comments on sub-orders."}
             </p>
           </div>
-          {isConsignee && (
+          {canCreateOrders && (
             <Link href="/dashboard/orders/new" className="btn-primary shrink-0">
               <Plus className="h-4 w-4" />
               New order
@@ -35,22 +39,23 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <LinkPanel
-          myCode={data.user.linkCode}
-          counterpartLabel={isConsignee ? "operator" : "consignee"}
-          links={data.links}
-          isConsignee={isConsignee}
-          activeOrders={
+        {canManageLinks && (
+          <LinkPanel
+            myCode={data.user.linkCode}
+            counterpartLabel="operator"
+            links={data.links}
             isConsignee
-              ? orders.filter((order) => !isGroupOrderLocked(order)).map((order) => ({ id: order.id, name: order.name }))
-              : undefined
-          }
-        />
+            activeOrders={orders.filter((order) => !isGroupOrderLocked(order)).map((order) => ({ id: order.id, name: order.name }))}
+          />
+        )}
+        {role === "OPERATOR" && (
+          <LinkPanel myCode={data.user.linkCode} counterpartLabel="consignee" links={data.links} isConsignee={false} />
+        )}
 
         {orders.length === 0 ? (
           <EmptyState
             icon={<Box1 size={36} variant="Bold" />}
-            title={isConsignee ? "You haven't created any orders yet." : "No orders yet — link with a consignee above."}
+            title={canCreateOrders ? "You haven't created any orders yet." : "No orders yet — link with a consignee above."}
           />
         ) : (
           <ul className="space-y-3">
@@ -78,6 +83,6 @@ export default async function DashboardPage() {
           </ul>
         )}
       </div>
-    
+
   );
 }

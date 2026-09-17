@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 export default async function NewOrderPage() {
   const data = await serverApiOrNull<DashboardResponse>("/api/dashboard");
   if (!data) redirect("/login");
-  if (data.user.role !== "CONSIGNEE") redirect("/dashboard");
+  if (data.user.role !== "CONSIGNEE" && data.user.role !== "COMPANY" && data.user.role !== "EMPLOYEE") {
+    redirect("/dashboard");
+  }
 
   return (
     <>

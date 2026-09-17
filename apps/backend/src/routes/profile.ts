@@ -17,29 +17,38 @@ profileRouter.patch(
   "/",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
+    if (me.role === "EMPLOYEE") badRequest("Your company manages your profile — ask them to make changes.");
     const email = String(req.body?.email ?? "").trim().toLowerCase();
-    const firstName = String(req.body?.firstName ?? "").trim();
-    const lastName = String(req.body?.lastName ?? "").trim();
-
     if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
-    if (!firstName || !isLettersOnly(firstName)) {
-      badRequest("First name is required and may only contain letters");
-    }
-    if (!lastName || !isLettersOnly(lastName)) {
-      badRequest("Last name is required and may only contain letters");
-    }
+
+    // Companies have a company name instead of a person's name/date of birth.
+    const data =
+      me.role === "COMPANY"
+        ? (() => {
+            const companyName = String(req.body?.companyName ?? "").trim();
+            if (!companyName) badRequest("Company name is required");
+            return { email, companyName, phone: optionalString(req.body?.phone) };
+          })()
+        : (() => {
+            const firstName = String(req.body?.firstName ?? "").trim();
+            const lastName = String(req.body?.lastName ?? "").trim();
+            if (!firstName || !isLettersOnly(firstName)) {
+              badRequest("First name is required and may only contain letters");
+            }
+            if (!lastName || !isLettersOnly(lastName)) {
+              badRequest("Last name is required and may only contain letters");
+            }
+            return {
+              email,
+              firstName,
+              lastName,
+              phone: optionalString(req.body?.phone),
+              dateOfBirth: parseDateOfBirth(req.body?.dateOfBirth, true),
+            };
+          })();
 
     try {
-      const user = await prisma.user.update({
-        where: { id: me.id },
-        data: {
-          email,
-          firstName,
-          lastName,
-          phone: optionalString(req.body?.phone),
-          dateOfBirth: parseDateOfBirth(req.body?.dateOfBirth, true),
-        },
-      });
+      const user = await prisma.user.update({ where: { id: me.id }, data });
       res.json({ user: toPublicUser(user) });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -54,6 +63,7 @@ profileRouter.post(
   "/photo",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
+    if (me.role === "EMPLOYEE") badRequest("Your company manages your profile — ask them to make changes.");
     const url = String(req.body?.url ?? "");
     assertSupabasePublicUrl(url);
     const user = await prisma.user.update({

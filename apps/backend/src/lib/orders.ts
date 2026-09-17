@@ -1,6 +1,13 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { optionalFloat, optionalString } from "./input.js";
+
+// A company's employee creates orders on the company's behalf — the order
+// (and its operator links) belong to the company, not the employee, so
+// removing an employee never touches order ownership or visibility.
+export function effectiveOwnerId(user: { id: string; companyId?: string | null }): string {
+  return user.companyId ?? user.id;
+}
 
 const completedGroupWhere: Prisma.GroupOrderWhereInput = {
   AND: [
@@ -86,7 +93,7 @@ export const listIncludeWithPeople = {
 function toPerson(user: {
   id: string;
   email: string;
-  role: "CONSIGNEE" | "OPERATOR";
+  role: UserRole;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
@@ -171,10 +178,11 @@ export const detailInclude = {
 
 export async function orderVisibilityWhere(params: {
   isAdmin: boolean;
-  user: { id: string; role: "CONSIGNEE" | "OPERATOR" } | null;
+  user: { id: string; role: "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE"; companyId?: string | null } | null;
 }): Promise<Prisma.GroupOrderWhereInput> {
   const { isAdmin, user } = params;
-  if (user?.role === "CONSIGNEE") return { ownerId: user.id };
+  if (user?.role === "CONSIGNEE" || user?.role === "COMPANY") return { ownerId: user.id };
+  if (user?.role === "EMPLOYEE") return user.companyId ? { ownerId: user.companyId } : { id: { in: [] } };
   if (user?.role === "OPERATOR") {
     const links = await prisma.operatorLink.findMany({
       where: { operatorId: user.id },
@@ -199,8 +207,13 @@ export async function orderVisibilityWhere(params: {
   return { id: { in: [] } };
 }
 
-export async function getViewerContext(admin: boolean, user: { id: string; role: "CONSIGNEE" | "OPERATOR" } | null) {
+export async function getViewerContext(
+  admin: boolean,
+  user: { id: string; role: "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE"; companyId?: string | null } | null
+) {
   if (user?.role === "CONSIGNEE") return { kind: "consignee" as const, userId: user.id };
+  if (user?.role === "COMPANY") return { kind: "company" as const, userId: user.id };
+  if (user?.role === "EMPLOYEE") return { kind: "employee" as const, userId: user.id, companyId: user.companyId ?? "" };
   if (!user) {
     if (admin) return { kind: "admin" as const };
     return { kind: "guest" as const };

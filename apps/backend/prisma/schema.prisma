@@ -21,6 +21,8 @@ enum SubOrderStatus {
 enum UserRole {
   CONSIGNEE
   OPERATOR
+  COMPANY
+  EMPLOYEE
 }
 
 enum DriverAssignmentStatus {
@@ -40,19 +42,36 @@ model User {
   passwordHash String
   role         UserRole
 
+  // Used by COMPANY role only — the company's display name (individuals use firstName/lastName instead).
+  companyName String?
+
   firstName   String?
   lastName    String?
   phone       String?
   photoUrl    String?
   dateOfBirth DateTime? @db.Date
 
+  // EMPLOYEE only: deactivating blocks login but keeps every order they
+  // created (still owned by the company) intact — see companyId below.
+  active Boolean @default(true)
+
+  // EMPLOYEE only: the COMPANY this employee belongs to. Orders an employee
+  // creates are owned by the company (ownerId = companyId), not the
+  // employee, so removing an employee never touches order ownership.
+  companyId String?
+  company   User?   @relation("CompanyEmployees", fields: [companyId], references: [id], onDelete: Cascade)
+  employees User[]  @relation("CompanyEmployees")
+
   linkCode String @unique
 
   createdAt DateTime @default(now())
 
   ownedOrders      GroupOrder[]    @relation("OrderOwner")
+  createdOrders    GroupOrder[]    @relation("OrderCreator")
   linksAsConsignee OperatorLink[]  @relation("ConsigneeLinks")
   linksAsOperator  OperatorLink[]  @relation("OperatorLinks")
+
+  @@index([companyId])
 }
 
 model OperatorLink {
@@ -99,6 +118,12 @@ model GroupOrder {
   ownerId String?
   owner   User?   @relation("OrderOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
+  // Who actually clicked "create" — for a company's employee this differs
+  // from ownerId (the company). Used for per-employee order stats; kept on
+  // deletion (SetNull) so removing a user never touches the order itself.
+  createdByUserId String?
+  createdBy       User?   @relation("OrderCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
   pol         String?
   origin      String?
   destination String?
@@ -123,6 +148,7 @@ model GroupOrder {
 
   @@index([name])
   @@index([ownerId])
+  @@index([createdByUserId])
 }
 
 model SubOrder {

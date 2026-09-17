@@ -6,8 +6,16 @@ import {
   ageFromDob,
   displayName,
   formatDate,
+  roleLabel,
   type AdminUserDto,
 } from "@logistics/shared";
+
+const ROLE_BADGE_CLASS: Record<string, string> = {
+  CONSIGNEE: "badge-green",
+  COMPANY: "badge-green",
+  EMPLOYEE: "badge-slate",
+  OPERATOR: "badge-amber",
+};
 import { Avatar } from "@/components/Avatar";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useApiSubmit } from "@/lib/hooks";
@@ -30,6 +38,7 @@ export function UsersDirectory({
       const hay = [
         user.firstName,
         user.lastName,
+        user.companyName,
         user.email,
         user.phone,
         user.linkCode,
@@ -105,9 +114,7 @@ export function UsersDirectory({
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={user.role === "CONSIGNEE" ? "badge-green" : "badge-amber"}>
-                      {user.role === "CONSIGNEE" ? "Consignee" : "Operator"}
-                    </span>
+                    <span className={ROLE_BADGE_CLASS[user.role] ?? "badge-slate"}>{roleLabel(user.role)}</span>
                     <ConfirmButton
                       confirmText={`Delete ${displayName(user)} and all of their orders, trucks, files and account data? This cannot be undone.`}
                       disabled={pending}
@@ -124,7 +131,7 @@ export function UsersDirectory({
                   <Info label="Age" value={age != null ? `${age}` : "Not set"} />
                   <Info label="Email" value={user.email} />
                   <Info label="Phone" value={user.phone || "—"} />
-                  {user.role === "CONSIGNEE" && (
+                  {(user.role === "CONSIGNEE" || user.role === "COMPANY") && (
                     <Info label="Orders" value={String(user.ownedOrderCount)} />
                   )}
                 </dl>

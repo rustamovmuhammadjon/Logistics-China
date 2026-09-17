@@ -1,5 +1,5 @@
 import { Profile2User } from "iconsax-react";
-import type { AuthMe } from "@logistics/shared";
+import { roleLabel, type AuthMe } from "@logistics/shared";
 import { serverApi } from "@/lib/server-api";
 import { ProfileForm } from "./ProfileForm";
 import { ProfilePhotoUploader } from "./ProfilePhotoUploader";
@@ -34,24 +34,29 @@ export default async function ProfilePage() {
               <div>
                 <h1 className="text-xl font-bold text-slate-900">Profile</h1>
                 <p className="text-sm text-slate-500">
-                  Account type: <span className="badge-slate">{me.user.role.toLowerCase()}</span>
+                  Account type: <span className="badge-slate">{roleLabel(me.user.role)}</span>
                 </p>
               </div>
             </div>
             <LogoutButton />
           </div>
-          <ProfilePhotoUploader
-            photoUrl={me.user.photoUrl}
-            firstName={me.user.firstName}
-            lastName={me.user.lastName}
-            email={me.user.email}
-          />
+          {me.user.role !== "EMPLOYEE" && (
+            <ProfilePhotoUploader
+              photoUrl={me.user.photoUrl}
+              firstName={me.user.firstName}
+              lastName={me.user.lastName}
+              email={me.user.email}
+            />
+          )}
           <ProfileForm
+            isCompany={me.user.role === "COMPANY"}
+            companyName={me.user.companyName}
             firstName={me.user.firstName}
             lastName={me.user.lastName}
             phone={me.user.phone}
             email={me.user.email}
             dateOfBirth={me.user.dateOfBirth}
+            readOnly={me.user.role === "EMPLOYEE"}
           />
         </div>
       )}

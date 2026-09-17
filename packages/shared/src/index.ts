@@ -1,4 +1,4 @@
-export type UserRole = "CONSIGNEE" | "OPERATOR";
+export type UserRole = "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE";
 export type MediaType = "IMAGE" | "VIDEO";
 export type SubOrderStatus = "OPEN" | "CLOSED" | "CANCELED";
 export type OrderSort = "newest" | "oldest";
@@ -7,16 +7,34 @@ export type OrderSort = "newest" | "oldest";
 // transferring is disabled for it.
 export const MAX_TRANSFERS_PER_SUB_ORDER = 3;
 
+// "Consignee" in the data model/API is displayed to users as "Individual
+// Entrepreneur" — the internal role name is kept for stability.
+export function roleLabel(role: UserRole): string {
+  switch (role) {
+    case "CONSIGNEE":
+      return "Individual Entrepreneur";
+    case "OPERATOR":
+      return "Operator";
+    case "COMPANY":
+      return "Company";
+    case "EMPLOYEE":
+      return "Employee";
+  }
+}
+
 export type UserPublic = {
   id: string;
   email: string;
   role: UserRole;
+  companyName: string | null;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
   photoUrl: string | null;
   linkCode: string;
   dateOfBirth: string | null;
+  active: boolean;
+  companyId: string | null;
 };
 
 export type AuthMe = {
@@ -27,6 +45,8 @@ export type AuthMe = {
 export type ViewerContext =
   | { kind: "admin" }
   | { kind: "consignee"; userId: string }
+  | { kind: "company"; userId: string }
+  | { kind: "employee"; userId: string; companyId: string }
   | { kind: "operator"; userId: string; linkedConsigneeIds: string[] }
   | { kind: "guest" };
 
@@ -132,6 +152,7 @@ export type GroupOrderDto = {
   ownerId: string | null;
   owner?: UserPublic | null;
   operators?: UserPublic[];
+  createdByUserId: string | null;
   pol: string | null;
   origin: string | null;
   destination: string | null;
@@ -167,6 +188,19 @@ export type SidebarOrderDto = {
   id: string;
   name: string;
   ownerId: string | null;
+};
+
+export type EmployeeDto = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  active: boolean;
+  createdAt: string;
+  orderCount: number;
+  completedCount: number;
+  cancelledCount: number;
 };
 
 export type MonitoringResponse = {
@@ -353,11 +387,15 @@ export function normalizeSort(sort: string | undefined): OrderSort {
 
 export function ownOrdersOnly<T extends { ownerId: string | null }>(
   orders: T[],
-  user: { id: string; role: string } | null | undefined,
+  user: { id: string; role: string; companyId?: string | null } | null | undefined,
   ctx: ViewerContext
 ): T[] {
-  if (user?.role === "CONSIGNEE") return orders.filter((order) => order.ownerId === user.id);
-  if (ctx.kind === "consignee") return orders.filter((order) => order.ownerId === ctx.userId);
+  if (user?.role === "CONSIGNEE" || user?.role === "COMPANY") {
+    return orders.filter((order) => order.ownerId === user.id);
+  }
+  if (user?.role === "EMPLOYEE") return orders.filter((order) => order.ownerId === user.companyId);
+  if (ctx.kind === "consignee" || ctx.kind === "company") return orders.filter((order) => order.ownerId === ctx.userId);
+  if (ctx.kind === "employee") return orders.filter((order) => order.ownerId === ctx.companyId);
   return orders;
 }
 
@@ -375,15 +413,18 @@ export function getOrderHref(
   ctx: ViewerContext
 ): string {
   if (ctx.kind === "admin") return `/admin/orders/${order.id}`;
-  if (ctx.kind === "consignee" && order.ownerId === ctx.userId) return `/dashboard/orders/${order.id}`;
+  if ((ctx.kind === "consignee" || ctx.kind === "company") && order.ownerId === ctx.userId) {
+    return `/dashboard/orders/${order.id}`;
+  }
+  if (ctx.kind === "employee" && order.ownerId === ctx.companyId) return `/dashboard/orders/${order.id}`;
   if (ctx.kind === "operator" && order.ownerId && ctx.linkedConsigneeIds.includes(order.ownerId)) {
     return `/dashboard/orders/${order.id}`;
   }
   return `/track/${order.id}`;
 }
 
-export function displayName(user: Pick<UserPublic, "firstName" | "lastName" | "email">): string {
-  return [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+export function displayName(user: Pick<UserPublic, "firstName" | "lastName" | "email"> & { companyName?: string | null }): string {
+  return user.companyName || [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
 }
 
 export function ageFromDob(value: string | Date | null | undefined): number | null {

@@ -14,26 +14,38 @@ function orderIdsFromBody(body: Record<string, unknown>): string[] {
   return Array.isArray(body.orderIds) ? body.orderIds.filter((id): id is string => typeof id === "string") : [];
 }
 
+// A company's own account manages operator links on behalf of all its
+// employees — an individual entrepreneur (CONSIGNEE) does the same for
+// themselves. Employees never manage links directly.
+function isConsigneeSide(role: string) {
+  return role === "CONSIGNEE" || role === "COMPANY";
+}
+
 linksRouter.post(
   "/",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
+    if (me.role === "EMPLOYEE") badRequest("Employees can't manage links — ask your company to do this.");
     const code = requiredString(req.body?.code, "code").trim();
     const other = await prisma.user.findUnique({ where: { linkCode: code } });
     if (!other) badRequest("No account found with that ID");
-    if (other.role === me.role) {
+    if (other.role === "EMPLOYEE") badRequest("That ID belongs to an employee — link with their company instead.");
+
+    const meIsConsigneeSide = isConsigneeSide(me.role);
+    const otherIsConsigneeSide = isConsigneeSide(other.role);
+    if (meIsConsigneeSide === otherIsConsigneeSide) {
       badRequest(`That ID belongs to another ${other.role.toLowerCase()} — you need the opposite type`);
     }
 
-    const consigneeId = me.role === "CONSIGNEE" ? me.id : other.id;
-    const operatorId = me.role === "OPERATOR" ? me.id : other.id;
+    const consigneeId = meIsConsigneeSide ? me.id : other.id;
+    const operatorId = meIsConsigneeSide ? other.id : me.id;
 
-    // Visibility scope is the consignee's call — only apply it when the
-    // consignee is the one initiating the link. When an operator links in
-    // (using the consignee's ID), it always starts as ALL; the consignee
+    // Visibility scope is the consignee/company's call — only apply it when
+    // they're the one initiating the link. When an operator links in (using
+    // the other side's ID), it always starts as ALL; the consignee/company
     // can narrow it down afterward from their linked-accounts list.
-    const scope = me.role === "CONSIGNEE" && req.body?.scope === "SELECTED" ? "SELECTED" : "ALL";
-    const orderIds = me.role === "CONSIGNEE" ? orderIdsFromBody(req.body ?? {}) : [];
+    const scope = meIsConsigneeSide && req.body?.scope === "SELECTED" ? "SELECTED" : "ALL";
+    const orderIds = meIsConsigneeSide ? orderIdsFromBody(req.body ?? {}) : [];
 
     try {
       const link = await prisma.operatorLink.create({ data: { consigneeId, operatorId, scope } });

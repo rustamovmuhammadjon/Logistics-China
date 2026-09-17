@@ -14,7 +14,7 @@ dashboardRouter.get(
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
 
-    if (me.role === "CONSIGNEE") {
+    if (me.role === "CONSIGNEE" || me.role === "COMPANY") {
       const [orders, links] = await Promise.all([
         prisma.groupOrder.findMany({
           where: { ownerId: me.id },
@@ -38,6 +38,20 @@ dashboardRouter.get(
           grantedOrderIds: l.orderGrants.map((g) => g.groupOrderId),
         })),
       });
+      return;
+    }
+
+    if (me.role === "EMPLOYEE") {
+      // An employee's orders are owned by their company, not themselves —
+      // and employees never manage operator links (their company does).
+      const orders = me.companyId
+        ? await prisma.groupOrder.findMany({
+            where: { ownerId: me.companyId },
+            include: listInclude,
+            orderBy: { createdAt: "desc" },
+          })
+        : [];
+      res.json({ user: toPublicUser(me), orders, links: [] });
       return;
     }
 

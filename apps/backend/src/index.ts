@@ -10,6 +10,7 @@ import { monitoringRouter } from "./routes/monitoring.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { consigneeRouter } from "./routes/consignee.js";
 import { operatorRouter } from "./routes/operator.js";
+import { companyRouter } from "./routes/company.js";
 import { adminRouter } from "./routes/admin.js";
 import { driverRouter } from "./routes/driver.js";
 import { attachSession } from "./middleware/auth.js";
@@ -47,6 +48,7 @@ app.use("/api/monitoring", monitoringRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/consignee", consigneeRouter);
 app.use("/api/operator", operatorRouter);
+app.use("/api/company", companyRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/driver", driverRouter);
 

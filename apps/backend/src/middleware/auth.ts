@@ -26,9 +26,10 @@ export async function attachSession(req: Request, _res: Response, next: NextFunc
   const { adminToken, userToken } = readCookies(req);
   scoped.isAdmin = await verifyAdminSessionFromToken(adminToken);
   const session = await verifyUserSessionFromToken(userToken);
-  scoped.user = session
-    ? await prisma.user.findUnique({ where: { id: session.userId } })
-    : null;
+  const user = session ? await prisma.user.findUnique({ where: { id: session.userId } }) : null;
+  // A deactivated employee's existing session stops working immediately,
+  // not just on their next login attempt.
+  scoped.user = user && !user.active ? null : user;
   next();
 }
 
@@ -43,15 +44,24 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
-export function requireConsignee(req: Request, _res: Response, next: NextFunction) {
-  const user = (req as AuthedRequest).user;
-  if (!user || user.role !== "CONSIGNEE") unauthorized();
-  next();
-}
-
 export function requireOperator(req: Request, _res: Response, next: NextFunction) {
   const user = (req as AuthedRequest).user;
   if (!user || user.role !== "OPERATOR") unauthorized();
+  next();
+}
+
+export function requireCompany(req: Request, _res: Response, next: NextFunction) {
+  const user = (req as AuthedRequest).user;
+  if (!user || user.role !== "COMPANY") unauthorized();
+  next();
+}
+
+// Individual entrepreneurs (role CONSIGNEE), companies, and a company's
+// employees all manage orders through the same routes — an employee's
+// orders are owned by their company, a company's by itself.
+export function requireOrderCreator(req: Request, _res: Response, next: NextFunction) {
+  const user = (req as AuthedRequest).user;
+  if (!user || (user.role !== "CONSIGNEE" && user.role !== "COMPANY" && user.role !== "EMPLOYEE")) unauthorized();
   next();
 }
 
