@@ -24,7 +24,18 @@ export const authRouter = Router();
 authRouter.get(
   "/me",
   asyncHandler(async (req, res) => {
-    res.json(currentUserPublic(req));
+    const me = currentUserPublic(req);
+    // An employee doesn't otherwise have any way to see who they work for —
+    // surface their company's basic info alongside their own profile.
+    if (me.user?.role === "EMPLOYEE" && me.user.companyId) {
+      const company = await prisma.user.findUnique({
+        where: { id: me.user.companyId },
+        select: { companyName: true, email: true, phone: true },
+      });
+      res.json({ ...me, company });
+      return;
+    }
+    res.json(me);
   })
 );
 

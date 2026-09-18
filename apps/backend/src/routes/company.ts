@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { EMAIL_PATTERN, isGroupOrderCompleted, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound } from "../lib/errors.js";
-import { optionalString } from "../lib/input.js";
+import { optionalString, parseDateOfBirth, requiredString } from "../lib/input.js";
 import { buildOrderWhere } from "../lib/orders.js";
 import { generateUniqueLinkCode, toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -21,7 +21,9 @@ function employeeFields(body: Record<string, unknown>) {
   if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
   if (!firstName || !isLettersOnly(firstName)) badRequest("First name is required and may only contain letters");
   if (!lastName || !isLettersOnly(lastName)) badRequest("Last name is required and may only contain letters");
-  return { email, firstName, lastName, phone: optionalString(body.phone) };
+  const phone = requiredString(body.phone, "phone");
+  const dateOfBirth = parseDateOfBirth(body.dateOfBirth, true);
+  return { email, firstName, lastName, phone, dateOfBirth };
 }
 
 async function requireOwnEmployee(companyId: string, employeeId: string) {
@@ -60,6 +62,7 @@ companyRouter.get(
         firstName: employee.firstName,
         lastName: employee.lastName,
         phone: employee.phone,
+        dateOfBirth: employee.dateOfBirth ? employee.dateOfBirth.toISOString() : null,
         active: employee.active,
         createdAt: employee.createdAt,
         orderCount: totalsMap.get(employee.id) ?? 0,

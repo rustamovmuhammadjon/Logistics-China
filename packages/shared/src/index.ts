@@ -40,6 +40,8 @@ export type UserPublic = {
 export type AuthMe = {
   admin: boolean;
   user: UserPublic | null;
+  // Only present for an EMPLOYEE viewer — their company's basic info.
+  company?: { companyName: string | null; email: string; phone: string | null } | null;
 };
 
 export type ViewerContext =
@@ -197,6 +199,7 @@ export type EmployeeDto = {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+  dateOfBirth: string | null;
   active: boolean;
   createdAt: string;
   orderCount: number;

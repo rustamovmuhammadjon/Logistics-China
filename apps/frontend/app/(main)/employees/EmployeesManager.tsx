@@ -26,9 +26,10 @@ export function EmployeesManager({ employees }: { employees: EmployeeDto[] }) {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              const result = await submit("/api/company/employees", { body: formToJson(e.currentTarget) });
+              const form = e.currentTarget;
+              const result = await submit("/api/company/employees", { body: formToJson(form) });
               if (result) {
-                e.currentTarget.reset();
+                form.reset();
                 setShowAdd(false);
               }
             }}
@@ -37,7 +38,8 @@ export function EmployeesManager({ employees }: { employees: EmployeeDto[] }) {
             <Field name="firstName" label="First name" pattern="^[\p{L}\s]+$" />
             <Field name="lastName" label="Last name" pattern="^[\p{L}\s]+$" />
             <Field name="email" label="Email" type="email" />
-            <Field name="phone" label="Phone (optional)" required={false} />
+            <Field name="phone" label="Phone" />
+            <Field name="dateOfBirth" label="Date of birth" type="date" />
             <div className="sm:col-span-2">
               <Field name="password" label="Password (min. 8 characters)" type="password" minLength={8} />
             </div>
@@ -86,7 +88,7 @@ export function EmployeesManager({ employees }: { employees: EmployeeDto[] }) {
                 </button>
                 {employee.active ? (
                   <ConfirmButton
-                    className="text-xs"
+                    className="btn-danger text-xs"
                     confirmText={`Deactivate ${employee.email}? They won't be able to log in, but their orders stay with the company.`}
                     disabled={pending}
                     onConfirm={() => submit(`/api/company/employees/${employee.id}/deactivate`, { method: "POST" })}
@@ -96,7 +98,7 @@ export function EmployeesManager({ employees }: { employees: EmployeeDto[] }) {
                   </ConfirmButton>
                 ) : (
                   <ConfirmButton
-                    className="text-xs"
+                    className="btn-secondary text-xs"
                     confirmText={`Reactivate ${employee.email}?`}
                     disabled={pending}
                     onConfirm={() => submit(`/api/company/employees/${employee.id}/activate`, { method: "POST" })}
@@ -136,7 +138,13 @@ function EditEmployeeForm({ employee, onDone }: { employee: EmployeeDto; onDone:
       <Field name="firstName" label="First name" pattern="^[\p{L}\s]+$" defaultValue={employee.firstName ?? ""} />
       <Field name="lastName" label="Last name" pattern="^[\p{L}\s]+$" defaultValue={employee.lastName ?? ""} />
       <Field name="email" label="Email" type="email" defaultValue={employee.email} />
-      <Field name="phone" label="Phone (optional)" required={false} defaultValue={employee.phone ?? ""} />
+      <Field name="phone" label="Phone" defaultValue={employee.phone ?? ""} />
+      <Field
+        name="dateOfBirth"
+        label="Date of birth"
+        type="date"
+        defaultValue={employee.dateOfBirth ? employee.dateOfBirth.slice(0, 10) : ""}
+      />
       <div className="sm:col-span-2">
         <Field name="password" label="New password (optional, min. 8 characters)" type="password" minLength={8} required={false} />
       </div>

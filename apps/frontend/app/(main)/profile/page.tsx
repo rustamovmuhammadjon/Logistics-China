@@ -60,6 +60,16 @@ async function ProfileContent() {
           email={me.user.email}
         />
       )}
+      {me.user.role === "EMPLOYEE" && me.company && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Your company</p>
+          <p className="mt-1 text-sm font-medium text-slate-900">{me.company.companyName || "—"}</p>
+          <p className="text-xs text-slate-500">
+            {me.company.email}
+            {me.company.phone ? ` · ${me.company.phone}` : ""}
+          </p>
+        </div>
+      )}
       <ProfileForm
         isCompany={me.user.role === "COMPANY"}
         companyName={me.user.companyName}
