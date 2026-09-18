@@ -23,7 +23,7 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
   const isAdmin = ctx.kind === "admin";
   const isCompany = ctx.kind === "company";
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const colSpan = isAdmin ? 7 : isCompany ? 6 : 5;
+  const colSpan = isAdmin ? 7 : isCompany ? 7 : 5;
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -50,12 +50,13 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
             </>
           ) : isCompany ? (
             <>
-              <col style={{ width: "24%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "26%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "22%" }} />
             </>
           ) : (
             <>
@@ -77,6 +78,7 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
             {isAdmin && <th className={TH}>Consignee</th>}
             {isAdmin && <th className={TH}>Operators</th>}
             {isCompany && <th className={TH}>Created by</th>}
+            {isCompany && <th className={TH}>Operators</th>}
           </tr>
         </thead>
         <tbody>
@@ -126,6 +128,16 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
                   {isCompany && (
                     <td className={`${TD} truncate text-slate-600`} title={order.createdBy?.email ?? undefined}>
                       {order.createdBy ? displayName(order.createdBy) : "—"}
+                    </td>
+                  )}
+                  {isCompany && (
+                    <td
+                      className={`${TD} truncate text-slate-600`}
+                      title={order.operators?.map((p) => displayName(p)).join(", ") ?? undefined}
+                    >
+                      {order.operators && order.operators.length > 0
+                        ? order.operators.map((person) => displayName(person)).join(", ")
+                        : "None linked"}
                     </td>
                   )}
                 </tr>

@@ -14,22 +14,30 @@ function orderIdsFromBody(body: Record<string, unknown>): string[] {
   return Array.isArray(body.orderIds) ? body.orderIds.filter((id): id is string => typeof id === "string") : [];
 }
 
-// A company's own account manages operator links on behalf of all its
-// employees — an individual entrepreneur (CONSIGNEE) does the same for
-// themselves. Employees never manage links directly.
+// An individual entrepreneur (CONSIGNEE) manages their own operator links.
+// For a company account, that same job belongs to each employee individually
+// — an employee links operators for the orders they themselves create. A
+// company never manages links itself.
 function isConsigneeSide(role: string) {
-  return role === "CONSIGNEE" || role === "COMPANY";
+  return role === "CONSIGNEE" || role === "EMPLOYEE";
+}
+
+// A link's "consignee side" orders are the ones it should be able to grant
+// SELECTED-scope access to: an individual entrepreneur's own orders, or —
+// for an employee — only the orders that specific employee created.
+function consigneeOrderWhere(consigneeId: string, consigneeRole: string): Prisma.GroupOrderWhereInput {
+  return consigneeRole === "EMPLOYEE" ? { createdByUserId: consigneeId } : { ownerId: consigneeId };
 }
 
 linksRouter.post(
   "/",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    if (me.role === "EMPLOYEE") badRequest("Employees can't manage links — ask your company to do this.");
+    if (me.role === "COMPANY") badRequest("Companies can't manage links — ask an employee to do this.");
     const code = requiredString(req.body?.code, "code").trim();
     const other = await prisma.user.findUnique({ where: { linkCode: code } });
     if (!other) badRequest("No account found with that ID");
-    if (other.role === "EMPLOYEE") badRequest("That ID belongs to an employee — link with their company instead.");
+    if (other.role === "COMPANY") badRequest("That ID belongs to a company — link with one of their employees instead.");
 
     const meIsConsigneeSide = isConsigneeSide(me.role);
     const otherIsConsigneeSide = isConsigneeSide(other.role);
@@ -38,11 +46,12 @@ linksRouter.post(
     }
 
     const consigneeId = meIsConsigneeSide ? me.id : other.id;
+    const consigneeRole = meIsConsigneeSide ? me.role : other.role;
     const operatorId = meIsConsigneeSide ? other.id : me.id;
 
-    // Visibility scope is the consignee/company's call — only apply it when
+    // Visibility scope is the consignee side's call — only apply it when
     // they're the one initiating the link. When an operator links in (using
-    // the other side's ID), it always starts as ALL; the consignee/company
+    // the other side's ID), it always starts as ALL; the consignee/employee
     // can narrow it down afterward from their linked-accounts list.
     const scope = meIsConsigneeSide && req.body?.scope === "SELECTED" ? "SELECTED" : "ALL";
     const orderIds = meIsConsigneeSide ? orderIdsFromBody(req.body ?? {}) : [];
@@ -51,7 +60,7 @@ linksRouter.post(
       const link = await prisma.operatorLink.create({ data: { consigneeId, operatorId, scope } });
       if (scope === "SELECTED" && orderIds.length > 0) {
         const owned = await prisma.groupOrder.findMany({
-          where: { id: { in: orderIds }, ownerId: consigneeId },
+          where: { id: { in: orderIds }, ...consigneeOrderWhere(consigneeId, consigneeRole) },
           select: { id: true },
         });
         if (owned.length > 0) {
@@ -98,7 +107,7 @@ linksRouter.patch(
         : checkedIds;
 
       const owned = await tx.groupOrder.findMany({
-        where: { id: { in: checkedIds }, ownerId: me.id },
+        where: { id: { in: checkedIds }, ...consigneeOrderWhere(me.id, me.role) },
         select: { id: true },
       });
       const ownedIds = new Set(owned.map((o) => o.id));

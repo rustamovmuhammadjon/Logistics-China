@@ -22,7 +22,7 @@ operatorRouter.use(requireOperator);
 async function loadLinkedOrder(operatorId: string, orderId: string) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });
   if (!order) notFound();
-  await assertOperatorLinked(operatorId, order.ownerId, orderId);
+  await assertOperatorLinked(operatorId, order, orderId);
   return order;
 }
 

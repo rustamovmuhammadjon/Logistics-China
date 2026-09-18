@@ -17,8 +17,12 @@ export default async function OrdersPage() {
   if (role !== "CONSIGNEE" && role !== "COMPANY" && role !== "EMPLOYEE") redirect("/dashboard");
 
   const canCreate = role === "CONSIGNEE" || role === "EMPLOYEE";
-  const canManageLinks = role === "CONSIGNEE" || role === "COMPANY";
+  const canManageLinks = role === "CONSIGNEE" || role === "EMPLOYEE";
   const orders = data.orders;
+  // An employee links operators for the orders they personally created —
+  // not every order the company owns — so SELECTED-scope grants can only
+  // ever target orders that are actually theirs to grant.
+  const grantableOrders = role === "EMPLOYEE" ? orders.filter((order) => order.createdByUserId === data.user.id) : orders;
 
   return (
     <div className="space-y-6">
@@ -45,7 +49,7 @@ export default async function OrdersPage() {
           counterpartLabel="operator"
           links={data.links}
           isConsignee
-          activeOrders={orders.filter((order) => !isGroupOrderLocked(order)).map((order) => ({ id: order.id, name: order.name }))}
+          activeOrders={grantableOrders.filter((order) => !isGroupOrderLocked(order)).map((order) => ({ id: order.id, name: order.name }))}
         />
       )}
 

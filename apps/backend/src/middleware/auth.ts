@@ -79,19 +79,29 @@ export function requireRegisteredUser(req: Request, _res: Response, next: NextFu
   next();
 }
 
-export async function assertOperatorLinked(operatorId: string, ownerId: string | null, orderId?: string) {
-  if (!ownerId) unauthorized();
-  const link = await prisma.operatorLink.findUnique({
-    where: { consigneeId_operatorId: { consigneeId: ownerId, operatorId } },
+export async function assertOperatorLinked(
+  operatorId: string,
+  order: { ownerId: string | null; createdByUserId: string | null },
+  orderId?: string
+) {
+  // A link belongs to whoever manages it: the order's owner (an individual
+  // entrepreneur, or a company's own account), or — for a company-owned
+  // order — the specific employee who created it, since each employee
+  // links their own operators rather than sharing the company's links.
+  const candidateIds = [order.ownerId, order.createdByUserId].filter(
+    (id): id is string => typeof id === "string"
+  );
+  if (candidateIds.length === 0) unauthorized();
+  const links = await prisma.operatorLink.findMany({
+    where: { operatorId, consigneeId: { in: candidateIds } },
   });
-  if (!link) unauthorized();
-  if (link.scope === "SELECTED") {
-    if (!orderId) unauthorized();
-    const grant = await prisma.operatorOrderGrant.findUnique({
-      where: { operatorLinkId_groupOrderId: { operatorLinkId: link.id, groupOrderId: orderId } },
-    });
-    if (!grant) unauthorized();
-  }
+  if (links.length === 0) unauthorized();
+  if (links.some((link) => link.scope === "ALL")) return;
+  if (!orderId) unauthorized();
+  const grant = await prisma.operatorOrderGrant.findFirst({
+    where: { operatorLinkId: { in: links.map((link) => link.id) }, groupOrderId: orderId },
+  });
+  if (!grant) unauthorized();
 }
 
 export function currentUserPublic(req: Request) {

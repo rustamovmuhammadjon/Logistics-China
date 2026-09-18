@@ -55,8 +55,10 @@ consigneeRouter.post(
       ? req.body.linkIds.filter((id: unknown): id is string => typeof id === "string")
       : [];
     if (linkIds.length > 0) {
+      // Operator links now belong to whoever created them (the individual
+      // entrepreneur or the specific employee), not the order's owner.
       const selectedLinks = await prisma.operatorLink.findMany({
-        where: { id: { in: linkIds }, consigneeId: ownerId, scope: "SELECTED" },
+        where: { id: { in: linkIds }, consigneeId: me.id, scope: "SELECTED" },
         select: { id: true },
       });
       if (selectedLinks.length > 0) {
@@ -145,12 +147,13 @@ consigneeRouter.post(
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
+    // Factory load date is operator-only (set later via PATCH .../sub-orders/:subId
+    // on the operator router) — a consignee/employee never sets it at creation.
     const subOrder = await prisma.subOrder.create({
       data: {
         groupOrderId: req.params.id,
         name: optionalString(req.body?.name),
         openedAt: dateOrToday(req.body?.openedAt),
-        factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
         status: "OPEN",
       },
     });

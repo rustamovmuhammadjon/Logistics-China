@@ -75,23 +75,24 @@ const personSelect = {
   dateOfBirth: true,
 } as const;
 
+const linksAsConsigneeSelect = {
+  scope: true,
+  orderGrants: { select: { groupOrderId: true } },
+  operator: { select: personSelect },
+} as const;
+
 export const listIncludeWithPeople = {
   ...listInclude,
   owner: {
-    select: {
-      ...personSelect,
-      linksAsConsignee: {
-        select: {
-          scope: true,
-          orderGrants: { select: { groupOrderId: true } },
-          operator: { select: personSelect },
-        },
-      },
-    },
+    select: { ...personSelect, linksAsConsignee: { select: linksAsConsigneeSelect } },
   },
   // Who actually created the order — meaningful when the owner is a
-  // company and the creator is one of its employees.
-  createdBy: { select: personSelect },
+  // company and the creator is one of its employees. An employee links
+  // their own operators (for the orders they create), not the company, so
+  // this is also where those links live for a company-owned order.
+  createdBy: {
+    select: { ...personSelect, linksAsConsignee: { select: linksAsConsigneeSelect } },
+  },
 };
 
 function toPerson(user: {
@@ -120,21 +121,27 @@ function toPerson(user: {
   };
 }
 
+type PersonWithLinks = {
+  linksAsConsignee?: {
+    scope: "ALL" | "SELECTED";
+    orderGrants: { groupOrderId: string }[];
+    operator: Parameters<typeof toPerson>[0];
+  }[];
+} & Parameters<typeof toPerson>[0];
+
 export function withOrderPeople<T extends {
   id: string;
-  owner?: null | {
-    linksAsConsignee?: {
-      scope: "ALL" | "SELECTED";
-      orderGrants: { groupOrderId: string }[];
-      operator: Parameters<typeof toPerson>[0];
-    }[];
-  } & Parameters<typeof toPerson>[0];
-  createdBy?: Parameters<typeof toPerson>[0] | null;
+  owner?: null | PersonWithLinks;
+  createdBy?: null | PersonWithLinks;
 }>(order: T) {
   const { owner, createdBy, ...rest } = order;
+  // Operator links live on whichever account actually manages them: the
+  // owner for a plain consignee order, or the specific employee who created
+  // it for a company-owned order (each employee links their own operators).
+  const linkSource = owner?.role === "COMPANY" ? createdBy : owner;
   // Only list operators who can actually see THIS order — an ALL-scope
   // link always qualifies, a SELECTED-scope one only if explicitly granted.
-  const operators = (owner?.linksAsConsignee ?? [])
+  const operators = (linkSource?.linksAsConsignee ?? [])
     .filter((link) => link.scope === "ALL" || link.orderGrants.some((g) => g.groupOrderId === order.id))
     .map((link) => toPerson(link.operator));
   return {
@@ -194,17 +201,31 @@ export async function orderVisibilityWhere(params: {
   if (user?.role === "OPERATOR") {
     const links = await prisma.operatorLink.findMany({
       where: { operatorId: user.id },
-      select: { id: true, consigneeId: true, scope: true },
+      select: { id: true, consigneeId: true, scope: true, consignee: { select: { role: true } } },
     });
     if (links.length === 0) return { id: { in: [] } };
 
-    // ALL-scope links see every order the consignee owns; SELECTED-scope
+    // ALL-scope links see every order the linked account can see: for an
+    // individual entrepreneur that's orders they own; for an employee
+    // (who links operators for their own orders, not the whole company)
+    // it's specifically the orders that employee created. SELECTED-scope
     // links only see orders explicitly granted to that specific link.
-    const allScopeConsigneeIds = links.filter((l) => l.scope === "ALL").map((l) => l.consigneeId);
-    const selectedLinkIds = links.filter((l) => l.scope === "SELECTED").map((l) => l.id);
+    const allScopeOwnerIds: string[] = [];
+    const allScopeCreatorIds: string[] = [];
+    const selectedLinkIds: string[] = [];
+    for (const link of links) {
+      if (link.scope === "SELECTED") {
+        selectedLinkIds.push(link.id);
+      } else if (link.consignee.role === "EMPLOYEE") {
+        allScopeCreatorIds.push(link.consigneeId);
+      } else {
+        allScopeOwnerIds.push(link.consigneeId);
+      }
+    }
 
     const or: Prisma.GroupOrderWhereInput[] = [];
-    if (allScopeConsigneeIds.length > 0) or.push({ ownerId: { in: allScopeConsigneeIds } });
+    if (allScopeOwnerIds.length > 0) or.push({ ownerId: { in: allScopeOwnerIds } });
+    if (allScopeCreatorIds.length > 0) or.push({ createdByUserId: { in: allScopeCreatorIds } });
     if (selectedLinkIds.length > 0) {
       or.push({ operatorGrants: { some: { operatorLinkId: { in: selectedLinkIds } } } });
     }
