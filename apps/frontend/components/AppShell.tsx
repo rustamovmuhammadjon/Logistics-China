@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Activity, LayoutDashboard, Plus, Shield, ShoppingBag, Users } from "lucide-react";
+import { Activity, LayoutDashboard, Link2, Plus, Shield, ShoppingBag, Users } from "lucide-react";
 import { Truck } from "iconsax-react";
 import {
   displayName,
@@ -95,6 +95,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {user?.role === "OPERATOR_COMPANY" && (
               <NavLink href="/operators" icon={<Users className="h-4 w-4" />}>
                 Operators
+              </NavLink>
+            )}
+            {(user?.role === "COMPANY" ||
+              user?.role === "OPERATOR_COMPANY" ||
+              user?.role === "EMPLOYEE" ||
+              (user?.role === "OPERATOR" && !!user.companyId)) && (
+              <NavLink href="/partners" icon={<Link2 className="h-4 w-4" />}>
+                Partner Company
               </NavLink>
             )}
             {(user?.role === "OPERATOR" || user?.role === "COMPANY" || user?.role === "OPERATOR_COMPANY") && (

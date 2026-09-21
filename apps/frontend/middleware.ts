@@ -50,6 +50,7 @@ export const config = {
     "/orders/:path*",
     "/employees/:path*",
     "/operators/:path*",
+    "/partners/:path*",
     "/profile",
   ],
 };

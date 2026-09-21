@@ -82,7 +82,31 @@ model User {
   linksAsConsignee OperatorLink[]  @relation("ConsigneeLinks")
   linksAsOperator  OperatorLink[]  @relation("OperatorLinks")
 
+  // COMPANY ("company for orders") <-> OPERATOR_COMPANY ("company for
+  // tracking") partnerships — a completely different relationship from
+  // OperatorLink above: no scope, no per-order grants, just two companies
+  // agreeing to see each other's roster (id + members' ids) so their
+  // people know who to link with. Only COMPANY/OPERATOR_COMPANY accounts
+  // create these; everyone in that company can view them.
+  partnerLinksAsCompany         CompanyPartnerLink[] @relation("PartnerAsCompany")
+  partnerLinksAsOperatorCompany CompanyPartnerLink[] @relation("PartnerAsOperatorCompany")
+
   @@index([companyId])
+}
+
+model CompanyPartnerLink {
+  id String @id @default(cuid())
+
+  companyId String
+  company   User   @relation("PartnerAsCompany", fields: [companyId], references: [id], onDelete: Cascade)
+
+  operatorCompanyId String
+  operatorCompany   User   @relation("PartnerAsOperatorCompany", fields: [operatorCompanyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, operatorCompanyId])
+  @@index([operatorCompanyId])
 }
 
 model OperatorLink {

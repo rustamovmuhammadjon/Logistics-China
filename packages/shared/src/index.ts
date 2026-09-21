@@ -249,6 +249,28 @@ export type OperatorCompanyAnalyticsDto = {
   totalLinkedAccounts: number;
 };
 
+// A partner is the OTHER top-level company in the link: for a COMPANY
+// viewer, its OPERATOR_COMPANY partner (members = that company's
+// operators); for an OPERATOR_COMPANY viewer, its COMPANY partner
+// (members = that company's employees). No scope, no order grants —
+// unlike OperatorLink, this relationship only ever surfaces ids to link
+// with directly.
+export type CompanyPartnerMemberDto = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  linkCode: string;
+  active: boolean;
+};
+
+export type CompanyPartnerDto = {
+  linkId: string;
+  createdAt: string;
+  partner: { id: string; companyName: string | null; email: string; linkCode: string };
+  members: CompanyPartnerMemberDto[];
+};
+
 export type MonitoringResponse = {
   orders: GroupOrderDto[];
   ctx: ViewerContext;

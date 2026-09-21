@@ -13,6 +13,7 @@ import { consigneeRouter } from "./routes/consignee.js";
 import { operatorRouter } from "./routes/operator.js";
 import { companyRouter } from "./routes/company.js";
 import { operatorCompanyRouter } from "./routes/operatorCompany.js";
+import { partnersRouter } from "./routes/partners.js";
 import { adminRouter } from "./routes/admin.js";
 import { driverRouter } from "./routes/driver.js";
 import { attachSession } from "./middleware/auth.js";
@@ -53,6 +54,7 @@ app.use("/api/consignee", consigneeRouter);
 app.use("/api/operator", operatorRouter);
 app.use("/api/company", companyRouter);
 app.use("/api/operator-company", operatorCompanyRouter);
+app.use("/api/partners", partnersRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/driver", driverRouter);
 

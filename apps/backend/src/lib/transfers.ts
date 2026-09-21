@@ -16,8 +16,11 @@ export async function createCargoTransfer(params: {
   const comment = optionalString(body.comment);
   const transferDate = dateOrToday(body.transferDate);
   // The destination truck's location must be recorded at transfer time —
-  // it's the whole point of knowing where the cargo actually is now.
+  // it's the whole point of knowing where the cargo actually is now. The
+  // new vehicle's country is required too — it was easy to skip since it
+  // was optional, and then just missing from the new truck's record.
   const currentLocation = requiredString(body.currentLocation, "currentLocation");
+  const country = requiredString(body.country, "country");
 
   const fromTruck = await prisma.truck.findUnique({
     where: { id: fromTruckId },
@@ -90,7 +93,7 @@ export async function createCargoTransfer(params: {
         subOrderId,
         plateNumber: toPlate,
         trailerPlateNumber: toTrailer,
-        country: optionalString(body.country),
+        country,
         driverName: optionalString(body.driverName),
         driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : null,
         cargoWeight: fromTruck.cargoWeight,
@@ -102,15 +105,14 @@ export async function createCargoTransfer(params: {
   } else {
     const driverName = optionalString(body.driverName);
     const driverPhoneRaw = optionalString(body.driverPhone);
-    const country = optionalString(body.country);
     await prisma.truck.update({
       where: { id: toTruckId },
       data: {
         cargoWeight: fromTruck.cargoWeight,
         currentLocation,
         locationUpdatedAt: new Date(),
+        country,
         ...(toTrailer ? { trailerPlateNumber: toTrailer } : {}),
-        ...(country ? { country } : {}),
         ...(driverName ? { driverName } : {}),
         ...(driverPhoneRaw ? { driverPhone: normalizePhone(driverPhoneRaw) } : {}),
       },
