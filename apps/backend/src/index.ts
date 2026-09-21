@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -16,6 +17,7 @@ import { adminRouter } from "./routes/admin.js";
 import { driverRouter } from "./routes/driver.js";
 import { attachSession } from "./middleware/auth.js";
 import { asyncHandler, errorHandler } from "./middleware/errors.js";
+import { attachRealtime } from "./lib/realtime.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -60,6 +62,9 @@ process.on("unhandledRejection", (reason) => {
   console.error("unhandledRejection", reason);
 });
 
-app.listen(port, "0.0.0.0", () => {
+const server = createServer(app);
+attachRealtime(server);
+
+server.listen(port, "0.0.0.0", () => {
   console.log(`Backend listening on http://0.0.0.0:${port}`);
 });

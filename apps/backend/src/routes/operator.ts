@@ -14,6 +14,7 @@ import { createCargoTransfer } from "../lib/transfers.js";
 import { assertCanAddDirectTruck, assertSubOrderMutable, assertTruckMutable, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
+import { broadcastTruckLocationUpdate } from "../lib/realtime.js";
 
 export const operatorRouter = Router();
 
@@ -92,6 +93,7 @@ operatorRouter.patch(
       }),
       touchSubOrderEditor(truck.subOrderId, me.email),
     ]);
+    if (changed) broadcastTruckLocationUpdate();
     res.json({ truck: updated });
   })
 );
@@ -176,6 +178,7 @@ operatorRouter.patch(
       }),
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
+    if (locationChanged) broadcastTruckLocationUpdate();
     res.json({ truck });
   })
 );
