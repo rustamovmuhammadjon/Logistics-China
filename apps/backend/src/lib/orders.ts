@@ -193,7 +193,7 @@ export const detailInclude = {
 
 export async function orderVisibilityWhere(params: {
   isAdmin: boolean;
-  user: { id: string; role: "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE"; companyId?: string | null } | null;
+  user: { id: string; role: UserRole; companyId?: string | null } | null;
 }): Promise<Prisma.GroupOrderWhereInput> {
   const { isAdmin, user } = params;
   if (user?.role === "CONSIGNEE" || user?.role === "COMPANY") return { ownerId: user.id };
@@ -238,11 +238,15 @@ export async function orderVisibilityWhere(params: {
 
 export async function getViewerContext(
   admin: boolean,
-  user: { id: string; role: "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE"; companyId?: string | null } | null
+  user: { id: string; role: UserRole; companyId?: string | null } | null
 ) {
   if (user?.role === "CONSIGNEE") return { kind: "consignee" as const, userId: user.id };
   if (user?.role === "COMPANY") return { kind: "company" as const, userId: user.id };
   if (user?.role === "EMPLOYEE") return { kind: "employee" as const, userId: user.id, companyId: user.companyId ?? "" };
+  // "Company for tracking" — it never has orders of its own, so there's
+  // nothing further to resolve (unlike OPERATOR below, it isn't itself
+  // linked to anyone).
+  if (user?.role === "OPERATOR_COMPANY") return { kind: "operatorCompany" as const, userId: user.id };
   if (!user) {
     if (admin) return { kind: "admin" as const };
     return { kind: "guest" as const };

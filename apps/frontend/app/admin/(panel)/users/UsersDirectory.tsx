@@ -15,6 +15,7 @@ const ROLE_BADGE_CLASS: Record<string, string> = {
   COMPANY: "badge-green",
   EMPLOYEE: "badge-slate",
   OPERATOR: "badge-amber",
+  OPERATOR_COMPANY: "badge-amber",
 };
 import { Avatar } from "@/components/Avatar";
 import { ConfirmButton } from "@/components/ConfirmButton";

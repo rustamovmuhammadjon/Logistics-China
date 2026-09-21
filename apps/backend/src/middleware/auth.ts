@@ -50,9 +50,19 @@ export function requireOperator(req: Request, _res: Response, next: NextFunction
   next();
 }
 
+// "Company for orders" — never confuse with requireOperatorCompany below.
 export function requireCompany(req: Request, _res: Response, next: NextFunction) {
   const user = (req as AuthedRequest).user;
   if (!user || user.role !== "COMPANY") unauthorized();
+  next();
+}
+
+// "Company for tracking" — a completely separate account type from COMPANY
+// above. It manages OPERATOR employees (see operatorCompany.ts), never
+// orders themselves.
+export function requireOperatorCompany(req: Request, _res: Response, next: NextFunction) {
+  const user = (req as AuthedRequest).user;
+  if (!user || user.role !== "OPERATOR_COMPANY") unauthorized();
   next();
 }
 

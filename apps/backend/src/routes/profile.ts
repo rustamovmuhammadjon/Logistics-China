@@ -13,17 +13,23 @@ export const profileRouter = Router();
 
 profileRouter.use(requireRegisteredUser);
 
+// An employee's (or a company-employed operator's) profile is managed by
+// their company, not themselves — mirrors the employee-creation form.
+function isManagedByCompany(me: { role: string; companyId: string | null }) {
+  return me.role === "EMPLOYEE" || (me.role === "OPERATOR" && !!me.companyId);
+}
+
 profileRouter.patch(
   "/",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    if (me.role === "EMPLOYEE") badRequest("Your company manages your profile — ask them to make changes.");
+    if (isManagedByCompany(me)) badRequest("Your company manages your profile — ask them to make changes.");
     const email = String(req.body?.email ?? "").trim().toLowerCase();
     if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
 
-    // Companies have a company name instead of a person's name/date of birth.
+    // Both company types have a company name instead of a person's name/date of birth.
     const data =
-      me.role === "COMPANY"
+      me.role === "COMPANY" || me.role === "OPERATOR_COMPANY"
         ? (() => {
             const companyName = String(req.body?.companyName ?? "").trim();
             if (!companyName) badRequest("Company name is required");
@@ -63,7 +69,7 @@ profileRouter.post(
   "/photo",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    if (me.role === "EMPLOYEE") badRequest("Your company manages your profile — ask them to make changes.");
+    if (isManagedByCompany(me)) badRequest("Your company manages your profile — ask them to make changes.");
     const url = String(req.body?.url ?? "");
     assertSupabasePublicUrl(url);
     const user = await prisma.user.update({

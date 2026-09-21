@@ -5,12 +5,11 @@ import Link from "next/link";
 import { UserAdd } from "iconsax-react";
 import { useApiSubmit } from "@/lib/hooks";
 
-type Role = "CONSIGNEE" | "OPERATOR" | "COMPANY";
+type Role = "COMPANY" | "OPERATOR_COMPANY";
 
 export function RegisterForm({ next }: { next: string }) {
   const { submitForm, pending, error } = useApiSubmit();
-  const [role, setRole] = useState<Role>("CONSIGNEE");
-  const isCompany = role === "COMPANY";
+  const [role, setRole] = useState<Role>("COMPANY");
 
   return (
     <form
@@ -32,34 +31,23 @@ export function RegisterForm({ next }: { next: string }) {
             <input
               type="radio"
               name="role"
-              value="CONSIGNEE"
-              checked={role === "CONSIGNEE"}
-              onChange={() => setRole("CONSIGNEE")}
-              required
-            />
-            Individual Entrepreneur (places orders)
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="role"
               value="COMPANY"
               checked={role === "COMPANY"}
               onChange={() => setRole("COMPANY")}
               required
             />
-            Company (manages employees)
+            Company — for orders (places and manages orders)
           </label>
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="role"
-              value="OPERATOR"
-              checked={role === "OPERATOR"}
-              onChange={() => setRole("OPERATOR")}
+              value="OPERATOR_COMPANY"
+              checked={role === "OPERATOR_COMPANY"}
+              onChange={() => setRole("OPERATOR_COMPANY")}
               required
             />
-            Operator (updates truck location)
+            Company — for tracking (tracks trucks and updates locations)
           </label>
         </div>
       </div>
@@ -69,44 +57,10 @@ export function RegisterForm({ next }: { next: string }) {
         <input className="field-input" type="text" name="inviteCode" required />
       </div>
 
-      {isCompany ? (
-        <div>
-          <label className="field-label">Company name</label>
-          <input className="field-input" type="text" name="companyName" required />
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="field-label">First name</label>
-              <input
-                className="field-input"
-                type="text"
-                name="firstName"
-                pattern="^[\p{L}\s]+$"
-                title="Letters only, no numbers or symbols"
-                required
-              />
-            </div>
-            <div>
-              <label className="field-label">Last name</label>
-              <input
-                className="field-input"
-                type="text"
-                name="lastName"
-                pattern="^[\p{L}\s]+$"
-                title="Letters only, no numbers or symbols"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="field-label">Date of birth</label>
-            <input className="field-input" type="date" name="dateOfBirth" required />
-          </div>
-        </>
-      )}
+      <div>
+        <label className="field-label">Company name</label>
+        <input className="field-input" type="text" name="companyName" required />
+      </div>
 
       <div>
         <label className="field-label">Email</label>

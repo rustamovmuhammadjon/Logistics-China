@@ -33,11 +33,17 @@ linksRouter.post(
   "/",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    if (me.role === "COMPANY") badRequest("Companies can't manage links — ask an employee to do this.");
+    // Neither company type manages links directly — a COMPANY's employees
+    // do for orders, an OPERATOR_COMPANY's operators do for tracking.
+    if (me.role === "COMPANY" || me.role === "OPERATOR_COMPANY") {
+      badRequest("Companies can't manage links — ask an employee to do this.");
+    }
     const code = requiredString(req.body?.code, "code").trim();
     const other = await prisma.user.findUnique({ where: { linkCode: code } });
     if (!other) badRequest("No account found with that ID");
-    if (other.role === "COMPANY") badRequest("That ID belongs to a company — link with one of their employees instead.");
+    if (other.role === "COMPANY" || other.role === "OPERATOR_COMPANY") {
+      badRequest("That ID belongs to a company — link with one of their employees instead.");
+    }
 
     const meIsConsigneeSide = isConsigneeSide(me.role);
     const otherIsConsigneeSide = isConsigneeSide(other.role);

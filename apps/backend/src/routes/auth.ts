@@ -2,10 +2,10 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import type { UserRole } from "@prisma/client";
-import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
+import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
-import { optionalString, parseDateOfBirth, requiredString } from "../lib/input.js";
+import { optionalString, requiredString } from "../lib/input.js";
 import {
   checkAdminCredentials,
   createAdminSession,
@@ -25,9 +25,10 @@ authRouter.get(
   "/me",
   asyncHandler(async (req, res) => {
     const me = currentUserPublic(req);
-    // An employee doesn't otherwise have any way to see who they work for —
-    // surface their company's basic info alongside their own profile.
-    if (me.user?.role === "EMPLOYEE" && me.user.companyId) {
+    // An employee (or a company-employed operator) doesn't otherwise have
+    // any way to see who they work for — surface the parent company's
+    // basic info alongside their own profile.
+    if ((me.user?.role === "EMPLOYEE" || me.user?.role === "OPERATOR") && me.user.companyId) {
       const company = await prisma.user.findUnique({
         where: { id: me.user.companyId },
         select: { companyName: true, email: true, phone: true },
@@ -64,33 +65,18 @@ authRouter.post(
     const expectedCode = process.env.REGISTRATION_CODE ?? "";
 
     if (!expectedCode || inviteCode !== expectedCode) badRequest("Invalid invite code");
-    if (roleRaw !== "CONSIGNEE" && roleRaw !== "OPERATOR" && roleRaw !== "COMPANY") {
+    // Self-registration only ever creates a company-shaped account now — an
+    // individual entrepreneur (CONSIGNEE) or a standalone OPERATOR can no
+    // longer sign up directly. "Company" (COMPANY) is for placing orders;
+    // "Tracking company" (OPERATOR_COMPANY) is for tracking them — each
+    // then adds its own employees. Never confuse the two.
+    if (roleRaw !== "COMPANY" && roleRaw !== "OPERATOR_COMPANY") {
       badRequest("Choose an account type");
     }
     const role = roleRaw as UserRole;
 
-    // Companies don't have a first/last name or a date of birth — they have
-    // a company name instead. Individuals (consignee/operator) keep the
-    // existing person-shaped fields.
-    let companyName: string | null = null;
-    let firstName: string | null = null;
-    let lastName: string | null = null;
-    let dateOfBirth: Date | null = null;
-
-    if (role === "COMPANY") {
-      companyName = String(req.body?.companyName ?? "").trim();
-      if (!companyName) badRequest("Company name is required");
-    } else {
-      firstName = String(req.body?.firstName ?? "").trim();
-      lastName = String(req.body?.lastName ?? "").trim();
-      if (!firstName || !isLettersOnly(firstName)) {
-        badRequest("First name is required and may only contain letters");
-      }
-      if (!lastName || !isLettersOnly(lastName)) {
-        badRequest("Last name is required and may only contain letters");
-      }
-      dateOfBirth = parseDateOfBirth(req.body?.dateOfBirth, true);
-    }
+    const companyName = String(req.body?.companyName ?? "").trim();
+    if (!companyName) badRequest("Company name is required");
 
     if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
     if (password.length < MIN_PASSWORD_LENGTH) {
@@ -103,7 +89,7 @@ authRouter.post(
 
     try {
       const user = await prisma.user.create({
-        data: { email, passwordHash, role, linkCode, companyName, firstName, lastName, dateOfBirth },
+        data: { email, passwordHash, role, linkCode, companyName },
       });
       await createUserSession(res, user.id, user.email);
       res.json({ ok: true });

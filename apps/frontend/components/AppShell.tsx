@@ -92,9 +92,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Employees
               </NavLink>
             )}
-            {(user?.role === "OPERATOR" || user?.role === "COMPANY") && (
+            {user?.role === "OPERATOR_COMPANY" && (
+              <NavLink href="/operators" icon={<Users className="h-4 w-4" />}>
+                Operators
+              </NavLink>
+            )}
+            {(user?.role === "OPERATOR" || user?.role === "COMPANY" || user?.role === "OPERATOR_COMPANY") && (
               <NavLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>
-                {user.role === "COMPANY" ? "Dashboard" : "My dashboard"}
+                {user.role === "OPERATOR" ? "My dashboard" : "Dashboard"}
               </NavLink>
             )}
             {admin && (

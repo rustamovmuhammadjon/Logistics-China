@@ -1,4 +1,4 @@
-export type UserRole = "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE";
+export type UserRole = "CONSIGNEE" | "OPERATOR" | "COMPANY" | "EMPLOYEE" | "OPERATOR_COMPANY";
 export type MediaType = "IMAGE" | "VIDEO";
 export type SubOrderStatus = "OPEN" | "CLOSED" | "CANCELED";
 export type OrderSort = "newest" | "oldest";
@@ -19,6 +19,8 @@ export function roleLabel(role: UserRole): string {
       return "Company";
     case "EMPLOYEE":
       return "Employee";
+    case "OPERATOR_COMPANY":
+      return "Tracking Company";
   }
 }
 
@@ -50,6 +52,10 @@ export type ViewerContext =
   | { kind: "company"; userId: string }
   | { kind: "employee"; userId: string; companyId: string }
   | { kind: "operator"; userId: string; linkedConsigneeIds: string[] }
+  // The "company for tracking" itself — never has orders of its own, only
+  // its OPERATOR employees do. Not to be confused with "company" above,
+  // which is the "company for orders".
+  | { kind: "operatorCompany"; userId: string }
   | { kind: "guest" };
 
 export type CommentDto = {
@@ -220,6 +226,27 @@ export type CompanyAnalyticsDto = {
   orders: { active: number; completed: number; cancelled: number; total: number };
   avgDaysToComplete: number | null;
   monthly: CompanyAnalyticsMonth[];
+};
+
+// An OPERATOR_COMPANY's ("company for tracking") view of its own OPERATOR
+// employees — deliberately not shaped like EmployeeDto: an operator doesn't
+// create orders, so order/completed/cancelled counts don't apply to them.
+export type OperatorEmployeeDto = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  active: boolean;
+  createdAt: string;
+  linkedAccountCount: number;
+};
+
+export type OperatorCompanyAnalyticsDto = {
+  operatorCount: number;
+  activeOperatorCount: number;
+  totalLinkedAccounts: number;
 };
 
 export type MonitoringResponse = {

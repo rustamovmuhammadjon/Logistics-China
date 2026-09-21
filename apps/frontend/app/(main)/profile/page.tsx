@@ -38,6 +38,12 @@ async function ProfileContent() {
     );
   }
 
+  // A company-employed operator (companyId set) is managed by its
+  // OPERATOR_COMPANY the same way an EMPLOYEE is managed by its COMPANY —
+  // a standalone operator (no companyId) keeps full self-service.
+  const managedByCompany = me.user.role === "EMPLOYEE" || (me.user.role === "OPERATOR" && !!me.user.companyId);
+  const isCompanyShaped = me.user.role === "COMPANY" || me.user.role === "OPERATOR_COMPANY";
+
   return (
     <div className="card space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -52,7 +58,7 @@ async function ProfileContent() {
         </div>
         <LogoutButton />
       </div>
-      {me.user.role !== "EMPLOYEE" && (
+      {!managedByCompany && (
         <ProfilePhotoUploader
           photoUrl={me.user.photoUrl}
           firstName={me.user.firstName}
@@ -60,7 +66,7 @@ async function ProfileContent() {
           email={me.user.email}
         />
       )}
-      {me.user.role === "EMPLOYEE" && me.company && (
+      {managedByCompany && me.company && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Your company</p>
           <p className="mt-1 text-sm font-medium text-slate-900">{me.company.companyName || "—"}</p>
@@ -71,14 +77,14 @@ async function ProfileContent() {
         </div>
       )}
       <ProfileForm
-        isCompany={me.user.role === "COMPANY"}
+        isCompany={isCompanyShaped}
         companyName={me.user.companyName}
         firstName={me.user.firstName}
         lastName={me.user.lastName}
         phone={me.user.phone}
         email={me.user.email}
         dateOfBirth={me.user.dateOfBirth}
-        readOnly={me.user.role === "EMPLOYEE"}
+        readOnly={managedByCompany}
       />
     </div>
   );

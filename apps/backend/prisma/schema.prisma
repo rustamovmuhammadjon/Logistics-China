@@ -23,6 +23,10 @@ enum UserRole {
   OPERATOR
   COMPANY
   EMPLOYEE
+  // A "company for tracking" — mirrors COMPANY but on the operator side: it
+  // never tracks orders itself, only its OPERATOR employees (companyId set)
+  // do. Never confuse this with COMPANY, which is a "company for orders".
+  OPERATOR_COMPANY
 }
 
 enum DriverAssignmentStatus {
@@ -42,7 +46,7 @@ model User {
   passwordHash String
   role         UserRole
 
-  // Used by COMPANY role only — the company's display name (individuals use firstName/lastName instead).
+  // Used by COMPANY/OPERATOR_COMPANY only — the company's display name (individuals use firstName/lastName instead).
   companyName String?
 
   firstName   String?
@@ -51,13 +55,20 @@ model User {
   photoUrl    String?
   dateOfBirth DateTime? @db.Date
 
-  // EMPLOYEE only: deactivating blocks login but keeps every order they
-  // created (still owned by the company) intact — see companyId below.
+  // EMPLOYEE/company-employed OPERATOR only: deactivating blocks login but
+  // keeps their work intact (an employee's orders stay with the company —
+  // see companyId below; an operator's links/history are untouched).
   active Boolean @default(true)
 
   // EMPLOYEE only: the COMPANY this employee belongs to. Orders an employee
   // creates are owned by the company (ownerId = companyId), not the
   // employee, so removing an employee never touches order ownership.
+  //
+  // Also reused for OPERATOR: the OPERATOR_COMPANY ("company for tracking")
+  // this operator belongs to, if any — a standalone OPERATOR leaves this
+  // null. This is a different relationship from the one above (no order
+  // ownership is involved) but the same self-referential FK serves both,
+  // same as active above.
   companyId String?
   company   User?   @relation("CompanyEmployees", fields: [companyId], references: [id], onDelete: Cascade)
   employees User[]  @relation("CompanyEmployees")

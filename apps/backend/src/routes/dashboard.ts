@@ -85,6 +85,14 @@ dashboardRouter.get(
       return;
     }
 
+    if (me.role === "OPERATOR_COMPANY") {
+      // A "company for tracking" never has orders or links of its own —
+      // only its OPERATOR employees do (see operatorCompany.ts). This route
+      // exists so the shared /dashboard page can still resolve its role.
+      res.json({ user: toPublicUser(me), orders: [], links: [] });
+      return;
+    }
+
     const [links, visibility] = await Promise.all([
       prisma.operatorLink.findMany({
         where: { operatorId: me.id },

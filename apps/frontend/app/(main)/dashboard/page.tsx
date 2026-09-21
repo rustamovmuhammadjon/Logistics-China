@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Box1 } from "iconsax-react";
-import type { CompanyAnalyticsDto, DashboardResponse } from "@logistics/shared";
+import type { CompanyAnalyticsDto, DashboardResponse, OperatorCompanyAnalyticsDto } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkPanel } from "@/components/LinkPanel";
 import { CompanyAnalytics } from "./CompanyAnalytics";
+import { OperatorCompanyAnalytics } from "./OperatorCompanyAnalytics";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,15 @@ export default async function DashboardPage() {
     const analytics = await serverApiOrNull<CompanyAnalyticsDto>("/api/company/analytics");
     if (!analytics) redirect("/login");
     return <CompanyAnalytics data={analytics} />;
+  }
+
+  // "Company for tracking" — never confuse with COMPANY above, the
+  // "company for orders". It never tracks orders itself, only its OPERATOR
+  // employees do (see /operators).
+  if (me.user.role === "OPERATOR_COMPANY") {
+    const analytics = await serverApiOrNull<OperatorCompanyAnalyticsDto>("/api/operator-company/analytics");
+    if (!analytics) redirect("/login");
+    return <OperatorCompanyAnalytics data={analytics} />;
   }
 
   // OPERATOR: unchanged from before — link with consignees/companies and
