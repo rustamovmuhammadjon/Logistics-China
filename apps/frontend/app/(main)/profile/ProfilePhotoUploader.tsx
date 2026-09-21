@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera } from "iconsax-react";
+import { X } from "lucide-react";
 import { clientApi } from "@/lib/api";
 import { uploadToSupabase } from "@/components/MediaUploader";
 import { Avatar } from "@/components/Avatar";
@@ -24,6 +25,7 @@ export function ProfilePhotoUploader({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(photoUrl);
+  const [zoomed, setZoomed] = useState(false);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -45,7 +47,15 @@ export function ProfilePhotoUploader({
 
   return (
     <div className="flex items-center gap-4">
-      <Avatar photoUrl={preview} firstName={firstName} lastName={lastName} email={email} size={72} />
+      <button
+        type="button"
+        onClick={() => preview && setZoomed(true)}
+        className={preview ? "cursor-zoom-in rounded-full" : "cursor-default rounded-full"}
+        aria-label={preview ? "View full-size photo" : undefined}
+        disabled={!preview}
+      >
+        <Avatar photoUrl={preview} firstName={firstName} lastName={lastName} email={email} size={72} />
+      </button>
       <div>
         <label className="btn-secondary cursor-pointer">
           <Camera size={16} variant="Bold" />
@@ -67,6 +77,29 @@ export function ProfilePhotoUploader({
         )}
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
+
+      {zoomed && preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setZoomed(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setZoomed(false)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt=""
+            className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

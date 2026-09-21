@@ -60,14 +60,15 @@ async function ProfileContent() {
           </div>
           <LogoutButton />
         </div>
-        {!managedByCompany && (
-          <ProfilePhotoUploader
-            photoUrl={me.user.photoUrl}
-            firstName={me.user.firstName}
-            lastName={me.user.lastName}
-            email={me.user.email}
-          />
-        )}
+        {/* Photo is self-service for everyone, even when the rest of the
+            profile below is managed by the company — a company never sets
+            or controls a user's picture, at creation or afterward. */}
+        <ProfilePhotoUploader
+          photoUrl={me.user.photoUrl}
+          firstName={me.user.firstName}
+          lastName={me.user.lastName}
+          email={me.user.email}
+        />
         {managedByCompany && me.company && (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Your company</p>

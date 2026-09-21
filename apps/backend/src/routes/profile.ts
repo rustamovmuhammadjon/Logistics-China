@@ -6,7 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
 import { optionalString, parseDateOfBirth } from "../lib/input.js";
 import { toPublicUser } from "../lib/auth.js";
-import { assertSupabasePublicUrl } from "../lib/supabase.js";
+import { assertSupabasePublicUrl, removePublicFiles } from "../lib/supabase.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js";
 
@@ -91,17 +91,25 @@ profileRouter.post(
   })
 );
 
+// Profile photo is self-service for everyone, including an employee or a
+// company-employed operator — unlike the rest of the profile, a company
+// never sets or controls a user's photo, at creation or afterward.
 profileRouter.post(
   "/photo",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
-    if (isManagedByCompany(me)) badRequest("Your company manages your profile — ask them to make changes.");
     const url = String(req.body?.url ?? "");
     assertSupabasePublicUrl(url);
+    const previousPhotoUrl = me.photoUrl;
     const user = await prisma.user.update({
       where: { id: me.id },
       data: { photoUrl: url },
     });
+    // Replace, don't accumulate — an old avatar left behind just wastes
+    // storage since nothing links to it anymore.
+    if (previousPhotoUrl && previousPhotoUrl !== url) {
+      await removePublicFiles([previousPhotoUrl]);
+    }
     res.json({ user: toPublicUser(user) });
   })
 );
