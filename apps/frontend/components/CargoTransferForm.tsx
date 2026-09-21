@@ -70,6 +70,10 @@ export function CargoTransferForm({
             <label className="field-label">To truck plate</label>
             <input className="field-input" name="toPlateNumber" placeholder="85Y294PA" required />
           </div>
+          <div className="sm:col-span-2">
+            <label className="field-label">Current location</label>
+            <input className="field-input" name="currentLocation" placeholder="e.g. Tashkent" required />
+          </div>
           <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
             <input
               type="checkbox"

@@ -4,6 +4,7 @@ import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
 import { dateOrToday, normalizePhone, normalizePlate, optionalString, requiredString, truthyFlag } from "./input.js";
 import { assertSubOrderMutable } from "./lifecycle.js";
+import { broadcastTruckLocationUpdate } from "./realtime.js";
 
 export async function createCargoTransfer(params: {
   subOrderId: string;
@@ -14,6 +15,9 @@ export async function createCargoTransfer(params: {
   const keepTrailer = truthyFlag(body.keepTrailer);
   const comment = optionalString(body.comment);
   const transferDate = dateOrToday(body.transferDate);
+  // The destination truck's location must be recorded at transfer time —
+  // it's the whole point of knowing where the cargo actually is now.
+  const currentLocation = requiredString(body.currentLocation, "currentLocation");
 
   const fromTruck = await prisma.truck.findUnique({
     where: { id: fromTruckId },
@@ -90,6 +94,8 @@ export async function createCargoTransfer(params: {
         driverName: optionalString(body.driverName),
         driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : null,
         cargoWeight: fromTruck.cargoWeight,
+        currentLocation,
+        locationUpdatedAt: new Date(),
       },
     });
     toTruckId = created.id;
@@ -101,6 +107,8 @@ export async function createCargoTransfer(params: {
       where: { id: toTruckId },
       data: {
         cargoWeight: fromTruck.cargoWeight,
+        currentLocation,
+        locationUpdatedAt: new Date(),
         ...(toTrailer ? { trailerPlateNumber: toTrailer } : {}),
         ...(country ? { country } : {}),
         ...(driverName ? { driverName } : {}),
@@ -136,6 +144,8 @@ export async function createCargoTransfer(params: {
     where: { truckId: fromTruck.id, status: { in: ["PENDING", "ACTIVE"] } },
     data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
   });
+
+  broadcastTruckLocationUpdate();
 
   return transfer;
 }
