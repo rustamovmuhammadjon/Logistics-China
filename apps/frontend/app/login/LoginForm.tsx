@@ -29,6 +29,11 @@ export function LoginForm({ next }: { next: string }) {
         <input className="field-input" type="password" name="password" autoComplete="current-password" required />
       </div>
 
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" name="remember" defaultChecked />
+        Remember me
+      </label>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button type="submit" className="btn-primary w-full" disabled={pending}>

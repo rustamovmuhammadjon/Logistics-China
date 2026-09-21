@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { EMAIL_PATTERN, isGroupOrderCompleted, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound } from "../lib/errors.js";
-import { optionalString, parseDateOfBirth, requiredString } from "../lib/input.js";
+import { parseDateOfBirth, requiredString } from "../lib/input.js";
 import { buildOrderWhere } from "../lib/orders.js";
 import { generateUniqueLinkCode, toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -100,24 +100,18 @@ companyRouter.post(
   })
 );
 
+// Password is set once, at creation — a company can never see or change an
+// employee's password afterward, only the employee themselves can (from
+// their own profile). So this edit route never touches passwordHash.
 companyRouter.patch(
   "/employees/:id",
   asyncHandler(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     const existing = await requireOwnEmployee(me.id, req.params.id);
     const fields = employeeFields(req.body ?? {});
-    const data: Prisma.UserUpdateInput = { ...fields };
-
-    const password = optionalString(req.body?.password);
-    if (password) {
-      if (password.length < MIN_PASSWORD_LENGTH) {
-        badRequest(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
-      }
-      data.passwordHash = await bcrypt.hash(password, 10);
-    }
 
     try {
-      const employee = await prisma.user.update({ where: { id: existing.id }, data });
+      const employee = await prisma.user.update({ where: { id: existing.id }, data: fields });
       res.json({ employee: toPublicUser(employee) });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

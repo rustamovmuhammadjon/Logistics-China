@@ -5,7 +5,7 @@ import type { UserRole } from "@prisma/client";
 import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
-import { optionalString, requiredString } from "../lib/input.js";
+import { optionalString, requiredString, truthyFlag } from "../lib/input.js";
 import {
   checkAdminCredentials,
   createAdminSession,
@@ -45,11 +45,12 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const email = String(req.body?.email ?? "").trim().toLowerCase();
     const password = String(req.body?.password ?? "");
+    const remember = truthyFlag(req.body?.remember);
     const user = await prisma.user.findUnique({ where: { email } });
     const isValid = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !isValid) badRequest("Invalid email or password");
     if (!user.active) badRequest("This account has been deactivated. Contact your company.");
-    await createUserSession(res, user.id, user.email);
+    await createUserSession(res, user.id, user.email, remember);
     res.json({ ok: true });
   })
 );
@@ -91,7 +92,10 @@ authRouter.post(
       const user = await prisma.user.create({
         data: { email, passwordHash, role, linkCode, companyName },
       });
-      await createUserSession(res, user.id, user.email);
+      // No "remember me" checkbox at registration — natural to stay signed
+      // in for the usual sliding 7-day window right after creating an
+      // account, same as if they'd checked it on the login page.
+      await createUserSession(res, user.id, user.email, true);
       res.json({ ok: true });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

@@ -3,6 +3,7 @@ import type { User } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { unauthorized } from "../lib/errors.js";
 import {
+  createUserSession,
   readBearerToken,
   readCookies,
   toPublicUser,
@@ -21,7 +22,7 @@ export type DriverRequest = Request & {
   driver: DriverSession;
 };
 
-export async function attachSession(req: Request, _res: Response, next: NextFunction) {
+export async function attachSession(req: Request, res: Response, next: NextFunction) {
   const scoped = req as AuthedRequest;
   const { adminToken, userToken } = readCookies(req);
   scoped.isAdmin = await verifyAdminSessionFromToken(adminToken);
@@ -30,6 +31,13 @@ export async function attachSession(req: Request, _res: Response, next: NextFunc
   // A deactivated employee's existing session stops working immediately,
   // not just on their next login attempt.
   scoped.user = user && !user.active ? null : user;
+  // "Remember me" sessions slide: every active request within the 7-day
+  // window reissues the cookie for another 7 days, so a user who returns
+  // at least once every 7 days is never forced to log in again, while 7
+  // days of inactivity lets it expire naturally.
+  if (scoped.user && session?.remember) {
+    await createUserSession(res, scoped.user.id, scoped.user.email, true);
+  }
   next();
 }
 

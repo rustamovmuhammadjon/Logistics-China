@@ -143,9 +143,9 @@ function EditOperatorForm({ operator, onDone }: { operator: OperatorEmployeeDto;
         type="date"
         defaultValue={operator.dateOfBirth ? operator.dateOfBirth.slice(0, 10) : ""}
       />
-      <div className="sm:col-span-2">
-        <Field name="password" label="New password (optional, min. 8 characters)" type="password" minLength={8} required={false} />
-      </div>
+      <p className="text-xs text-slate-400 sm:col-span-2">
+        Password can only be changed by the operator themselves, from their own profile.
+      </p>
       {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
       <div className="sm:col-span-2">
         <button type="submit" className="btn-primary" disabled={pending}>

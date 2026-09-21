@@ -1,6 +1,7 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
-import { EMAIL_PATTERN, isLettersOnly } from "@logistics/shared";
+import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
 import { optionalString, parseDateOfBirth } from "../lib/input.js";
@@ -62,6 +63,31 @@ profileRouter.patch(
       }
       throw err;
     }
+  })
+);
+
+// Password self-service is never gated by isManagedByCompany — a company
+// only ever sets an employee's/operator's INITIAL password at creation and
+// can't see or change it afterward (no password field on the edit forms);
+// from then on, only the account owner can change it, and only here.
+profileRouter.post(
+  "/password",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    const currentPassword = String(req.body?.currentPassword ?? "");
+    const newPassword = String(req.body?.newPassword ?? "");
+    const confirmNewPassword = String(req.body?.confirmNewPassword ?? "");
+
+    const isValid = await bcrypt.compare(currentPassword, me.passwordHash);
+    if (!isValid) badRequest("Current password is incorrect");
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      badRequest(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    }
+    if (newPassword !== confirmNewPassword) badRequest("New passwords do not match");
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: me.id }, data: { passwordHash } });
+    res.json({ ok: true });
   })
 );
 

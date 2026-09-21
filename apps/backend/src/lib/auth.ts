@@ -5,7 +5,15 @@ import { prisma } from "./prisma.js";
 
 export const ADMIN_COOKIE_NAME = "logistics_admin_session";
 export const USER_COOKIE_NAME = "logistics_user_session";
-const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
+const ADMIN_SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
+// "Remember me" checked: a sliding 7-day session — attachSession reissues
+// this cookie on every authenticated request, so an active user (visits at
+// least once every 7 days) is never signed out, but 7 days of inactivity
+// expires it. "Remember me" unchecked: a same-browser-session cookie (no
+// maxAge, so the browser drops it on close) with a short 1-day token
+// lifetime as a safety net in case the browser keeps it around anyway.
+const REMEMBER_SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7;
+const DEFAULT_SESSION_DURATION_SECONDS = 60 * 60 * 24;
 
 function generateCandidateLinkCode() {
   return String(Math.floor(10000000 + Math.random() * 90000000));
@@ -20,7 +28,7 @@ export async function generateUniqueLinkCode() {
   throw new Error("Could not generate a unique link code, please try again");
 }
 
-export type ViewerSession = { role: "viewer"; userId: string; email: string };
+export type ViewerSession = { role: "viewer"; userId: string; email: string; remember: boolean };
 export type DriverSession = { role: "driver"; assignmentId: string; truckId: string; tokenVersion: number };
 
 const DRIVER_TOKEN_DURATION_SECONDS = 60 * 60 * 24 * 180;
@@ -31,21 +39,23 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-async function sign(payload: Record<string, unknown>) {
+async function sign(payload: Record<string, unknown>, durationSeconds: number) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
+    .setExpirationTime(`${durationSeconds}s`)
     .sign(getSecretKey());
 }
 
-function cookieOptions() {
+// Omit maxAgeSeconds for a browser-session cookie (cleared when the
+// browser closes) — used for a non-"remember me" login.
+function cookieOptions(maxAgeSeconds?: number) {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",
-    maxAge: SESSION_DURATION_SECONDS * 1000,
+    ...(maxAgeSeconds !== undefined ? { maxAge: maxAgeSeconds * 1000 } : {}),
   };
 }
 
@@ -56,13 +66,14 @@ export function checkAdminCredentials(username: string, password: string) {
 }
 
 export async function createAdminSession(res: Response) {
-  const token = await sign({ role: "admin" });
-  res.cookie(ADMIN_COOKIE_NAME, token, cookieOptions());
+  const token = await sign({ role: "admin" }, ADMIN_SESSION_DURATION_SECONDS);
+  res.cookie(ADMIN_COOKIE_NAME, token, cookieOptions(ADMIN_SESSION_DURATION_SECONDS));
 }
 
-export async function createUserSession(res: Response, userId: string, email: string) {
-  const token = await sign({ role: "viewer", userId, email });
-  res.cookie(USER_COOKIE_NAME, token, cookieOptions());
+export async function createUserSession(res: Response, userId: string, email: string, remember: boolean) {
+  const duration = remember ? REMEMBER_SESSION_DURATION_SECONDS : DEFAULT_SESSION_DURATION_SECONDS;
+  const token = await sign({ role: "viewer", userId, email, remember }, duration);
+  res.cookie(USER_COOKIE_NAME, token, cookieOptions(remember ? duration : undefined));
 }
 
 export function destroyAdminSession(res: Response) {
