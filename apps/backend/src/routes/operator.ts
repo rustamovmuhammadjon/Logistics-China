@@ -61,11 +61,14 @@ operatorRouter.patch(
     const sub = await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     // The factory load date can be corrected at any time, even after the
     // sub-order is completed or cancelled — unlike other sub-order fields
-    // it isn't frozen by status.
+    // it isn't frozen by status. Same for the GPS number — operator-only,
+    // like factoryLoadDate, but unlike it, never shown to a consignee-side
+    // viewer at all (stripped server-side, see lib/orders.ts).
     const updated = await prisma.subOrder.update({
       where: { id: sub.id },
       data: {
         factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
+        gpsNumber: optionalString(req.body?.gpsNumber),
         lastEditedByEmail: me.email,
         lastEditedAt: new Date(),
       },

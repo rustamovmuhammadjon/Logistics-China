@@ -2,7 +2,16 @@ import { Router } from "express";
 import { truckStats } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { notFound } from "../lib/errors.js";
-import { buildOrderOrderBy, buildOrderWhere, detailInclude, getViewerContext, listIncludeWithPeople, orderVisibilityWhere, withOrderPeople } from "../lib/orders.js";
+import {
+  buildOrderOrderBy,
+  buildOrderWhere,
+  detailInclude,
+  getViewerContext,
+  listIncludeWithPeople,
+  orderVisibilityWhere,
+  stripGpsNumber,
+  withOrderPeople,
+} from "../lib/orders.js";
 import { buildOrdersWorkbook } from "../lib/export.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -32,8 +41,12 @@ monitoringRouter.get(
     });
 
     const stats = truckStats(orders.flatMap((o) => o.subOrders.flatMap((s) => s.trucks)));
+    // GPS number is operator/admin only — every other viewer here (an
+    // individual, a company, or an employee) never receives it.
+    const canSeeGps = isAdmin || user?.role === "OPERATOR";
+    const mapped = orders.map(withOrderPeople);
     res.json({
-      orders: orders.map(withOrderPeople),
+      orders: canSeeGps ? mapped : mapped.map(stripGpsNumber),
       ctx,
       stats,
       user: user ? toPublicUser(user) : null,
@@ -59,7 +72,9 @@ monitoringRouter.get(
       orderBy: buildOrderOrderBy(undefined),
     });
 
-    const buffer = await buildOrdersWorkbook(orders.map(withOrderPeople), { includePeople: isAdmin });
+    const canSeeGps = isAdmin || user?.role === "OPERATOR";
+    const mapped = orders.map(withOrderPeople);
+    const buffer = await buildOrdersWorkbook(canSeeGps ? mapped : mapped.map(stripGpsNumber), { includePeople: isAdmin });
     const label = canceled ? "cancelled" : completed ? "completed" : "active";
     const filename = `orders-${label}-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
@@ -104,6 +119,7 @@ monitoringRouter.get(
       include: detailInclude,
     });
     if (!order) notFound();
-    res.json({ order });
+    const canSeeGps = isAdmin || user?.role === "OPERATOR";
+    res.json({ order: canSeeGps ? order : stripGpsNumber(order) });
   })
 );

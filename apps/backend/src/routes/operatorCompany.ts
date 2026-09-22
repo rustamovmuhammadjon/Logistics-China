@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { parseDateOfBirth, requiredString } from "../lib/input.js";
 import { generateUniqueLinkCode, toPublicUser } from "../lib/auth.js";
+import { orderVisibilityWhere } from "../lib/orders.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireOperatorCompany, type AuthedRequest } from "../middleware/auth.js";
 
@@ -129,6 +130,50 @@ operatorCompanyRouter.post(
     const existing = await requireOwnOperator(me.id, req.params.id);
     await prisma.user.update({ where: { id: existing.id }, data: { active: true } });
     res.json({ ok: true });
+  })
+);
+
+// GPS numbers are per-sub-order, operator-only to set, and only ever
+// visible to that operator, their tracking company, and admin. This is the
+// tracking company's view: every GPS number set by any of its operators,
+// across whichever orders that specific operator can currently see.
+operatorCompanyRouter.get(
+  "/gps-numbers",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    const operators = await prisma.user.findMany({
+      where: { companyId: me.id, role: "OPERATOR" },
+      select: { id: true, email: true, firstName: true, lastName: true },
+    });
+
+    const entries: Array<{
+      operator: { id: string; email: string; firstName: string | null; lastName: string | null };
+      groupOrderId: string;
+      groupOrderName: string;
+      subOrderId: string;
+      subOrderName: string | null;
+      gpsNumber: string;
+    }> = [];
+
+    for (const operator of operators) {
+      const visibility = await orderVisibilityWhere({ isAdmin: false, user: { id: operator.id, role: "OPERATOR" } });
+      const subOrders = await prisma.subOrder.findMany({
+        where: { gpsNumber: { not: null }, groupOrder: visibility },
+        select: { id: true, name: true, gpsNumber: true, groupOrder: { select: { id: true, name: true } } },
+      });
+      for (const sub of subOrders) {
+        entries.push({
+          operator,
+          groupOrderId: sub.groupOrder.id,
+          groupOrderName: sub.groupOrder.name,
+          subOrderId: sub.id,
+          subOrderName: sub.name,
+          gpsNumber: sub.gpsNumber!,
+        });
+      }
+    }
+
+    res.json({ entries });
   })
 );
 

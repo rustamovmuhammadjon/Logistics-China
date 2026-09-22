@@ -22,6 +22,7 @@ const TD = "px-3 py-2 text-xs";
 export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: ViewerContext }) {
   const isAdmin = ctx.kind === "admin";
   const isCompany = ctx.kind === "company";
+  const isOperator = ctx.kind === "operator";
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const colSpan = isAdmin ? 7 : isCompany ? 7 : 5;
 
@@ -144,7 +145,7 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
                 {isOpen && (
                   <tr className="border-b border-slate-100 bg-slate-50/60 last:border-0">
                     <td colSpan={colSpan} className="p-0 py-2">
-                      <SubOrdersTable order={order} />
+                      <SubOrdersTable order={order} showGps={isOperator} />
                     </td>
                   </tr>
                 )}
@@ -157,7 +158,7 @@ export function OrdersTable({ orders, ctx }: { orders: GroupOrderDto[]; ctx: Vie
   );
 }
 
-function SubOrdersTable({ order }: { order: GroupOrderDto }) {
+function SubOrdersTable({ order, showGps }: { order: GroupOrderDto; showGps: boolean }) {
   if (order.subOrders.length === 0) {
     return <p className="px-3 py-2 text-xs text-slate-400">No sub-orders yet.</p>;
   }
@@ -170,6 +171,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
           <col style={{ width: "7%" }} />
           <col style={{ width: "9%" }} />
           <col style={{ width: "10%" }} />
+          {showGps && <col style={{ width: "10%" }} />}
           <col style={{ width: "10%" }} />
           <col style={{ width: "11%" }} />
           <col style={{ width: "8%" }} />
@@ -183,6 +185,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
             <th className={TH}>Status</th>
             <th className={TH}>FLD</th>
             <th className={TH}>Truck #</th>
+            {showGps && <th className={TH}>GPS #</th>}
             <th className={TH}>Trailer #</th>
             <th className={TH}>Driver #</th>
             <th className={TH}>Gross weight (tons)</th>
@@ -214,6 +217,7 @@ function SubOrdersTable({ order }: { order: GroupOrderDto }) {
                 </td>
                 <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
+                {showGps && <td className={`${TD} truncate text-slate-600`}>{sub.gpsNumber || "—"}</td>}
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>

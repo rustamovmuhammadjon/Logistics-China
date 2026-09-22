@@ -71,6 +71,9 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                           {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
                           {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                         </p>
+                        {sub.gpsNumber && (
+                          <p className="text-sm font-semibold text-slate-900">GPS: {sub.gpsNumber}</p>
+                        )}
                       </div>
                       <span
                         className={
@@ -87,11 +90,16 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                   </summary>
 
                   <div className="mt-4">
-                    <SubOrderLocation trucks={sub.trucks} />
+                    <SubOrderFldGpsForm
+                      orderId={order.id}
+                      subId={sub.id}
+                      factoryLoadDate={sub.factoryLoadDate}
+                      gpsNumber={sub.gpsNumber ?? null}
+                    />
                   </div>
 
                   <div className="mt-4">
-                    <SubOrderFldForm orderId={order.id} subId={sub.id} factoryLoadDate={sub.factoryLoadDate} />
+                    <SubOrderLocation trucks={sub.trucks} />
                   </div>
 
                   <div className="mt-4">
@@ -252,14 +260,20 @@ function OrderPolForm({ orderId, pol }: { orderId: string; pol: string | null })
   );
 }
 
-function SubOrderFldForm({
+// GPS number and factory load date are the two operator-only sub-order
+// fields, saved together in one submission so editing one never clears the
+// other. GPS number is as important as the truck number, so this form sits
+// at the top of the sub-order's expanded body, not buried below it.
+function SubOrderFldGpsForm({
   orderId,
   subId,
   factoryLoadDate,
+  gpsNumber,
 }: {
   orderId: string;
   subId: string;
   factoryLoadDate: string | null;
+  gpsNumber: string | null;
 }) {
   const { submit, pending } = useApiSubmit();
 
@@ -272,8 +286,12 @@ function SubOrderFldForm({
           body: formToJson(e.currentTarget),
         });
       }}
-      className="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3"
+      className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
     >
+      <div className="flex-1">
+        <label className="field-label">GPS number</label>
+        <input className="field-input" type="text" name="gpsNumber" defaultValue={gpsNumber ?? ""} placeholder="GPS tracker ID" />
+      </div>
       <div className="flex-1">
         <label className="field-label">Factory load date</label>
         <input

@@ -141,6 +141,9 @@ export type SubOrderDto = {
   arrivedAt: string | null;
   status: SubOrderStatus;
   factoryLoadDate: string | null;
+  // Operator/operator-company/admin only — absent (not just null) for
+  // every other viewer, stripped server-side before the response is sent.
+  gpsNumber?: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
   lastEditedByEmail: string | null;
@@ -247,6 +250,17 @@ export type OperatorCompanyAnalyticsDto = {
   operatorCount: number;
   activeOperatorCount: number;
   totalLinkedAccounts: number;
+};
+
+// A tracking company's view of the GPS numbers its own operators have set —
+// GPS numbers are otherwise only ever visible to the operator who set them.
+export type GpsNumberEntryDto = {
+  operator: { id: string; email: string; firstName: string | null; lastName: string | null };
+  groupOrderId: string;
+  groupOrderName: string;
+  subOrderId: string;
+  subOrderName: string | null;
+  gpsNumber: string;
 };
 
 // A partner is the OTHER top-level company in the link: for a COMPANY

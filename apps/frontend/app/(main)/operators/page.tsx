@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import type { AuthMe, OperatorEmployeeDto } from "@logistics/shared";
+import type { AuthMe, GpsNumberEntryDto, OperatorEmployeeDto } from "@logistics/shared";
 import { serverApi, serverApiOrNull } from "@/lib/server-api";
 import { OperatorsManager } from "./OperatorsManager";
+import { GpsNumbersList } from "./GpsNumbersList";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,10 @@ export default async function OperatorsPage() {
   if (!me.user) redirect("/login");
   if (me.user.role !== "OPERATOR_COMPANY") redirect("/dashboard");
 
-  const data = await serverApiOrNull<{ operators: OperatorEmployeeDto[] }>("/api/operator-company/operators");
+  const [operatorsData, gpsData] = await Promise.all([
+    serverApiOrNull<{ operators: OperatorEmployeeDto[] }>("/api/operator-company/operators"),
+    serverApiOrNull<{ entries: GpsNumberEntryDto[] }>("/api/operator-company/gps-numbers"),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -21,7 +25,8 @@ export default async function OperatorsPage() {
           operator works exactly as before — linking with consignees/companies and updating locations.
         </p>
       </div>
-      <OperatorsManager operators={data?.operators ?? []} />
+      <OperatorsManager operators={operatorsData?.operators ?? []} />
+      <GpsNumbersList entries={gpsData?.entries ?? []} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { listInclude, orderVisibilityWhere } from "../lib/orders.js";
+import { listInclude, orderVisibilityWhere, stripGpsNumber } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js";
@@ -29,7 +29,7 @@ dashboardRouter.get(
       ]);
       res.json({
         user: toPublicUser(me),
-        orders,
+        orders: orders.map(stripGpsNumber),
         links: links.map((l) => ({
           linkId: l.id,
           email: l.operator.email,
@@ -49,7 +49,7 @@ dashboardRouter.get(
         include: listInclude,
         orderBy: { createdAt: "desc" },
       });
-      res.json({ user: toPublicUser(me), orders, links: [] });
+      res.json({ user: toPublicUser(me), orders: orders.map(stripGpsNumber), links: [] });
       return;
     }
 
@@ -73,7 +73,7 @@ dashboardRouter.get(
         : [[], []];
       res.json({
         user: toPublicUser(me),
-        orders,
+        orders: orders.map(stripGpsNumber),
         links: links.map((l) => ({
           linkId: l.id,
           email: l.operator.email,

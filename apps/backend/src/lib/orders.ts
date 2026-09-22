@@ -262,6 +262,25 @@ export async function getViewerContext(
   };
 }
 
+// gpsNumber is operator/operator-company/admin only — Prisma's `include`
+// (used by listInclude/detailInclude, shared across every viewer role)
+// pulls every SubOrder scalar automatically, so a consignee-side response
+// (individual, company, or employee) must have it stripped explicitly
+// before it ever reaches res.json — hiding it in the UI alone would still
+// leak it over the wire.
+export function stripGpsNumber<T extends { subOrders: Array<Record<string, unknown>> }>(order: T): T {
+  return {
+    ...order,
+    subOrders: order.subOrders.map(({ gpsNumber: _gpsNumber, ...rest }) => rest),
+  } as T;
+}
+
+/** Same redaction, for a route that returns a bare sub-order rather than a whole order. */
+export function stripGpsNumberFromSubOrder<T extends Record<string, unknown>>(sub: T): Omit<T, "gpsNumber"> {
+  const { gpsNumber: _gpsNumber, ...rest } = sub;
+  return rest;
+}
+
 export function truckFields(body: Record<string, unknown>) {
   return {
     plateNumber: optionalString(body.plateNumber),
