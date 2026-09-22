@@ -133,10 +133,12 @@ operatorCompanyRouter.post(
   })
 );
 
-// GPS numbers are per-sub-order, operator-only to set, and only ever
-// visible to that operator, their tracking company, and admin. This is the
-// tracking company's view: every GPS number set by any of its operators,
-// across whichever orders that specific operator can currently see.
+// GPS numbers are per-truck (each cargo transfer creates a new truck, with
+// its own separate number — never copied from the one it replaced),
+// operator-only to set, and only ever visible to that operator, their
+// tracking company, and admin. This is the tracking company's view: every
+// GPS number set by any of its operators, across whichever orders that
+// specific operator can currently see.
 operatorCompanyRouter.get(
   "/gps-numbers",
   asyncHandler(async (req, res) => {
@@ -152,23 +154,32 @@ operatorCompanyRouter.get(
       groupOrderName: string;
       subOrderId: string;
       subOrderName: string | null;
+      truckId: string;
+      plateNumber: string | null;
       gpsNumber: string;
     }> = [];
 
     for (const operator of operators) {
       const visibility = await orderVisibilityWhere({ isAdmin: false, user: { id: operator.id, role: "OPERATOR" } });
-      const subOrders = await prisma.subOrder.findMany({
-        where: { gpsNumber: { not: null }, groupOrder: visibility },
-        select: { id: true, name: true, gpsNumber: true, groupOrder: { select: { id: true, name: true } } },
+      const trucks = await prisma.truck.findMany({
+        where: { gpsNumber: { not: null }, subOrder: { groupOrder: visibility } },
+        select: {
+          id: true,
+          plateNumber: true,
+          gpsNumber: true,
+          subOrder: { select: { id: true, name: true, groupOrder: { select: { id: true, name: true } } } },
+        },
       });
-      for (const sub of subOrders) {
+      for (const truck of trucks) {
         entries.push({
           operator,
-          groupOrderId: sub.groupOrder.id,
-          groupOrderName: sub.groupOrder.name,
-          subOrderId: sub.id,
-          subOrderName: sub.name,
-          gpsNumber: sub.gpsNumber!,
+          groupOrderId: truck.subOrder.groupOrder.id,
+          groupOrderName: truck.subOrder.groupOrder.name,
+          subOrderId: truck.subOrder.id,
+          subOrderName: truck.subOrder.name,
+          truckId: truck.id,
+          plateNumber: truck.plateNumber,
+          gpsNumber: truck.gpsNumber!,
         });
       }
     }

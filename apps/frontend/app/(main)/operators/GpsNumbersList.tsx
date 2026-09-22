@@ -14,11 +14,14 @@ export function GpsNumbersList({ entries }: { entries: GpsNumberEntryDto[] }) {
         <ul className="space-y-2">
           {entries.map((entry) => (
             <li
-              key={entry.subOrderId}
+              key={entry.truckId}
               className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium text-slate-900">GPS: {entry.gpsNumber}</span>
+                <span className="font-medium text-slate-900">
+                  GPS: {entry.gpsNumber}
+                  {entry.plateNumber ? ` · ${entry.plateNumber}` : ""}
+                </span>
                 <span className="text-xs text-slate-500">{displayName(entry.operator)}</span>
               </div>
               <p className="text-xs text-slate-400">

@@ -195,14 +195,6 @@ model SubOrder {
 
   factoryLoadDate DateTime?
 
-  // Operator-only, like factoryLoadDate — but unlike it, never shown to a
-  // consignee-side viewer (individual, company, or employee) at all, only
-  // to the operator themselves, their OPERATOR_COMPANY, and admin. Routes
-  // and queries that serve consignee-side viewers must strip this field
-  // before the response leaves the server (see stripGpsNumbers in
-  // lib/orders.ts) — it is never just hidden in the UI.
-  gpsNumber String?
-
   statusText      String?
   statusUpdatedAt DateTime?
 
@@ -235,6 +227,16 @@ model Truck {
   country            String?
   driverName         String?
   driverPhone        String?
+
+  // Operator-only to set, and only ever shown to the operator themselves,
+  // their OPERATOR_COMPANY, and admin — never a consignee-side viewer
+  // (individual, company, or employee). Per truck, not per sub-order: a
+  // cargo transfer creates a brand-new Truck row, so the new vehicle always
+  // starts with its own gpsNumber (never copied from the truck it replaced).
+  // Routes/queries serving consignee-side viewers must strip this field
+  // before the response leaves the server (see stripGpsNumber in
+  // lib/orders.ts) — it is never just hidden in the UI.
+  gpsNumber String?
 
   cargoWeight      Float?
   cargoDescription String?

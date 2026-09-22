@@ -12,12 +12,16 @@ export function CargoTransferForm({
   transfers,
   canDelete = false,
   readOnly = false,
+  showGps = false,
 }: {
   apiBase: string;
   trucks: TruckDto[];
   transfers: CargoTransferDto[];
   canDelete?: boolean;
   readOnly?: boolean;
+  // Operator-only — the new vehicle's GPS number can only ever be set by
+  // the operator recording the transfer (see createCargoTransfer).
+  showGps?: boolean;
 }) {
   const { submit, pending, error } = useApiSubmit();
   const [keepTrailer, setKeepTrailer] = useState(false);
@@ -70,6 +74,12 @@ export function CargoTransferForm({
             <label className="field-label">To truck plate</label>
             <input className="field-input" name="toPlateNumber" placeholder="85Y294PA" required />
           </div>
+          {showGps && (
+            <div>
+              <label className="field-label">New vehicle GPS number</label>
+              <input className="field-input" name="gpsNumber" placeholder="GPS tracker ID" />
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className="field-label">Current location</label>
             <input className="field-input" name="currentLocation" placeholder="e.g. Tashkent" required />

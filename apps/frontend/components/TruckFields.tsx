@@ -1,5 +1,6 @@
 export function TruckFields({
   truck,
+  showGps = false,
 }: {
   truck?: {
     plateNumber?: string | null;
@@ -9,11 +10,17 @@ export function TruckFields({
     driverPhone?: string | null;
     cargoWeight?: number | null;
     currentLocation?: string | null;
+    gpsNumber?: string | null;
   };
+  // Operator-only — GPS number is as important as the plate number, so it
+  // sits right next to it, but only the operator's own truck forms ever
+  // render this input (admin's separate truck editor doesn't).
+  showGps?: boolean;
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Field name="plateNumber" label="Truck plate number" defaultValue={truck?.plateNumber} />
+      {showGps && <Field name="gpsNumber" label="GPS number" defaultValue={truck?.gpsNumber} />}
       <Field name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck?.trailerPlateNumber} />
       <Field name="country" label="Country" defaultValue={truck?.country} />
       <Field name="driverName" label="Driver name" defaultValue={truck?.driverName} />

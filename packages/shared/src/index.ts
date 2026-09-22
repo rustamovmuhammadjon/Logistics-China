@@ -118,6 +118,11 @@ export type TruckDto = {
   country: string | null;
   driverName: string | null;
   driverPhone: string | null;
+  // Operator/operator-company/admin only — absent (not just null) for every
+  // other viewer, stripped server-side before the response is sent. Per
+  // truck: a cargo transfer creates a new truck, which always starts with
+  // its own (unset) gpsNumber rather than inheriting the old truck's.
+  gpsNumber?: string | null;
   cargoWeight: number | null;
   cargoDescription: string | null;
   currentLocation: string | null;
@@ -141,9 +146,6 @@ export type SubOrderDto = {
   arrivedAt: string | null;
   status: SubOrderStatus;
   factoryLoadDate: string | null;
-  // Operator/operator-company/admin only — absent (not just null) for
-  // every other viewer, stripped server-side before the response is sent.
-  gpsNumber?: string | null;
   statusText: string | null;
   statusUpdatedAt: string | null;
   lastEditedByEmail: string | null;
@@ -254,12 +256,16 @@ export type OperatorCompanyAnalyticsDto = {
 
 // A tracking company's view of the GPS numbers its own operators have set —
 // GPS numbers are otherwise only ever visible to the operator who set them.
+// One entry per truck (not per sub-order): a cargo transfer creates a new
+// truck with its own separate GPS number.
 export type GpsNumberEntryDto = {
   operator: { id: string; email: string; firstName: string | null; lastName: string | null };
   groupOrderId: string;
   groupOrderName: string;
   subOrderId: string;
   subOrderName: string | null;
+  truckId: string;
+  plateNumber: string | null;
   gpsNumber: string;
 };
 

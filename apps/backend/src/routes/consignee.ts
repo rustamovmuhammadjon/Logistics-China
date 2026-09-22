@@ -3,7 +3,7 @@ import type { User } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound, unauthorized } from "../lib/errors.js";
 import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
-import { detailInclude, effectiveOwnerId, stripGpsNumber, stripGpsNumberFromSubOrder } from "../lib/orders.js";
+import { detailInclude, effectiveOwnerId, stripGpsNumber } from "../lib/orders.js";
 import { assertGroupOrderMutable, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireOrderCreator, requireOrderWriter, type AuthedRequest } from "../middleware/auth.js";
@@ -157,7 +157,7 @@ consigneeRouter.post(
         status: "OPEN",
       },
     });
-    res.json({ subOrder: stripGpsNumberFromSubOrder(subOrder) });
+    res.json({ subOrder });
   })
 );
 
@@ -175,7 +175,7 @@ consigneeRouter.patch(
       where: { id: existing.id },
       data: { name: optionalString(req.body?.name) },
     });
-    res.json({ subOrder: stripGpsNumberFromSubOrder(subOrder) });
+    res.json({ subOrder });
   })
 );
 

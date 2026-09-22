@@ -9,8 +9,12 @@ import { broadcastTruckLocationUpdate } from "./realtime.js";
 export async function createCargoTransfer(params: {
   subOrderId: string;
   body: Record<string, unknown>;
+  // Explicit, separate param rather than read from `body` — admin has its
+  // own route onto this same function and must not gain the ability to set
+  // it just because the shared transfer body happens to carry the key.
+  gpsNumber?: string | null;
 }) {
-  const { subOrderId, body } = params;
+  const { subOrderId, body, gpsNumber = null } = params;
   const fromTruckId = requiredString(body.fromTruckId, "fromTruckId");
   const keepTrailer = truthyFlag(body.keepTrailer);
   const comment = optionalString(body.comment);
@@ -96,6 +100,7 @@ export async function createCargoTransfer(params: {
         country,
         driverName: optionalString(body.driverName),
         driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : null,
+        gpsNumber,
         cargoWeight: fromTruck.cargoWeight,
         currentLocation,
         locationUpdatedAt: new Date(),
@@ -115,6 +120,11 @@ export async function createCargoTransfer(params: {
         ...(toTrailer ? { trailerPlateNumber: toTrailer } : {}),
         ...(driverName ? { driverName } : {}),
         ...(driverPhoneRaw ? { driverPhone: normalizePhone(driverPhoneRaw) } : {}),
+        // Only overwrite if the operator actually typed one here — this
+        // truck (matched/reused by plate) may already have its own GPS
+        // number set from before, and an empty transfer field shouldn't
+        // clear it.
+        ...(gpsNumber ? { gpsNumber } : {}),
       },
     });
   }

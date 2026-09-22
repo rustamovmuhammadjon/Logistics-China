@@ -217,7 +217,7 @@ function SubOrdersTable({ order, showGps }: { order: GroupOrderDto; showGps: boo
                 </td>
                 <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
-                {showGps && <td className={`${TD} truncate text-slate-600`}>{sub.gpsNumber || "—"}</td>}
+                {showGps && <td className={`${TD} truncate text-slate-600`}>{current?.gpsNumber || "—"}</td>}
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>

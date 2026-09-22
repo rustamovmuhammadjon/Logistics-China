@@ -2,6 +2,7 @@
 
 import { Ban } from "lucide-react";
 import {
+  currentTruckOf,
   formatDate,
   formatDateTime,
   formatDirection,
@@ -60,6 +61,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
           <div className="space-y-4">
             {order.subOrders.map((sub) => {
               const canMutate = sub.status === "OPEN" && !locked;
+              const currentGps = currentTruckOf(sub.trucks)?.gpsNumber;
               return (
                 <details key={sub.id} className="card" open>
                   <summary className="cursor-pointer list-none">
@@ -71,9 +73,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                           {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
                           {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
                         </p>
-                        {sub.gpsNumber && (
-                          <p className="text-sm font-semibold text-slate-900">GPS: {sub.gpsNumber}</p>
-                        )}
+                        {currentGps && <p className="text-sm font-semibold text-slate-900">GPS: {currentGps}</p>}
                       </div>
                       <span
                         className={
@@ -90,12 +90,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                   </summary>
 
                   <div className="mt-4">
-                    <SubOrderFldGpsForm
-                      orderId={order.id}
-                      subId={sub.id}
-                      factoryLoadDate={sub.factoryLoadDate}
-                      gpsNumber={sub.gpsNumber ?? null}
-                    />
+                    <SubOrderFldForm orderId={order.id} subId={sub.id} factoryLoadDate={sub.factoryLoadDate} />
                   </div>
 
                   <div className="mt-4">
@@ -125,7 +120,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                           }}
                           className="rounded-xl border border-dashed border-slate-200 p-4"
                         >
-                          <TruckFields />
+                          <TruckFields showGps />
                           <button type="submit" className="btn-primary mt-3" disabled={pending}>
                             Add truck
                           </button>
@@ -159,6 +154,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                           apiBase={`/api/operator/orders/${order.id}/sub-orders/${sub.id}`}
                           trucks={sub.trucks.filter(isActiveTruck)}
                           transfers={transferHistory(sub.trucks)}
+                          showGps
                         />
                       </>
                     )}
@@ -260,20 +256,14 @@ function OrderPolForm({ orderId, pol }: { orderId: string; pol: string | null })
   );
 }
 
-// GPS number and factory load date are the two operator-only sub-order
-// fields, saved together in one submission so editing one never clears the
-// other. GPS number is as important as the truck number, so this form sits
-// at the top of the sub-order's expanded body, not buried below it.
-function SubOrderFldGpsForm({
+function SubOrderFldForm({
   orderId,
   subId,
   factoryLoadDate,
-  gpsNumber,
 }: {
   orderId: string;
   subId: string;
   factoryLoadDate: string | null;
-  gpsNumber: string | null;
 }) {
   const { submit, pending } = useApiSubmit();
 
@@ -286,12 +276,8 @@ function SubOrderFldGpsForm({
           body: formToJson(e.currentTarget),
         });
       }}
-      className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+      className="flex flex-wrap items-end gap-2"
     >
-      <div className="flex-1">
-        <label className="field-label">GPS number</label>
-        <input className="field-input" type="text" name="gpsNumber" defaultValue={gpsNumber ?? ""} placeholder="GPS tracker ID" />
-      </div>
       <div className="flex-1">
         <label className="field-label">Factory load date</label>
         <input

@@ -59,7 +59,7 @@ export function TruckEditorCard({
             if (result) setEditing(false);
           }}
         >
-          <TruckFields truck={truck} />
+          <TruckFields truck={truck} showGps />
           <p className="mt-1 text-xs text-slate-400">Last location update: {formatDateTime(truck.locationUpdatedAt)}</p>
           <button type="submit" className="btn-primary mt-3" disabled={pending}>
             Save truck

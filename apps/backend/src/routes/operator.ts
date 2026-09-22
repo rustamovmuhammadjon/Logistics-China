@@ -61,14 +61,11 @@ operatorRouter.patch(
     const sub = await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     // The factory load date can be corrected at any time, even after the
     // sub-order is completed or cancelled — unlike other sub-order fields
-    // it isn't frozen by status. Same for the GPS number — operator-only,
-    // like factoryLoadDate, but unlike it, never shown to a consignee-side
-    // viewer at all (stripped server-side, see lib/orders.ts).
+    // it isn't frozen by status.
     const updated = await prisma.subOrder.update({
       where: { id: sub.id },
       data: {
         factoryLoadDate: optionalDate(req.body?.factoryLoadDate),
-        gpsNumber: optionalString(req.body?.gpsNumber),
         lastEditedByEmail: me.email,
         lastEditedAt: new Date(),
       },
@@ -147,6 +144,10 @@ operatorRouter.post(
         data: {
           subOrderId: req.params.subId,
           ...data,
+          // GPS number is operator-only and lives outside truckFields() on
+          // purpose — admin's own truck routes call truckFields() too, and
+          // must not gain the ability to set it just by sharing that helper.
+          gpsNumber: optionalString(req.body?.gpsNumber),
           locationUpdatedAt: data.currentLocation ? new Date() : null,
         },
       }),
@@ -176,6 +177,7 @@ operatorRouter.patch(
         where: { id: existing.id },
         data: {
           ...data,
+          gpsNumber: optionalString(req.body?.gpsNumber),
           locationUpdatedAt: locationChanged ? new Date() : existing.locationUpdatedAt,
         },
       }),
@@ -267,6 +269,7 @@ operatorRouter.post(
       createCargoTransfer({
         subOrderId: req.params.subId,
         body: req.body as Record<string, unknown>,
+        gpsNumber: optionalString(req.body?.gpsNumber),
       }),
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
