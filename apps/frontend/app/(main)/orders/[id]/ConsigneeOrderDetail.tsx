@@ -31,8 +31,8 @@ export function ConsigneeOrderDetail({
   const editable = canWrite && !locked;
 
   return (
-    <div className="space-y-6">
-      <div className="card space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="card space-y-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
           {editable && (
@@ -81,15 +81,17 @@ export function ConsigneeOrderDetail({
       </div>
 
       {editable && (
-        <div className="card">
-          <h2 className="mb-3 text-lg font-semibold text-slate-900">New sub-order</h2>
+        <details className="card p-4">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 marker:content-none">
+            + New sub-order
+          </summary>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               submit(`/api/consignee/orders/${order.id}/sub-orders`, { body: formToJson(e.currentTarget) });
               e.currentTarget.reset();
             }}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3"
           >
             <div>
               <label className="field-label">Name</label>
@@ -105,117 +107,122 @@ export function ConsigneeOrderDetail({
               </button>
             </div>
           </form>
-        </div>
+        </details>
       )}
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
+        <h2 className="mb-2 text-lg font-semibold text-slate-900">Sub-orders</h2>
         {order.subOrders.length === 0 ? (
           <p className="card text-center text-slate-400">No sub-orders yet.</p>
         ) : (
-          <ul className="space-y-3">
+          <div className="space-y-2">
             {order.subOrders.map((sub) => {
               const stats = truckStats(sub.trucks);
               const subEditable = editable && sub.status === "OPEN";
               return (
-                <li key={sub.id} className="card space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span
-                      className={
-                        sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
-                      }
-                    >
-                      {subOrderStatusLabel(sub.status)}
-                    </span>
-                    <span className="badge-slate">{stats.total} trucks</span>
-                  </div>
-
-                  {!subEditable ? (
-                    <p className="font-medium text-slate-900">{sub.name || "Sub-order"}</p>
-                  ) : (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`, {
-                          method: "PATCH",
-                          body: formToJson(e.currentTarget),
-                        });
-                      }}
-                      className="flex flex-col gap-3 sm:flex-row sm:items-end"
-                    >
-                      <div className="flex-1">
-                        <label className="field-label">Name</label>
-                        <input className="field-input" type="text" name="name" defaultValue={sub.name ?? ""} />
+                <details key={sub.id} className="card p-4" open={order.subOrders.length === 1}>
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span className="font-medium text-slate-900">{sub.name || "Sub-order"}</span>
+                        <p className="text-xs text-slate-400">
+                          Opened {formatDate(sub.openedAt) || "—"}
+                          {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
+                          {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
+                          {` · ${stats.total} truck${stats.total === 1 ? "" : "s"}`}
+                        </p>
                       </div>
-                      <button type="submit" className="btn-primary" disabled={pending}>
-                        Save
-                      </button>
-                    </form>
-                  )}
-
-                  <p className="text-xs text-slate-400">
-                    Opened {formatDate(sub.openedAt) || "—"}
-                    {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
-                    {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
-                  </p>
-                  {sub.lastEditedByEmail && (
-                    <p className="text-xs text-slate-400">
-                      Last edited by {sub.lastEditedByEmail} · {formatDateTime(sub.lastEditedAt)}
-                    </p>
-                  )}
-
-                  <SubOrderLocation trucks={sub.trucks} />
-
-                  {sub.comments && sub.comments.length > 0 && (
-                    <ul className="space-y-2">
-                      {sub.comments.map((comment: CommentDto) => (
-                        <li key={comment.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                          <p className="whitespace-pre-wrap text-slate-800">{comment.text}</p>
-                          <p className="mt-1 text-xs text-slate-400">
-                            {comment.author ? `${comment.author} · ` : ""}
-                            {formatDateTime(comment.createdAt)}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <TruckSequence trucks={sub.trucks} />
-                  <CargoTransferForm
-                    apiBase={`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`}
-                    trucks={[]}
-                    transfers={transferHistory(sub.trucks)}
-                    readOnly
-                  />
-
-                  {sub.status === "OPEN" && editable && (
-                    <div className="flex flex-wrap gap-2">
-                      <ConfirmButton
-                        className="btn-primary"
-                        confirmText="Mark this sub-order as completed? The completed date will be set to today."
-                        disabled={pending}
-                        onConfirm={() =>
-                          submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/complete`, { method: "POST" })
+                      <span
+                        className={
+                          sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
                         }
                       >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Complete
-                      </ConfirmButton>
-                      <ConfirmButton
-                        confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
-                        disabled={pending}
-                        onConfirm={() =>
-                          submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
-                        }
-                      >
-                        Cancel sub-order
-                      </ConfirmButton>
+                        {subOrderStatusLabel(sub.status)}
+                      </span>
                     </div>
-                  )}
-                </li>
+                  </summary>
+
+                  <div className="mt-3 space-y-3">
+                    {subEditable && (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`, {
+                            method: "PATCH",
+                            body: formToJson(e.currentTarget),
+                          });
+                        }}
+                        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+                      >
+                        <div className="flex-1">
+                          <label className="field-label">Name</label>
+                          <input className="field-input" type="text" name="name" defaultValue={sub.name ?? ""} />
+                        </div>
+                        <button type="submit" className="btn-primary" disabled={pending}>
+                          Save
+                        </button>
+                      </form>
+                    )}
+
+                    {sub.lastEditedByEmail && (
+                      <p className="text-xs text-slate-400">
+                        Last edited by {sub.lastEditedByEmail} · {formatDateTime(sub.lastEditedAt)}
+                      </p>
+                    )}
+
+                    <SubOrderLocation trucks={sub.trucks} />
+
+                    {sub.comments && sub.comments.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {sub.comments.map((comment: CommentDto) => (
+                          <li key={comment.id} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                            <p className="whitespace-pre-wrap text-slate-800">{comment.text}</p>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {comment.author ? `${comment.author} · ` : ""}
+                              {formatDateTime(comment.createdAt)}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <TruckSequence trucks={sub.trucks} />
+                    <CargoTransferForm
+                      apiBase={`/api/consignee/orders/${order.id}/sub-orders/${sub.id}`}
+                      trucks={[]}
+                      transfers={transferHistory(sub.trucks)}
+                      readOnly
+                    />
+
+                    {sub.status === "OPEN" && editable && (
+                      <div className="flex flex-wrap gap-2">
+                        <ConfirmButton
+                          className="btn-primary"
+                          confirmText="Mark this sub-order as completed? The completed date will be set to today."
+                          disabled={pending}
+                          onConfirm={() =>
+                            submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/complete`, { method: "POST" })
+                          }
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Complete
+                        </ConfirmButton>
+                        <ConfirmButton
+                          confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
+                          disabled={pending}
+                          onConfirm={() =>
+                            submit(`/api/consignee/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
+                          }
+                        >
+                          Cancel sub-order
+                        </ConfirmButton>
+                      </div>
+                    )}
+                  </div>
+                </details>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
     </div>

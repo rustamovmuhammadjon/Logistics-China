@@ -32,7 +32,7 @@ export default async function AdminSubOrderPage({ params }: { params: Promise<{ 
   const sub = data.subOrder;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
         <Link href={`/admin/orders/${id}`} className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
           <ArrowLeft className="h-4 w-4" />
           {sub.groupOrder.name}

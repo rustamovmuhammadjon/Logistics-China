@@ -16,13 +16,13 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
   const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
 
   return (
-    <>
+    <div className="mx-auto max-w-4xl">
     <Link href="/" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
         All orders
       </Link>
 
-      <header className="card mb-6 mt-3">
+      <header className="card mb-4 mt-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{order.name}</h1>
@@ -38,20 +38,20 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
           <Field label="POL" value={order.pol} />
           <Field label="Commodity" value={order.commodity} />
           <Field label="Volume" value={formatVolume(order.subOrders.length)} />
         </dl>
       </header>
 
-      <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
-      <div className="space-y-4">
+      <h2 className="mb-2 text-lg font-semibold text-slate-900">Sub-orders</h2>
+      <div className="space-y-2">
         {order.subOrders.length === 0 && <p className="card text-center text-slate-400">No sub-orders yet.</p>}
         {order.subOrders.map((sub) => {
           const subStats = truckStats(sub.trucks);
           return (
-            <details key={sub.id} className="card" open>
+            <details key={sub.id} className="card p-4" open={order.subOrders.length === 1}>
               <summary className="cursor-pointer list-none">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -59,36 +59,32 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
                     <span className="ml-2 text-xs text-slate-400">
                       Opened {formatDate(sub.openedAt)}
                       {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
+                      {` · ${subStats.total} truck${subStats.total === 1 ? "" : "s"}`}
                     </span>
                   </div>
-                  <div className="flex gap-2">
-                    <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
-                      {subOrderStatusLabel(sub.status)}
-                    </span>
-                    <span className="badge-slate">{subStats.total} trucks</span>
-                  </div>
+                  <span className={sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"}>
+                    {subOrderStatusLabel(sub.status)}
+                  </span>
                 </div>
               </summary>
 
-              <div className="mt-4">
+              <div className="mt-3 space-y-3">
                 <SubOrderLocation trucks={sub.trucks} />
-              </div>
 
-              {sub.comments && sub.comments.length > 0 && (
-                <ul className="mt-4 space-y-2">
-                  {sub.comments.map((c) => (
-                    <li key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                      <p className="whitespace-pre-wrap text-slate-800">{c.text}</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {c.author ? `${c.author} · ` : ""}
-                        {formatDateTime(c.createdAt)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                {sub.comments && sub.comments.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {sub.comments.map((c) => (
+                      <li key={c.id} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                        <p className="whitespace-pre-wrap text-slate-800">{c.text}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {c.author ? `${c.author} · ` : ""}
+                          {formatDateTime(c.createdAt)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-              <div className="mt-4 space-y-3">
                 <TruckSequence trucks={sub.trucks} />
                 <CargoTransferForm
                   apiBase=""
@@ -101,7 +97,7 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
           );
         })}
       </div>
-    </>
+    </div>
   );
 }
 

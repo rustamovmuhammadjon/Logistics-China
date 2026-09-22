@@ -28,118 +28,104 @@ export function CargoTransferForm({
   const limitReached = transfers.length >= MAX_TRANSFERS_PER_SUB_ORDER;
 
   return (
-    <div className="space-y-3">
-      {!readOnly && (
-      <div>
-        <h3 className="text-sm font-semibold text-slate-900">Cargo transfer</h3>
-        <p className="mt-1 text-xs text-slate-400">
-          Move cargo to a new truck. Only gross weight is copied automatically. Keep the same trailer (only the tractor
-          changes) or enter a new trailer plate. Up to {MAX_TRANSFERS_PER_SUB_ORDER} transfers per sub-order
-          ({transfers.length}/{MAX_TRANSFERS_PER_SUB_ORDER} used).
-        </p>
-      </div>
-      )}
+    <div className="space-y-2">
       {error && !readOnly && <p className="text-sm text-red-600">{error}</p>}
       {readOnly ? null : limitReached ? (
-        <p className="text-sm text-amber-600">
-          This sub-order has reached the maximum of {MAX_TRANSFERS_PER_SUB_ORDER} cargo transfers. No more transfers
-          can be recorded here.
-        </p>
+        <p className="text-xs text-amber-600">Maximum of {MAX_TRANSFERS_PER_SUB_ORDER} transfers reached for this sub-order.</p>
       ) : trucks.length === 0 ? (
-        <p className="text-sm text-slate-400">Add the current truck first, then record a transfer.</p>
+        <p className="text-xs text-slate-400">Add the current truck first, then record a transfer.</p>
       ) : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const body = formToJson(e.currentTarget) as Record<string, unknown>;
-            body.keepTrailer = keepTrailer;
-            submit(`${apiBase}/transfers`, { body });
-            e.currentTarget.reset();
-            setKeepTrailer(false);
-          }}
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-        >
-          <div>
-            <label className="field-label">From truck</label>
-            <select className="field-input" name="fromTruckId" required>
-              {trucks.map((truck) => (
-                <option key={truck.id} value={truck.id}>
-                  {truck.plateNumber || truck.id.slice(0, 6)}
-                  {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="field-label">To truck plate</label>
-            <input className="field-input" name="toPlateNumber" placeholder="85Y294PA" required />
-          </div>
-          {showGps && (
+        <details className="group rounded-xl border border-slate-200">
+          <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-slate-700 marker:content-none">
+            Record cargo transfer <span className="text-xs font-normal text-slate-400">({transfers.length}/{MAX_TRANSFERS_PER_SUB_ORDER} used)</span>
+          </summary>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const body = formToJson(e.currentTarget) as Record<string, unknown>;
+              body.keepTrailer = keepTrailer;
+              submit(`${apiBase}/transfers`, { body });
+              e.currentTarget.reset();
+              setKeepTrailer(false);
+            }}
+            className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3 sm:grid-cols-3"
+          >
             <div>
-              <label className="field-label">New vehicle GPS number</label>
-              <input className="field-input" name="gpsNumber" placeholder="GPS tracker ID" />
+              <label className="field-label">From truck</label>
+              <select className="field-input" name="fromTruckId" required>
+                {trucks.map((truck) => (
+                  <option key={truck.id} value={truck.id}>
+                    {truck.plateNumber || truck.id.slice(0, 6)}
+                    {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-          <div className="sm:col-span-2">
-            <label className="field-label">Current location</label>
-            <input className="field-input" name="currentLocation" placeholder="e.g. Tashkent" required />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
-            <input
-              type="checkbox"
-              checked={keepTrailer}
-              onChange={(e) => setKeepTrailer(e.target.checked)}
-            />
-            Trailer stays the same (only the truck changes)
-          </label>
-          {!keepTrailer && (
-            <div className="sm:col-span-2">
-              <label className="field-label">To trailer plate</label>
-              <input className="field-input" name="toTrailerPlateNumber" placeholder="LB7178TR" />
+            <div>
+              <label className="field-label">To truck plate</label>
+              <input className="field-input" name="toPlateNumber" placeholder="85Y294PA" required />
             </div>
-          )}
-          <div>
-            <label className="field-label">New vehicle country</label>
-            <input className="field-input" name="country" required />
-          </div>
-          <div>
-            <label className="field-label">New driver phone</label>
-            <input className="field-input" name="driverPhone" placeholder="optional" />
-          </div>
-          <div>
-            <label className="field-label">New driver name</label>
-            <input className="field-input" name="driverName" placeholder="optional" />
-          </div>
-          <div>
-            <label className="field-label">Transfer date</label>
-            <input className="field-input" type="date" name="transferDate" />
-          </div>
-          <div>
-            <label className="field-label">Comment</label>
-            <input className="field-input" name="comment" placeholder="Uzbekistan border" />
-          </div>
-          <div className="sm:col-span-2">
-            <button type="submit" className="btn-primary" disabled={pending}>
-              Record transfer
-            </button>
-          </div>
-        </form>
+            {showGps && (
+              <div>
+                <label className="field-label">New GPS number</label>
+                <input className="field-input" name="gpsNumber" placeholder="GPS tracker ID" />
+              </div>
+            )}
+            <div className="col-span-2 sm:col-span-3">
+              <label className="field-label">Current location</label>
+              <input className="field-input" name="currentLocation" placeholder="e.g. Tashkent" required />
+            </div>
+            <label className="col-span-2 flex items-center gap-2 text-xs text-slate-700 sm:col-span-3">
+              <input type="checkbox" checked={keepTrailer} onChange={(e) => setKeepTrailer(e.target.checked)} />
+              Trailer stays the same (only the truck changes)
+            </label>
+            {!keepTrailer && (
+              <div className="col-span-2 sm:col-span-3">
+                <label className="field-label">To trailer plate</label>
+                <input className="field-input" name="toTrailerPlateNumber" placeholder="LB7178TR" />
+              </div>
+            )}
+            <div>
+              <label className="field-label">New vehicle country</label>
+              <input className="field-input" name="country" required />
+            </div>
+            <div>
+              <label className="field-label">New driver phone</label>
+              <input className="field-input" name="driverPhone" placeholder="optional" />
+            </div>
+            <div>
+              <label className="field-label">New driver name</label>
+              <input className="field-input" name="driverName" placeholder="optional" />
+            </div>
+            <div>
+              <label className="field-label">Transfer date</label>
+              <input className="field-input" type="date" name="transferDate" />
+            </div>
+            <div className="col-span-2 sm:col-span-2">
+              <label className="field-label">Comment</label>
+              <input className="field-input" name="comment" placeholder="Uzbekistan border" />
+            </div>
+            <div className="col-span-2 sm:col-span-3">
+              <button type="submit" className="btn-primary" disabled={pending}>
+                Record transfer
+              </button>
+            </div>
+          </form>
+        </details>
       )}
       {transfers.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-slate-900">Cargo transfers</h3>
-          <ul className="space-y-2">
+        <ul className="space-y-1.5">
           {transfers.map((transfer) => (
             <li
               key={transfer.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-xs"
             >
-              <span>
+              <span className="text-slate-600">
                 {transfer.fromPlate || transfer.fromTruck?.plateNumber || "?"}
                 {transfer.fromTrailer || transfer.fromTruck?.trailerPlateNumber
                   ? ` / ${transfer.fromTrailer || transfer.fromTruck?.trailerPlateNumber}`
                   : ""}{" "}
-                → <strong>{transfer.toPlate || transfer.toTruck?.plateNumber || "?"}</strong>
+                → <strong className="text-slate-800">{transfer.toPlate || transfer.toTruck?.plateNumber || "?"}</strong>
                 {transfer.toTrailer || transfer.toTruck?.trailerPlateNumber
                   ? ` / ${transfer.toTrailer || transfer.toTruck?.trailerPlateNumber}`
                   : ""}{" "}
@@ -159,8 +145,7 @@ export function CargoTransferForm({
               )}
             </li>
           ))}
-          </ul>
-        </div>
+        </ul>
       )}
     </div>
   );

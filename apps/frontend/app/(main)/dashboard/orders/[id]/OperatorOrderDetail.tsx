@@ -29,8 +29,8 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
   const locked = isGroupOrderLocked(order);
 
   return (
-    <div className="space-y-6">
-      <div className="card space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="card space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
@@ -54,16 +54,17 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Sub-orders</h2>
+        <h2 className="mb-2 text-lg font-semibold text-slate-900">Sub-orders</h2>
         {order.subOrders.length === 0 ? (
           <p className="card text-center text-slate-400">No sub-orders yet. The consignee needs to add a sub-order first.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {order.subOrders.map((sub) => {
               const canMutate = sub.status === "OPEN" && !locked;
               const currentGps = currentTruckOf(sub.trucks)?.gpsNumber;
+              const truckCount = truckStats(sub.trucks).total;
               return (
-                <details key={sub.id} className="card" open>
+                <details key={sub.id} className="card p-4" open={order.subOrders.length === 1}>
                   <summary className="cursor-pointer list-none">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -72,6 +73,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                           Opened {formatDate(sub.openedAt) || "—"}
                           {sub.factoryLoadDate ? ` · FLD ${formatDate(sub.factoryLoadDate)}` : ""}
                           {sub.status === "CLOSED" && sub.arrivedAt ? ` · Completed ${formatDate(sub.arrivedAt)}` : ""}
+                          {` · ${truckCount} truck${truckCount === 1 ? "" : "s"}`}
                         </p>
                         {currentGps && <p className="text-sm font-semibold text-slate-900">GPS: {currentGps}</p>}
                       </div>
@@ -89,15 +91,15 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                     </div>
                   </summary>
 
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <SubOrderFldForm orderId={order.id} subId={sub.id} factoryLoadDate={sub.factoryLoadDate} />
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <SubOrderLocation trucks={sub.trucks} />
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <OperatorComments
                       groupOrderId={order.id}
                       subOrderId={sub.id}
@@ -106,10 +108,12 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                     />
                   </div>
 
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-3 space-y-2">
                     {canMutate && !sub.trucks.some(isActiveTruck) && (
-                      <>
-                        <h3 className="text-sm font-semibold text-slate-800">New truck</h3>
+                      <details className="group rounded-xl border border-dashed border-slate-200">
+                        <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-slate-700 marker:content-none">
+                          + Add truck
+                        </summary>
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
@@ -118,14 +122,14 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                             });
                             e.currentTarget.reset();
                           }}
-                          className="rounded-xl border border-dashed border-slate-200 p-4"
+                          className="border-t border-slate-100 p-3"
                         >
                           <TruckFields showGps />
                           <button type="submit" className="btn-primary mt-3" disabled={pending}>
                             Add truck
                           </button>
                         </form>
-                      </>
+                      </details>
                     )}
                     {canMutate && sub.trucks.some(isActiveTruck) && (
                       <p className="text-xs text-slate-400">

@@ -19,7 +19,7 @@ export function AdminSubOrderForms({
   const transfers = sub.trucks.flatMap((t) => t.transfersFrom ?? []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
         {sub.status === "OPEN" && (
           <ConfirmButton

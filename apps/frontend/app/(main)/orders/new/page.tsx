@@ -16,15 +16,15 @@ export default async function NewOrderPage() {
   }
 
   return (
-    <>
+    <div className="mx-auto max-w-2xl">
       <Link href="/orders" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
         Orders
       </Link>
-      <div className="card mt-3 space-y-4">
+      <div className="card mt-3 space-y-3">
         <h1 className="text-xl font-bold text-slate-900">New order</h1>
         <NewOrderForm operators={data.links} />
       </div>
-    </>
+    </div>
   );
 }

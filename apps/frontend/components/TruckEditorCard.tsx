@@ -7,7 +7,7 @@ import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { TruckFields } from "@/components/TruckFields";
-import { TruckReadout } from "@/components/TruckReadout";
+import { TruckHistoryRow, TruckReadout } from "@/components/TruckReadout";
 
 export function TruckEditorCard({
   truck,
@@ -26,10 +26,17 @@ export function TruckEditorCard({
 }) {
   const { submit, pending, error } = useApiSubmit();
   const [editing, setEditing] = useState(false);
-  const canEdit = !locked && isCurrentTruck(truck);
+  const current = isCurrentTruck(truck);
+  const canEdit = !locked && current;
+
+  // A truck that's already been transferred or cancelled is history, not
+  // something the operator needs to act on — a one-line summary keeps a
+  // sub-order with several transfers from turning into a wall of repeated
+  // fact grids and edit buttons.
+  if (!current) return <TruckHistoryRow truck={truck} index={index} />;
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+    <div className="space-y-3 rounded-xl border border-slate-200 p-3">
       {canEdit && (
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" className="btn-secondary text-xs" onClick={() => setEditing((v) => !v)}>

@@ -2,6 +2,7 @@ import {
   currentTruckOf,
   formatDate,
   hasTransferredOut,
+  isCurrentTruck,
   truckRoleLabel,
   type CargoTransferDto,
   type TruckDto,
@@ -24,7 +25,7 @@ export function TruckReadout({
   const incoming = truck.transfersTo ?? [];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-medium text-slate-900">
@@ -47,7 +48,7 @@ export function TruckReadout({
           {role}
         </span>
       </div>
-      <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-1.5 text-xs sm:grid-cols-4">
         <Fact label="Truck plate" value={truck.plateNumber} />
         {truck.gpsNumber !== undefined && <Fact label="GPS number" value={truck.gpsNumber} />}
         <Fact label="Trailer plate" value={truck.trailerPlateNumber} />
@@ -66,17 +67,39 @@ export function TruckReadout({
 
       {incoming.map((transfer) => (
         <p key={transfer.id} className="text-xs text-slate-500">
-          Cargo received from {transfer.fromPlate || transfer.fromTruck?.plateNumber || "previous truck"}
+          Received from {transfer.fromPlate || transfer.fromTruck?.plateNumber || "previous truck"}
           {transfer.transferDate ? ` on ${formatDate(transfer.transferDate)}` : ""}.
         </p>
       ))}
       {outgoing.map((transfer) => (
         <p key={transfer.id} className="text-xs text-slate-500">
-          Cargo transferred to {transfer.toPlate || transfer.toTruck?.plateNumber || "next truck"}
+          Transferred to {transfer.toPlate || transfer.toTruck?.plateNumber || "next truck"}
           {transfer.transferDate ? ` on ${formatDate(transfer.transferDate)}` : ""}.
-          {transferred ? " This truck is read-only." : ""}
+          {transferred ? " Read-only." : ""}
         </p>
       ))}
+    </div>
+  );
+}
+
+/** A one-line summary for a truck that's no longer current (transferred or
+ * cancelled) — full detail isn't needed for history, only for the truck
+ * actually in play, so a sub-order with several transfers doesn't turn into
+ * a wall of repeated fact grids. */
+export function TruckHistoryRow({ truck, index }: { truck: TruckDto; index?: number }) {
+  const role = truckRoleLabel(truck);
+  const nextTransfer = (truck.transfersFrom ?? [])[0];
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-3 py-1.5 text-xs">
+      <span className="truncate text-slate-600">
+        {typeof index === "number" ? `#${index + 1} · ` : ""}
+        <span className="font-medium text-slate-800">{truck.plateNumber || "No plate"}</span>
+        {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
+        {truck.gpsNumber ? ` · GPS ${truck.gpsNumber}` : ""}
+        {nextTransfer ? ` → ${nextTransfer.toPlate || nextTransfer.toTruck?.plateNumber || "next truck"}` : ""}
+      </span>
+      <span className={role === "Cancelled" ? "badge-red" : "badge-slate"}>{role}</span>
     </div>
   );
 }
@@ -86,12 +109,16 @@ export function TruckSequence({ trucks }: { trucks: TruckDto[] }) {
     return <p className="text-sm text-slate-400">No trucks yet.</p>;
   }
   return (
-    <div className="space-y-3">
-      {trucks.map((truck, index) => (
-        <div key={truck.id} className="rounded-xl border border-slate-200 p-4">
-          <TruckReadout truck={truck} index={index} total={trucks.length} />
-        </div>
-      ))}
+    <div className="space-y-2">
+      {trucks.map((truck, index) =>
+        isCurrentTruck(truck) ? (
+          <div key={truck.id} className="rounded-xl border border-slate-200 p-3">
+            <TruckReadout truck={truck} index={index} total={trucks.length} />
+          </div>
+        ) : (
+          <TruckHistoryRow key={truck.id} truck={truck} index={index} />
+        )
+      )}
     </div>
   );
 }

@@ -20,22 +20,15 @@ export function DriverAssignPanel({
   );
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-slate-900">Pair driver app</h3>
-        <p className="mt-1 text-xs text-slate-400">
-          Create an assignment with the truck plate and the driver’s phone. A one-time 6-digit code appears once —
-          send it by call or Telegram. After the driver enters phone + code in the app, the code dies and a token
-          stays on the phone.
-        </p>
-      </div>
+    <div className="space-y-2 rounded-xl border border-slate-200 p-3">
+      <h3 className="text-sm font-semibold text-slate-900">Pair driver app</h3>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {issued && (
         <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-slate-800">
           <p className="text-xs uppercase tracking-wide text-slate-500">Show this code once</p>
           <p className="mt-1 font-mono text-3xl font-bold tracking-[0.3em] text-brand-800">{issued.code}</p>
           <p className="mt-1 text-xs text-slate-500">
-            {issued.plate} · {issued.phone} — valid for 24 hours, until the driver signs in.
+            {issued.plate} · {issued.phone} — valid 24h, until the driver signs in.
           </p>
         </div>
       )}
@@ -56,7 +49,7 @@ export function DriverAssignPanel({
             e.currentTarget.reset();
           }
         }}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3"
       >
         <div>
           <label className="field-label">Truck plate</label>
@@ -73,18 +66,18 @@ export function DriverAssignPanel({
           <label className="field-label">Driver phone</label>
           <input className="field-input" name="phone" placeholder="+99890..." required />
         </div>
-        <div className="flex items-end">
+        <div className="col-span-2 flex items-end sm:col-span-1">
           <button type="submit" className="btn-primary w-full" disabled={pending}>
             {pending ? "Creating…" : "Create pairing"}
           </button>
         </div>
       </form>
       {assignments.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-1.5">
           {assignments.map((assignment) => (
             <li
               key={assignment.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-xs"
             >
               <span>
                 <span className={assignment.status === "ACTIVE" ? "badge-green" : "badge-amber"}>
@@ -92,7 +85,7 @@ export function DriverAssignPanel({
                 </span>{" "}
                 <strong>{assignment.plateNumber || "Truck"}</strong> · {assignment.phoneNormalized}
                 {assignment.lastPingAt ? (
-                  <span className="text-xs text-slate-400"> · GPS {formatDateTime(assignment.lastPingAt)}</span>
+                  <span className="text-slate-400"> · GPS {formatDateTime(assignment.lastPingAt)}</span>
                 ) : null}
               </span>
               <span className="flex gap-2">

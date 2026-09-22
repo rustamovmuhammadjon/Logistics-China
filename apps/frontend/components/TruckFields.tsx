@@ -18,7 +18,7 @@ export function TruckFields({
   showGps?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <Field name="plateNumber" label="Truck plate number" defaultValue={truck?.plateNumber} />
       {showGps && <Field name="gpsNumber" label="GPS number" defaultValue={truck?.gpsNumber} />}
       <Field name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck?.trailerPlateNumber} />
@@ -26,7 +26,7 @@ export function TruckFields({
       <Field name="driverName" label="Driver name" defaultValue={truck?.driverName} />
       <Field name="driverPhone" label="Driver phone" defaultValue={truck?.driverPhone} />
       <Field name="cargoWeight" label="Gross weight (tons)" type="number" defaultValue={truck?.cargoWeight} />
-      <div className="sm:col-span-3">
+      <div className="col-span-2 sm:col-span-4">
         <Field name="currentLocation" label="Current location" defaultValue={truck?.currentLocation} />
       </div>
     </div>
