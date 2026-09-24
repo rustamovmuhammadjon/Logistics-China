@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { User } from "@prisma/client";
+import { MAX_SUB_ORDERS_PER_BATCH } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound, unauthorized } from "../lib/errors.js";
 import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
@@ -142,6 +143,17 @@ consigneeRouter.delete(
   })
 );
 
+function requiredBatchCount(value: unknown): number {
+  const count = Math.trunc(Number(value));
+  if (!Number.isFinite(count) || count < 1) {
+    badRequest("Enter how many sub-orders (FTLs) to create");
+  }
+  if (count > MAX_SUB_ORDERS_PER_BATCH) {
+    badRequest(`You can create at most ${MAX_SUB_ORDERS_PER_BATCH} sub-orders at once`);
+  }
+  return count;
+}
+
 consigneeRouter.post(
   "/orders/:id/sub-orders",
   requireOrderWriter,
@@ -149,17 +161,26 @@ consigneeRouter.post(
     const me = (req as AuthedRequest).user!;
     await requireOwnedOrder(req.params.id, me);
     await assertGroupOrderMutable(req.params.id);
-    // Factory load date is operator-only (set later via PATCH .../sub-orders/:subId
-    // on the operator router) — a consignee/employee never sets it at creation.
-    const subOrder = await prisma.subOrder.create({
-      data: {
+    const count = requiredBatchCount(req.body?.count);
+    const openedAt = dateOrToday(req.body?.openedAt);
+
+    // Sub-orders are numbered in one continuous sequence per order — "1",
+    // "2", "3", ... — so count every sub-order ever created here (not just
+    // currently OPEN ones), and a later batch always continues on from the
+    // last number used, even if earlier ones were renamed or cancelled.
+    // Factory load date is operator-only (set later via PATCH
+    // .../sub-orders/:subId on the operator router) — a consignee/employee
+    // never sets it at creation.
+    const existingCount = await prisma.subOrder.count({ where: { groupOrderId: req.params.id } });
+    await prisma.subOrder.createMany({
+      data: Array.from({ length: count }, (_, i) => ({
         groupOrderId: req.params.id,
-        name: optionalString(req.body?.name),
-        openedAt: dateOrToday(req.body?.openedAt),
-        status: "OPEN",
-      },
+        name: String(existingCount + i + 1),
+        openedAt,
+        status: "OPEN" as const,
+      })),
     });
-    res.json({ subOrder });
+    res.json({ count });
   })
 );
 

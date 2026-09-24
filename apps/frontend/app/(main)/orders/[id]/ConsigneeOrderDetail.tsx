@@ -5,6 +5,7 @@ import {
   formatDate,
   formatDateTime,
   isGroupOrderLocked,
+  MAX_SUB_ORDERS_PER_BATCH,
   subOrderStatusLabel,
   truckStats,
   type CommentDto,
@@ -83,8 +84,12 @@ export function ConsigneeOrderDetail({
       {editable && (
         <details className="card p-4">
           <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 marker:content-none">
-            + New sub-order
+            + Add sub-orders
           </summary>
+          <p className="mt-1 text-xs text-slate-400">
+            One sub-order per FTL. They're named 1, 2, 3… automatically, continuing from the last one you added — add
+            more later and the numbering just keeps going.
+          </p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -94,8 +99,16 @@ export function ConsigneeOrderDetail({
             className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3"
           >
             <div>
-              <label className="field-label">Name</label>
-              <input className="field-input" type="text" name="name" placeholder="optional" />
+              <label className="field-label">FTL count</label>
+              <input
+                className="field-input"
+                type="number"
+                name="count"
+                min={1}
+                max={MAX_SUB_ORDERS_PER_BATCH}
+                placeholder="e.g. 7"
+                required
+              />
             </div>
             <div>
               <label className="field-label">Opened date</label>
@@ -103,7 +116,7 @@ export function ConsigneeOrderDetail({
             </div>
             <div className="flex items-end">
               <button type="submit" className="btn-primary w-full" disabled={pending}>
-                Add sub-order
+                Add sub-orders
               </button>
             </div>
           </form>

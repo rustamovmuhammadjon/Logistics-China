@@ -7,6 +7,10 @@ export type OrderSort = "newest" | "oldest";
 // transferring is disabled for it.
 export const MAX_TRANSFERS_PER_SUB_ORDER = 3;
 
+// Sub-orders (one per FTL) are created in a batch by count, not one at a
+// time — this caps how many can be requested in a single submission.
+export const MAX_SUB_ORDERS_PER_BATCH = 200;
+
 // "Consignee" in the data model/API is displayed to users as "Individual
 // Entrepreneur" — the internal role name is kept for stability.
 export function roleLabel(role: UserRole): string {
