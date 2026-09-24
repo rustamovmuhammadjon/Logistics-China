@@ -5,10 +5,12 @@ import { badRequest, unauthorized } from "../lib/errors.js";
 import { requiredString } from "../lib/input.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 export const linksRouter = Router();
 
 linksRouter.use(requireRegisteredUser);
+linksRouter.use(broadcastOnMutation);
 
 function orderIdsFromBody(body: Record<string, unknown>): string[] {
   return Array.isArray(body.orderIds) ? body.orderIds.filter((id): id is string => typeof id === "string") : [];

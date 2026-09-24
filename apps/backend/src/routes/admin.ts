@@ -11,10 +11,12 @@ import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
+adminRouter.use(broadcastOnMutation);
 
 adminRouter.get(
   "/users",

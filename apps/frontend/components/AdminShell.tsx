@@ -2,10 +2,12 @@ import Link from "next/link";
 import { Activity, Ban, CheckCircle2, Shield } from "lucide-react";
 import { Truck } from "iconsax-react";
 import { AdminSidebar } from "./AdminSidebar";
+import { RealtimeSync } from "./RealtimeSync";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50">
+      <RealtimeSync />
       <nav className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex flex-wrap items-center gap-1">

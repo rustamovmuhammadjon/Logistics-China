@@ -9,6 +9,7 @@ import { generateUniqueLinkCode, toPublicUser } from "../lib/auth.js";
 import { orderVisibilityWhere } from "../lib/orders.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireOperatorCompany, type AuthedRequest } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 // "Company for tracking" — a completely separate account type from
 // company.ts's "company for orders". Its employees are OPERATORs (role
@@ -17,6 +18,7 @@ import { requireOperatorCompany, type AuthedRequest } from "../middleware/auth.j
 export const operatorCompanyRouter = Router();
 
 operatorCompanyRouter.use(requireOperatorCompany);
+operatorCompanyRouter.use(broadcastOnMutation);
 
 function operatorFields(body: Record<string, unknown>) {
   const email = String(body.email ?? "").trim().toLowerCase();

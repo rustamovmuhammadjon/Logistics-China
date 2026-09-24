@@ -14,11 +14,12 @@ import { createCargoTransfer } from "../lib/transfers.js";
 import { assertCanAddDirectTruck, assertSubOrderMutable, assertTruckMutable, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
-import { broadcastTruckLocationUpdate } from "../lib/realtime.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 export const operatorRouter = Router();
 
 operatorRouter.use(requireOperator);
+operatorRouter.use(broadcastOnMutation);
 
 async function loadLinkedOrder(operatorId: string, orderId: string) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });
@@ -93,7 +94,6 @@ operatorRouter.patch(
       }),
       touchSubOrderEditor(truck.subOrderId, me.email),
     ]);
-    if (changed) broadcastTruckLocationUpdate();
     res.json({ truck: updated });
   })
 );
@@ -183,7 +183,6 @@ operatorRouter.patch(
       }),
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
-    if (locationChanged) broadcastTruckLocationUpdate();
     res.json({ truck });
   })
 );

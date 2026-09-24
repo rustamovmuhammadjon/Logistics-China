@@ -7,6 +7,7 @@ import { detailInclude, effectiveOwnerId, stripGpsNumber } from "../lib/orders.j
 import { assertGroupOrderMutable, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireOrderCreator, requireOrderWriter, type AuthedRequest } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 export const consigneeRouter = Router();
 
@@ -16,6 +17,7 @@ export const consigneeRouter = Router();
 // employee, requireOwnedOrder also checks they created the specific order —
 // employees can see every company order but never edit each other's.
 consigneeRouter.use(requireOrderCreator);
+consigneeRouter.use(broadcastOnMutation);
 
 async function requireOwnedOrder(orderId: string, me: Pick<User, "id" | "role" | "companyId">) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });

@@ -3,8 +3,14 @@ import { optionalFloat, optionalString, requiredNumber } from "../lib/input.js";
 import { loadActiveDriver, pairDriver, recordDriverPing, toDriverMe } from "../lib/assignments.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireDriver, type DriverRequest } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 export const driverRouter = Router();
+
+// A driver's phone pings its location here far more often than an operator
+// edits anything by hand — this is the most important source of realtime
+// updates, so every open Monitoring/order page picks it up live.
+driverRouter.use(broadcastOnMutation);
 
 driverRouter.post(
   "/pair",

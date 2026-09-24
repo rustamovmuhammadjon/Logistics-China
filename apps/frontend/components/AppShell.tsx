@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Activity, LayoutDashboard, Link2, Plus, Shield, ShoppingBag, Users } from "lucide-react";
 import { Truck } from "iconsax-react";
 import {
@@ -14,6 +14,7 @@ import {
   type ViewerContext,
   type UserPublic,
 } from "@logistics/shared";
+import { useRealtimeSync } from "@/lib/useRealtimeSync";
 import { Avatar } from "./Avatar";
 
 type ShellData = {
@@ -40,6 +41,7 @@ async function loadShell(): Promise<ShellData> {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [data, setData] = useState<ShellData>(memoryCache?.data ?? emptyShell);
   const [error, setError] = useState(false);
 
@@ -65,6 +67,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [pathname]);
+
+  // A single realtime connection for the whole app: refreshes the current
+  // page's server-rendered data AND this sidebar's client-fetched order
+  // list together, the moment anything changes anywhere.
+  useRealtimeSync(() => {
+    router.refresh();
+    loadShell().then((next) => {
+      memoryCache = { data: next, at: Date.now() };
+      setData(next);
+    });
+  });
 
   const { orders, ctx, admin, user } = data;
   const visibleOrders = ownOrdersOnly(orders, user, ctx);

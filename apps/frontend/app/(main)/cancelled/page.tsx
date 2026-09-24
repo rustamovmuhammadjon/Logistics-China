@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { DbError } from "@/components/DbError";
 import { MonitoringTabs } from "@/components/MonitoringTabs";
 import { ResultsSkeleton } from "@/components/ResultsSkeleton";
-import { RealtimeMonitoring } from "@/components/RealtimeMonitoring";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +22,6 @@ export default async function CancelledOrdersPage({
 
   return (
     <div className="space-y-6">
-      <RealtimeMonitoring />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Cancelled orders</h1>
         <p className="text-sm text-slate-500">

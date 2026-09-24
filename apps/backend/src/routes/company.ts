@@ -9,10 +9,12 @@ import { buildOrderWhere } from "../lib/orders.js";
 import { generateUniqueLinkCode, toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireCompany, type AuthedRequest } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 export const companyRouter = Router();
 
 companyRouter.use(requireCompany);
+companyRouter.use(broadcastOnMutation);
 
 function employeeFields(body: Record<string, unknown>) {
   const email = String(body.email ?? "").trim().toLowerCase();

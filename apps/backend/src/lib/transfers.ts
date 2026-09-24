@@ -4,7 +4,6 @@ import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
 import { dateOrToday, normalizePhone, normalizePlate, optionalString, requiredString, truthyFlag } from "./input.js";
 import { assertSubOrderMutable } from "./lifecycle.js";
-import { broadcastTruckLocationUpdate } from "./realtime.js";
 
 export async function createCargoTransfer(params: {
   subOrderId: string;
@@ -156,8 +155,6 @@ export async function createCargoTransfer(params: {
     where: { truckId: fromTruck.id, status: { in: ["PENDING", "ACTIVE"] } },
     data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
   });
-
-  broadcastTruckLocationUpdate();
 
   return transfer;
 }

@@ -5,8 +5,9 @@ import { verifyAdminSessionFromToken, verifyUserSessionFromToken } from "./auth.
 const clients = new Set<WebSocket>();
 
 // Attaches a WebSocket endpoint (at /ws) to the same HTTP server Express
-// listens on, so live-tracking pages (Monitoring) can be pushed an update
-// the moment an operator changes a truck's location, instead of only
+// listens on, so any open page can be pushed an update the moment anything
+// it might be showing changes (an order, sub-order, truck, comment,
+// employee/operator, link, partner, driver ping, ...), instead of only
 // finding out on the next manual page refresh.
 //
 // A browser connects here directly (not through the Next.js proxy, which
@@ -49,11 +50,13 @@ export function attachRealtime(server: HttpServer) {
   });
 }
 
-// Every connected, authenticated client re-fetches Monitoring through the
-// normal (already role-scoped) HTTP route when it gets this — the message
-// itself carries no order data, so broadcasting to everyone is safe.
-export function broadcastTruckLocationUpdate() {
-  const message = JSON.stringify({ type: "truck-location-updated" });
+// Every connected, authenticated client re-fetches whatever page it's on
+// through the normal (already role-scoped) HTTP routes when it gets this —
+// the message itself carries no data, so broadcasting to everyone is safe.
+// See middleware/realtimeBroadcast.ts for where this actually gets called
+// from (every successful write on the routers that carry shared data).
+export function broadcastUpdate() {
+  const message = JSON.stringify({ type: "data-updated" });
   for (const ws of clients) {
     if (ws.readyState === WebSocket.OPEN) ws.send(message);
   }

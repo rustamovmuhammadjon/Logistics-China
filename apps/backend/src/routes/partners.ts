@@ -5,6 +5,7 @@ import { badRequest, unauthorized } from "../lib/errors.js";
 import { requiredString } from "../lib/input.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js";
+import { broadcastOnMutation } from "../middleware/realtime.js";
 
 // COMPANY ("company for orders") <-> OPERATOR_COMPANY ("company for
 // tracking") partnerships — a different relationship from OperatorLink:
@@ -15,6 +16,7 @@ import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js
 export const partnersRouter = Router();
 
 partnersRouter.use(requireRegisteredUser);
+partnersRouter.use(broadcastOnMutation);
 
 const memberSelect = {
   id: true,

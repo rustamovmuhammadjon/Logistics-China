@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 const RECONNECT_DELAY_MS = 5000;
 
-// Connects to the backend's WebSocket so Monitoring picks up a truck
-// location change the moment an operator saves it, instead of only on the
-// next manual page load or navigation.
-export function RealtimeMonitoring() {
-  const router = useRouter();
+// Opens (and keeps re-opening) a WebSocket to the backend's realtime feed,
+// calling `onMessage` every time any change is broadcast — the message
+// itself carries no data, it's just a "go refetch" signal. `onMessage` is
+// read from a ref so the socket connects once per mount and isn't torn
+// down and reopened just because the caller passed a new closure.
+export function useRealtimeSync(onMessage: () => void) {
+  const handlerRef = useRef(onMessage);
+  handlerRef.current = onMessage;
 
   useEffect(() => {
     let cancelled = false;
@@ -25,14 +27,7 @@ export function RealtimeMonitoring() {
         if (!data.wsUrl || cancelled) return;
 
         socket = new WebSocket(data.wsUrl);
-        socket.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data as string) as { type?: string };
-            if (message.type === "truck-location-updated") router.refresh();
-          } catch {
-            // Ignore malformed messages.
-          }
-        };
+        socket.onmessage = () => handlerRef.current();
         socket.onclose = () => {
           if (!cancelled) reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
         };
@@ -51,7 +46,5 @@ export function RealtimeMonitoring() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       socket?.close();
     };
-  }, [router]);
-
-  return null;
+  }, []);
 }
