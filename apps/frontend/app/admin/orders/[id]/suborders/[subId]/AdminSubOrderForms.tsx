@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CheckCircle2 } from "lucide-react";
+import { Ban, CheckCircle2, Trash2 } from "lucide-react";
 import { formatDate, isActiveTruck, toDateInputValue, type CargoTransferDto, type SubOrderDto, type TruckDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
@@ -47,6 +47,19 @@ export function AdminSubOrderForms({
         >
           <Ban className="h-4 w-4" />
           Cancel sub-order
+        </ConfirmButton>
+        <ConfirmButton
+          confirmText="Permanently delete this sub-order? This cannot be undone — its trucks, photos, and history will be deleted forever."
+          disabled={pending}
+          onConfirm={() =>
+            submit(`/api/admin/orders/${orderId}/sub-orders/${sub.id}`, {
+              method: "DELETE",
+              redirectTo: `/admin/orders/${orderId}`,
+            })
+          }
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete sub-order
         </ConfirmButton>
       </div>
 

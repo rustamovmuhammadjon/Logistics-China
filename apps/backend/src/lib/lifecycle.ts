@@ -1,5 +1,6 @@
 import { prisma } from "./prisma.js";
 import { badRequest, notFound } from "./errors.js";
+import { removePublicFiles } from "./supabase.js";
 
 export async function assertGroupOrderActive(orderId: string) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });
@@ -116,6 +117,37 @@ export async function cancelTruck(id: string, subOrderId: string) {
     where: { truckId: id, status: { in: ["PENDING", "ACTIVE"] } },
     data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
   });
+}
+
+// Admin-only, unlike cancelGroupOrder — this permanently removes the order
+// and everything under it (sub-orders, trucks, transfers, assignments,
+// comments) via cascade, and cannot be undone. DB rows cascade on their own,
+// but Supabase Storage objects don't, so truck media is cleaned up first.
+export async function deleteGroupOrder(id: string) {
+  const order = await prisma.groupOrder.findUnique({
+    where: { id },
+    include: { subOrders: { include: { trucks: { include: { media: true } } } } },
+  });
+  if (!order) notFound();
+
+  const fileUrls = order.subOrders.flatMap((sub) =>
+    sub.trucks.flatMap((truck) => truck.media.map((item) => item.url))
+  );
+  await removePublicFiles(fileUrls);
+  await prisma.groupOrder.delete({ where: { id } });
+}
+
+/** Same as deleteGroupOrder, for a single sub-order — cannot be undone. */
+export async function deleteSubOrder(id: string, groupOrderId: string) {
+  const sub = await prisma.subOrder.findUnique({
+    where: { id },
+    include: { trucks: { include: { media: true } } },
+  });
+  if (!sub || sub.groupOrderId !== groupOrderId) notFound();
+
+  const fileUrls = sub.trucks.flatMap((truck) => truck.media.map((item) => item.url));
+  await removePublicFiles(fileUrls);
+  await prisma.subOrder.delete({ where: { id } });
 }
 
 export async function completeSubOrder(id: string, groupOrderId: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import { Ban, Trash2 } from "lucide-react";
 import type { GroupOrderDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
@@ -12,7 +12,7 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <ConfirmButton
           confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
           disabled={pending}
@@ -20,6 +20,14 @@ export function AdminOrderForms({ order }: { order: GroupOrderDto }) {
         >
           <Ban className="h-4 w-4" />
           Cancel order
+        </ConfirmButton>
+        <ConfirmButton
+          confirmText="Permanently delete this order? This cannot be undone — every sub-order, truck, photo, and history record under it will be deleted forever."
+          disabled={pending}
+          onConfirm={() => submit(`/api/admin/orders/${order.id}`, { method: "DELETE", redirectTo: "/admin/orders" })}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete order
         </ConfirmButton>
       </div>
 

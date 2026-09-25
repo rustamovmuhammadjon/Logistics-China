@@ -6,7 +6,17 @@ import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
-import { assertCanAddDirectTruck, assertGroupOrderActive, assertTruckNotFrozen, cancelGroupOrder, cancelSubOrder, cancelTruck, completeSubOrder } from "../lib/lifecycle.js";
+import {
+  assertCanAddDirectTruck,
+  assertGroupOrderActive,
+  assertTruckNotFrozen,
+  cancelGroupOrder,
+  cancelSubOrder,
+  cancelTruck,
+  completeSubOrder,
+  deleteGroupOrder,
+  deleteSubOrder,
+} from "../lib/lifecycle.js";
 import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -113,10 +123,12 @@ adminRouter.post(
   })
 );
 
+// Permanent, unlike POST .../cancel above — deletes the order and
+// everything under it. Cannot be undone.
 adminRouter.delete(
   "/orders/:id",
   asyncHandler(async (req, res) => {
-    await cancelGroupOrder(req.params.id);
+    await deleteGroupOrder(req.params.id);
     res.json({ ok: true });
   })
 );
@@ -211,10 +223,12 @@ adminRouter.post(
   })
 );
 
+// Permanent, unlike POST .../cancel above — deletes the sub-order and its
+// trucks/transfers/assignments/comments. Cannot be undone.
 adminRouter.delete(
   "/orders/:id/sub-orders/:subId",
   asyncHandler(async (req, res) => {
-    await cancelSubOrder(req.params.subId, req.params.id);
+    await deleteSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })
 );
