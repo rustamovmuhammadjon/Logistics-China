@@ -167,22 +167,20 @@ function SubOrdersTable({ order, showGps }: { order: GroupOrderDto; showGps: boo
     <div className="overflow-x-auto border-t border-slate-200">
       <table className="w-full min-w-[1100px] table-fixed">
         <colgroup>
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "7%" }} />
+          <col style={{ width: "13%" }} />
           <col style={{ width: "9%" }} />
           <col style={{ width: "10%" }} />
           {showGps && <col style={{ width: "10%" }} />}
           <col style={{ width: "10%" }} />
           <col style={{ width: "11%" }} />
           <col style={{ width: "8%" }} />
-          <col style={{ width: "13%" }} />
+          <col style={{ width: "16%" }} />
           <col style={{ width: "12%" }} />
           <col style={{ width: "11%" }} />
         </colgroup>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-100 text-left font-semibold uppercase tracking-wide text-slate-500">
             <th className={TH}>Sub-order</th>
-            <th className={TH}>Status</th>
             <th className={TH}>FLD</th>
             <th className={TH}>Truck #</th>
             {showGps && <th className={TH}>GPS #</th>}
@@ -203,16 +201,14 @@ function SubOrdersTable({ order, showGps }: { order: GroupOrderDto; showGps: boo
             const comment = sub.comments?.[0]?.text ?? null;
             return (
               <tr key={sub.id} className="border-b border-slate-100 bg-white last:border-0 hover:bg-slate-50">
-                <td className={`${TD} truncate font-medium text-slate-800`} title={sub.name ?? undefined}>
-                  {sub.name || "Sub-order"}
-                </td>
-                <td className={TD}>
-                  <span
-                    className={
-                      sub.status === "CANCELED" ? "badge-red" : sub.status === "CLOSED" ? "badge-slate" : "badge-green"
-                    }
-                  >
-                    {subOrderStatusLabel(sub.status)}
+                <td className={`${TD} truncate font-medium text-slate-800`} title={`${sub.name || "Sub-order"} — ${subOrderStatusLabel(sub.status)}`}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${
+                        sub.status === "CANCELED" ? "bg-red-500" : sub.status === "CLOSED" ? "bg-slate-400" : "bg-emerald-500"
+                      }`}
+                    />
+                    <span className="truncate">{sub.name || "Sub-order"}</span>
                   </span>
                 </td>
                 <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
