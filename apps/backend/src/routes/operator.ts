@@ -187,6 +187,41 @@ operatorRouter.patch(
   })
 );
 
+// track718 (Starlink Box) — Phase 1: just save the number. Saving always
+// resets status to PENDING and clears any old error, since a changed number
+// (or a re-save) means whatever happened before is no longer relevant; a
+// later phase moves it to ACTIVE once the first webhook push arrives.
+operatorRouter.patch(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/track718",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const truck = await assertTruckMutable(req.params.truckId, req.params.subId);
+    const trackingNumber = requiredString(req.body?.trackingNumber, "trackingNumber");
+    const trackFrom = optionalDate(req.body?.trackFrom) ?? new Date();
+
+    const track718 = await prisma.track718Tracking.upsert({
+      where: { truckId: truck.id },
+      create: { truckId: truck.id, trackingNumber, trackFrom },
+      update: { trackingNumber, trackFrom, status: "PENDING", error: null },
+    });
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ track718 });
+  })
+);
+
+operatorRouter.delete(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/track718",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const truck = await assertTruckMutable(req.params.truckId, req.params.subId);
+    await prisma.track718Tracking.deleteMany({ where: { truckId: truck.id } });
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ ok: true });
+  })
+);
+
 operatorRouter.post(
   "/orders/:id/sub-orders/:subId/cancel",
   asyncHandler(async (req, res) => {

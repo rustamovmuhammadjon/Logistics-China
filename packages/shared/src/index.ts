@@ -114,6 +114,28 @@ export type CargoTransferDto = {
   toTruck?: { id: string; plateNumber: string | null; trailerPlateNumber?: string | null };
 };
 
+export type Track718Status = "PENDING" | "ACTIVE" | "STOPPED" | "ERROR";
+
+// A truck's China-leg GPS box (track718 "Starlink Box"). Operator/
+// operator-company/admin only, same as gpsNumber — absent (not the key set
+// to null, but genuinely missing) for every other viewer, stripped
+// server-side before the response is sent.
+export type Track718TrackingDto = {
+  id: string;
+  truckId: string;
+  trackingNumber: string;
+  providerCode: string | null;
+  status: Track718Status;
+  error: string | null;
+  trackFrom: string;
+  lastAddress: string | null;
+  lastLat: number | null;
+  lastLng: number | null;
+  lastEventAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TruckDto = {
   id: string;
   subOrderId: string;
@@ -127,6 +149,9 @@ export type TruckDto = {
   // truck: a cargo transfer creates a new truck, which always starts with
   // its own (unset) gpsNumber rather than inheriting the old truck's.
   gpsNumber?: string | null;
+  // Same visibility as gpsNumber. Absent entirely (not null) once stripped,
+  // and absent (undefined) for a truck that never had a number saved.
+  track718?: Track718TrackingDto | null;
   cargoWeight: number | null;
   cargoDescription: string | null;
   currentLocation: string | null;

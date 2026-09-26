@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Ban, Pencil } from "lucide-react";
-import { formatDateTime, isCurrentTruck, type TruckDto } from "@logistics/shared";
+import { formatDateTime, isCurrentTruck, toDateInputValue, type Track718Status, type TruckDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -73,6 +73,75 @@ export function TruckEditorCard({
           </button>
         </form>
       ) : null}
+
+      {canEdit && <Track718Panel truck={truck} baseUrl={`${patchUrl}/track718`} />}
+    </div>
+  );
+}
+
+const TRACK718_BADGE: Record<Track718Status, string> = {
+  PENDING: "badge-amber",
+  ACTIVE: "badge-green",
+  STOPPED: "badge-slate",
+  ERROR: "badge-red",
+};
+
+// China-leg GPS box (track718 "Starlink Box"). The number itself is entered
+// manually here; everything else (status, last known address) fills in once
+// webhook pushes start arriving — a later phase, not this form.
+function Track718Panel({ truck, baseUrl }: { truck: TruckDto; baseUrl: string }) {
+  const { submit, pending, error } = useApiSubmit();
+  const track718 = truck.track718;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <h4 className="text-sm font-semibold text-slate-800">track718 GPS box</h4>
+      {track718 ? (
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-medium text-slate-700">{track718.trackingNumber}</span>
+          <span className={TRACK718_BADGE[track718.status]}>{track718.status}</span>
+          {track718.error && <span className="text-red-600">{track718.error}</span>}
+        </div>
+      ) : (
+        <p className="mt-1 text-xs text-slate-400">No tracking number set.</p>
+      )}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit(baseUrl, { method: "PATCH", body: formToJson(e.currentTarget) });
+        }}
+        className="mt-2 flex flex-wrap items-end gap-2"
+      >
+        <div className="flex-1">
+          <label className="field-label">Tracking number</label>
+          <input
+            className="field-input"
+            type="text"
+            name="trackingNumber"
+            defaultValue={track718?.trackingNumber ?? ""}
+            placeholder="track718 GPS number"
+            required
+          />
+        </div>
+        <div>
+          <label className="field-label">Track from</label>
+          <input className="field-input" type="date" name="trackFrom" defaultValue={toDateInputValue(track718?.trackFrom ?? null)} />
+        </div>
+        <button type="submit" className="btn-secondary shrink-0" disabled={pending}>
+          Save
+        </button>
+      </form>
+      {track718 && (
+        <ConfirmButton
+          className="mt-2 text-xs text-red-500 hover:text-red-700"
+          confirmText="Remove this tracking number?"
+          disabled={pending}
+          onConfirm={() => submit(baseUrl, { method: "DELETE" })}
+        >
+          Remove
+        </ConfirmButton>
+      )}
     </div>
   );
 }

@@ -54,7 +54,7 @@ export const listInclude = {
     include: {
       trucks: {
         orderBy: { createdAt: "asc" as const },
-        include: { transfersFrom: { select: { id: true } } },
+        include: { transfersFrom: { select: { id: true } }, track718: true },
       },
       // Just the latest comment — enough for a table cell, not the full thread.
       comments: { orderBy: { createdAt: "desc" as const }, take: 1 },
@@ -161,6 +161,7 @@ export const detailInclude = {
         orderBy: { createdAt: "asc" as const },
         include: {
           media: { orderBy: { createdAt: "desc" as const } },
+          track718: true,
           transfersFrom: {
             include: { toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } },
           },
@@ -262,12 +263,17 @@ export async function getViewerContext(
   };
 }
 
-// gpsNumber (per truck) is operator/operator-company/admin only — Prisma's
-// `include` (used by listInclude/detailInclude, shared across every viewer
-// role) pulls every Truck scalar automatically, so a consignee-side
-// response (individual, company, or employee) must have it stripped
-// explicitly, from every truck of every sub-order, before it ever reaches
-// res.json — hiding it in the UI alone would still leak it over the wire.
+// gpsNumber and the track718 relation (per truck) are operator/
+// operator-company/admin only — Prisma's `include` (used by listInclude/
+// detailInclude, shared across every viewer role) pulls both in
+// automatically, so a consignee-side response (individual, company, or
+// employee) must have them stripped explicitly, from every truck of every
+// sub-order, before it ever reaches res.json — hiding it in the UI alone
+// would still leak it over the wire. track718's tracking number is exactly
+// as sensitive as gpsNumber (it's the same kind of device identifier), so
+// for now the whole relation is stripped rather than picking fields —
+// revisit once track718 also carries a display-safe "last known address"
+// worth showing a consignee.
 export function stripGpsNumber<T extends { subOrders: Array<{ trucks: Array<Record<string, unknown>> } & Record<string, unknown>> }>(
   order: T
 ): T {
@@ -275,7 +281,7 @@ export function stripGpsNumber<T extends { subOrders: Array<{ trucks: Array<Reco
     ...order,
     subOrders: order.subOrders.map((sub) => ({
       ...sub,
-      trucks: sub.trucks.map(({ gpsNumber: _gpsNumber, ...rest }) => rest),
+      trucks: sub.trucks.map(({ gpsNumber: _gpsNumber, track718: _track718, ...rest }) => rest),
     })),
   } as T;
 }

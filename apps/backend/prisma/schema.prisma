@@ -257,8 +257,50 @@ model Truck {
   transfersFrom CargoTransfer[] @relation("TransferFrom")
   transfersTo   CargoTransfer[] @relation("TransferTo")
   assignments   DriverAssignment[]
+  track718      Track718Tracking?
 
   @@index([subOrderId])
+}
+
+enum Track718Status {
+  PENDING
+  ACTIVE
+  STOPPED
+  ERROR
+}
+
+// A truck's China-leg GPS box, tracked via the track718 API. Deliberately its
+// own table, not columns on Truck — kept in a 1:1 relation (one truck, at
+// most one active tracking number) so Truck itself never grows track718-
+// specific fields. The number itself is entered manually by the operator;
+// everything else (status, last known address) is filled in once webhook
+// pushes start arriving (a later phase — Phase 1 is just the number entry).
+model Track718Tracking {
+  id String @id @default(cuid())
+
+  truckId String @unique
+  truck   Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  trackingNumber String
+  providerCode   String?
+  status         Track718Status @default(PENDING)
+  error          String?
+
+  // Events before this time are ignored — GPS boxes get reused across trips,
+  // so a number's track718 history can include an earlier, unrelated trip.
+  // Defaults to "now" (set when the number is saved); the operator can edit
+  // it to the truck's actual loading/dispatch date.
+  trackFrom DateTime @default(now())
+
+  lastAddress String?
+  lastLat     Float?
+  lastLng     Float?
+  lastEventAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([trackingNumber])
 }
 
 model CargoTransfer {

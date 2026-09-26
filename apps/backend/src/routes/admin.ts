@@ -93,7 +93,10 @@ adminRouter.get(
     const order = await prisma.groupOrder.findUnique({
       where: { id: req.params.id },
       include: {
-        subOrders: { orderBy: { createdAt: "asc" }, include: { trucks: true } },
+        subOrders: {
+          orderBy: { createdAt: "asc" },
+          include: { trucks: { include: { track718: true } } },
+        },
       },
     });
     if (!order) notFound();
@@ -161,6 +164,7 @@ adminRouter.get(
         trucks: {
           orderBy: { createdAt: "asc" },
           include: {
+            track718: true,
             transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } } },
             transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } } },
             assignments: {
@@ -263,6 +267,7 @@ adminRouter.get(
       include: {
         subOrder: { include: { groupOrder: true } },
         media: { orderBy: { createdAt: "desc" } },
+        track718: true,
         transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true } } } },
         transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true } } } },
       },
