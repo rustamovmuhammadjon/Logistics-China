@@ -300,7 +300,52 @@ model Track718Tracking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  events Track718Event[]
+
   @@index([trackingNumber])
+}
+
+// One row per distinct event out of a webhook push (fromDetail/toDetail/
+// latest/online, deduped by dedupeKey). trackingId is nullable: a push for a
+// number we don't recognize (not currently pending/active) still gets 200'd
+// and stored, just unmatched, per track718's webhook rules.
+model Track718Event {
+  id String @id @default(cuid())
+
+  trackingId String?
+  tracking   Track718Tracking? @relation(fields: [trackingId], references: [id], onDelete: Cascade)
+
+  trackNum   String
+  occurredAt DateTime
+  rawDate    String
+  statusText String?
+  address    String?
+  city       String?
+  country    String?
+
+  lat         Float?
+  lng         Float?
+  coordSource String? // "gps" when track718 itself supplied coordinates
+
+  // sha256(trackNum|date|status|address) — replaying the same webhook body
+  // must never create a second row for the same event.
+  dedupeKey String @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([trackingId, occurredAt])
+  @@index([trackNum])
+}
+
+// Raw webhook bodies, kept for debugging and replay — never trust a payload
+// enough to skip storing it first.
+model Track718WebhookInbox {
+  id String @id @default(cuid())
+
+  payload     Json
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
 }
 
 model CargoTransfer {

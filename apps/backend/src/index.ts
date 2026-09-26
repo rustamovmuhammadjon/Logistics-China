@@ -16,6 +16,7 @@ import { operatorCompanyRouter } from "./routes/operatorCompany.js";
 import { partnersRouter } from "./routes/partners.js";
 import { adminRouter } from "./routes/admin.js";
 import { driverRouter } from "./routes/driver.js";
+import { track718WebhookRouter } from "./routes/track718.js";
 import { attachSession } from "./middleware/auth.js";
 import { asyncHandler, errorHandler } from "./middleware/errors.js";
 import { attachRealtime } from "./lib/realtime.js";
@@ -37,6 +38,12 @@ app.use(
   })
 );
 app.use(cookieParser());
+
+// Mounted before the general JSON parser below, with its own smaller body
+// limit — track718, not a browser, posts here with no session cookie and no
+// user auth (the URL's own token + the payload's signature are the gates).
+app.use("/webhooks/track718", express.json({ limit: "256kb" }), track718WebhookRouter);
+
 app.use(express.json({ limit: "2mb" }));
 app.use(asyncHandler(attachSession));
 

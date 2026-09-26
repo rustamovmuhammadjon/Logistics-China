@@ -1,0 +1,108 @@
+{
+  "list": [
+    {
+      "fromDetail": [
+        {
+          "date": "2021-03-23 14:57:08",
+          "status": "HALLAM, VIC, 01040, DELIVERED WITH SAFE DROP",
+          "address": "HALLAM, VIC, 01040",
+          "result": 40,
+          "resultDate": "2021-03-23 14:57:08",
+          "statusTranslation": {
+            "status": "HALLAM, VIC, 01040, 安全投递",
+            "langCode": "zh-CN"
+          },
+          "addressInfo": {
+            "country": "",
+            "state": "VIC",
+            "city": "HALLAM",
+            "street": "",
+            "zipCode": "01040",
+            "timeZone": "-04:00",
+            "coordinates": {
+              "longitude": "",
+              "latitude": ""
+            }
+          }
+        },
+        {
+          "date": "2021-03-23 09:52:35",
+          "status": "DANDENONG SOUTH VIC, WITH AUSTRALIA POST FOR DELIVERY TODAY",
+          "address": "DANDENONG SOUTH VIC",
+          "result": 30,
+          "resultDate": "2021-03-23 09:52:35"
+        },
+        {
+          "date": "2021-03-16 03:41:39",
+          "status": "SUNSHINE WEST VIC, SHIPPING INFORMATION RECEIVED BY AUSTRALIA POST",
+          "address": "SUNSHINE WEST VIC",
+          "result": 8,
+          "resultDate": "2021-03-16 03:41:39"
+        },
+        {
+          "date": "2021-03-15 22:30:02",
+          "status": "YIWU, ITEM DESPATCHED TO TRANSSHIPMENT HUB",
+          "address": "YIWU",
+          "result": 12,
+          "resultDate": "2021-03-15 22:30:02"
+        },
+        {
+          "date": "2021-03-15 19:54:08",
+          "status": "YIWU, PROCESSED AT ORIGIN HUB",
+          "address": "YIWU",
+          "result": 8,
+          "resultDate": "2021-03-15 19:54:08"
+        },
+        {
+          "date": "2021-03-15 19:53:08",
+          "status": "YIWU, RECEIVED SHIPMENT",
+          "address": "YIWU",
+          "result": 11,
+          "resultDate": "2021-03-15 19:53:08"
+        }
+      ],
+      "toDetail": [],
+      "trackNum": "****",
+      "innerNum": "",
+      "result": 40,
+      "subResult": 40,
+      "code": "ubi",
+      "logisTimeZone": "+08:00",
+      "shipType": 1,
+      "country": "AU",
+      "originCountry": "CN",
+      "residenceTime": 126,
+      "haulageTime": 8,
+      "updateTime": "2021-07-27 17:02:02",
+      "latest": {
+        "date": "2021-03-23 14:57:08",
+        "status": "HALLAM VIC, DELIVERED WITH SAFE DROP",
+        "address": "HALLAM VIC",
+        "result": 40,
+        "resultDate": "2021-03-23 14:57:08"
+      },
+      "online": {
+        "date": "2021-03-15 19:54:08",
+        "status": "YIWU, PROCESSED AT ORIGIN HUB",
+        "address": "YIWU",
+        "result": 8,
+        "resultDate": "2021-03-15 19:54:08"
+      },
+      "sign": {
+        "date": "2021-03-23 14:57:08",
+        "status": "HALLAM VIC, DELIVERED WITH SAFE DROP",
+        "address": "HALLAM VIC",
+        "result": 40,
+        "resultDate": "2021-03-23 14:57:08"
+      }
+    }
+  ],
+  "status": {
+    "code": 200,
+    "msg": "Success."
+  },
+  "verify": {
+    "timestamp": 1627376580170,
+    "sign": "d27ec00b0f85fd0c1e4f0f897b05ee16f35379507b09c6f1f1f76ddedd117083"
+  }
+}
