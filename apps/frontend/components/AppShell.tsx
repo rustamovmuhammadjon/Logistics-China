@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, LayoutDashboard, Link2, Plus, Shield, ShoppingBag, Users } from "lucide-react";
+import {
+  Activity,
+  LayoutDashboard,
+  Link2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Shield,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
 import { Truck } from "iconsax-react";
 import {
   displayName,
@@ -44,6 +54,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [data, setData] = useState<ShellData>(memoryCache?.data ?? emptyShell);
   const [error, setError] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // The "Active orders" sidebar only makes sense while looking at
+  // Monitoring — every other page gets the full width instead.
+  const isMonitoringPage = pathname === "/" || pathname === "/completed" || pathname === "/cancelled";
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +102,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1920px] flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex flex-wrap items-center gap-1">
+            {isMonitoringPage && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((v) => !v)}
+                className="mr-1 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+              >
+                {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+              </button>
+            )}
             <Link href="/" className="mr-3 flex items-center gap-2 font-bold text-ink-900">
               <Truck size={22} variant="Bold" color="#1d4e89" />
               China–Iran Logistics
@@ -148,35 +172,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <div className="flex flex-col lg:flex-row">
-        <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-52 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200">
-          <div className="px-4 pb-6 pt-3">
-            {(user?.role === "CONSIGNEE" || user?.role === "EMPLOYEE") && (
-              <Link href="/orders/new" className="btn-primary mb-4 w-full">
-                <Plus className="h-4 w-4" />
-                New order
-              </Link>
-            )}
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Active orders</h2>
-            {visibleOrders.length === 0 ? (
-              <p className="text-sm text-slate-400">{error ? "Orders unavailable." : "No active orders."}</p>
-            ) : (
-              <ul className="max-h-[70vh] space-y-1 overflow-y-auto lg:max-h-none">
-                {visibleOrders.map((order) => (
-                  <li key={order.id}>
-                    <Link
-                      href={getOrderHref(order, ctx)}
-                      prefetch
-                      className="block truncate rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-                      title={order.name}
-                    >
-                      {order.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </aside>
+        {isMonitoringPage && (
+          <aside
+            className={`shrink-0 overflow-hidden border-b border-slate-200 bg-white transition-[width] duration-200 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-slate-200 ${
+              sidebarOpen ? "w-full lg:w-52" : "h-0 w-0 border-0 lg:h-[calc(100vh-4rem)]"
+            }`}
+          >
+            <div className="w-52 px-4 pb-6 pt-3">
+              {(user?.role === "CONSIGNEE" || user?.role === "EMPLOYEE") && (
+                <Link href="/orders/new" className="btn-primary mb-4 w-full">
+                  <Plus className="h-4 w-4" />
+                  New order
+                </Link>
+              )}
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Active orders</h2>
+              {visibleOrders.length === 0 ? (
+                <p className="text-sm text-slate-400">{error ? "Orders unavailable." : "No active orders."}</p>
+              ) : (
+                <ul className="max-h-[70vh] space-y-1 overflow-y-auto lg:max-h-none">
+                  {visibleOrders.map((order) => (
+                    <li key={order.id}>
+                      <Link
+                        href={getOrderHref(order, ctx)}
+                        prefetch
+                        className="block truncate rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+                        title={order.name}
+                      >
+                        {order.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </aside>
+        )}
         <main className="min-w-0 flex-1 px-4 py-8">{children}</main>
       </div>
     </div>

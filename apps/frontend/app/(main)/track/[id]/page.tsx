@@ -16,7 +16,7 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
   const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
     <Link href="/" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
         <ArrowLeft className="h-4 w-4" />
         All orders

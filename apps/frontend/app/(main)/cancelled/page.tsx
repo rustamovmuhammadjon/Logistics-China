@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { CloseCircle, Truck } from "iconsax-react";
 import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { OrdersTable } from "@/components/OrdersTable";
+import { SubOrdersMonitoringTable } from "@/components/SubOrdersMonitoringTable";
 import { SearchSortBar } from "@/components/SearchSortBar";
 import { StatCard } from "@/components/StatCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -59,13 +59,13 @@ async function CancelledResults({ q, sort }: { q?: string; sort: string }) {
         <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
       </section>
 
-      {scoped.orders.length === 0 ? (
+      {!scoped.orders.some((o) => o.subOrders.length > 0) ? (
         <EmptyState
           icon={<CloseCircle size={36} variant="Bold" />}
           title={q ? "No cancelled orders match your search." : "No cancelled orders yet."}
         />
       ) : (
-        <OrdersTable orders={scoped.orders} ctx={scoped.ctx} />
+        <SubOrdersMonitoringTable orders={scoped.orders} ctx={scoped.ctx} />
       )}
     </>
   );

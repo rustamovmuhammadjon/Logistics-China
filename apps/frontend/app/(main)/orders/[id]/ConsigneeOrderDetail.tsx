@@ -32,7 +32,7 @@ export function ConsigneeOrderDetail({
   const editable = canWrite && !locked;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="space-y-4">
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>

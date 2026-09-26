@@ -29,7 +29,7 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
   const locked = isGroupOrderLocked(order);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="space-y-4">
       <div className="card space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
