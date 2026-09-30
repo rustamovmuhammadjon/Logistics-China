@@ -3,26 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { formatDate, formatDirection, truckStats, type GroupOrderDto } from "@logistics/shared";
+import { formatDate, formatDirection, orderMatchesSearch, truckStats, type GroupOrderDto } from "@logistics/shared";
 
 export function OperatorOrdersList({ orders }: { orders: GroupOrderDto[] }) {
   const [q, setQ] = useState("");
 
-  const filtered = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return orders;
-    return orders.filter((order) => {
-      if (order.name.toLowerCase().includes(query)) return true;
-      return order.subOrders.some((sub) => {
-        if (sub.name?.toLowerCase().includes(query)) return true;
-        return sub.trucks.some((truck) =>
-          [truck.plateNumber, truck.trailerPlateNumber, truck.driverPhone].some((value) =>
-            value?.toLowerCase().includes(query)
-          )
-        );
-      });
-    });
-  }, [orders, q]);
+  const filtered = useMemo(() => orders.filter((order) => orderMatchesSearch(order, q)), [orders, q]);
 
   return (
     <div className="space-y-3">

@@ -353,6 +353,30 @@ export function truckStats(trucks: { canceledAt?: string | Date | null }[]) {
   return { total: active.length };
 }
 
+// Client-side search filter — mirrors the backend's buildOrderWhere search
+// clause field-for-field, so a page that already has the full order list in
+// hand (nothing left to paginate) can filter instantly, with no round trip.
+export function orderMatchesSearch(
+  order: {
+    name: string;
+    subOrders: {
+      name?: string | null;
+      trucks: { plateNumber?: string | null; trailerPlateNumber?: string | null; driverPhone?: string | null }[];
+    }[];
+  },
+  query: string
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (order.name.toLowerCase().includes(q)) return true;
+  return order.subOrders.some((sub) => {
+    if (sub.name?.toLowerCase().includes(q)) return true;
+    return sub.trucks.some((truck) =>
+      [truck.plateNumber, truck.trailerPlateNumber, truck.driverPhone].some((value) => value?.toLowerCase().includes(q))
+    );
+  });
+}
+
 /** Total перекид transfers already recorded for a sub-order's trucks. */
 export function transferCountOf(trucks: { transfersFrom?: unknown[] | null }[]): number {
   return trucks.reduce((sum, t) => sum + (t.transfersFrom?.length ?? 0), 0);
@@ -465,6 +489,25 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   }).format(date);
 }
 
+// Relative, chat-style version of a timestamp — today shows just the
+// clock time (the date is obvious), yesterday reads as "Yesterday", and
+// anything older shows the date instead (the exact time stops being useful
+// once it's not today or yesterday).
+export function formatUpdateTime(value: string | Date | null | undefined): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfValueDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayDiff = Math.round((startOfToday.getTime() - startOfValueDay.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (dayDiff <= 0) {
+    return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(date);
+  }
+  if (dayDiff === 1) return "Yesterday";
+  return formatDate(date);
+}
+
 export function toDateInputValue(value: string | Date | null | undefined): string {
   const date = toDate(value);
   if (!date) return "";
@@ -496,10 +539,6 @@ export function freshnessBadgeClass(freshness: Freshness): string {
   if (freshness === "amber") return "badge-amber";
   if (freshness === "red") return "badge-red";
   return "badge-slate";
-}
-
-export function normalizeSort(sort: string | undefined): OrderSort {
-  return sort === "oldest" ? "oldest" : "newest";
 }
 
 export function ownOrdersOnly<T extends { ownerId: string | null }>(

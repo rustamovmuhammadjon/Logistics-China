@@ -1,25 +1,15 @@
 import { Suspense } from "react";
-import { TickCircle, Truck } from "iconsax-react";
-import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
+import { TickCircle } from "iconsax-react";
+import { withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { SubOrdersMonitoringTable } from "@/components/SubOrdersMonitoringTable";
-import { SearchSortBar } from "@/components/SearchSortBar";
-import { StatCard } from "@/components/StatCard";
-import { EmptyState } from "@/components/EmptyState";
+import { MonitoringView } from "@/components/MonitoringView";
 import { DbError } from "@/components/DbError";
 import { MonitoringTabs } from "@/components/MonitoringTabs";
 import { ResultsSkeleton } from "@/components/ResultsSkeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompletedOrdersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; sort?: string }>;
-}) {
-  const { q, sort } = await searchParams;
-  const normalizedSort = normalizeSort(sort);
-
+export default function CompletedOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -31,20 +21,15 @@ export default async function CompletedOrdersPage({
 
       <MonitoringTabs />
 
-      <SearchSortBar q={q ?? ""} sort={normalizedSort} exportHref="/api/monitoring/export?completed=1" />
-
       <Suspense fallback={<ResultsSkeleton />}>
-        <CompletedResults q={q} sort={normalizedSort} />
+        <CompletedResults />
       </Suspense>
     </div>
   );
 }
 
-async function CompletedResults({ q, sort }: { q?: string; sort: string }) {
-  const query = new URLSearchParams({ completed: "1", sort });
-  if (q) query.set("q", q);
-
-  const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
+async function CompletedResults() {
+  const { data, error } = await serverApiSafe<MonitoringResponse>("/api/monitoring/orders?completed=1");
   const scoped = data ? withOwnOrders(data, data.user) : null;
 
   if (error || !scoped) {
@@ -52,20 +37,14 @@ async function CompletedResults({ q, sort }: { q?: string; sort: string }) {
   }
 
   return (
-    <>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Orders" value={scoped.orders.length} icon={<TickCircle size={20} variant="Bold" />} />
-        <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
-      </section>
-
-      {!scoped.orders.some((o) => o.subOrders.length > 0) ? (
-        <EmptyState
-          icon={<TickCircle size={36} variant="Bold" />}
-          title={q ? "No completed sub-orders match your search." : "No completed sub-orders yet."}
-        />
-      ) : (
-        <SubOrdersMonitoringTable orders={scoped.orders} ctx={scoped.ctx} />
-      )}
-    </>
+    <MonitoringView
+      orders={scoped.orders}
+      ctx={scoped.ctx}
+      exportHref="/api/monitoring/export?completed=1"
+      statIcon={<TickCircle size={20} variant="Bold" />}
+      emptyIcon={<TickCircle size={36} variant="Bold" />}
+      emptyTitle="No completed sub-orders yet."
+      emptySearchTitle="No completed sub-orders match your search."
+    />
   );
 }

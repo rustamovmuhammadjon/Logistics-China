@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   currentTruckOf,
   formatDate,
-  formatDateTime,
+  formatUpdateTime,
   freshnessBadgeClass,
   getOrderHref,
   locationFreshness,
@@ -30,16 +30,16 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
     <div className="-mx-4 overflow-x-auto border-y border-slate-200 bg-white">
       <table className="w-full min-w-[1100px] table-fixed">
         <colgroup>
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "8%" }} />
+          <col style={{ width: "8.5%" }} />
           <col style={{ width: "7%" }} />
-          <col style={{ width: "8%" }} />
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "7.5%" }} />
           {isOperator && <col style={{ width: "7%" }} />}
           <col style={{ width: "7%" }} />
-          <col style={{ width: "8%" }} />
+          <col style={{ width: "7.5%" }} />
           <col style={{ width: "9%" }} />
           <col style={{ width: "6%" }} />
-          <col style={{ width: "12%" }} />
+          <col style={{ width: "14.5%" }} />
           <col style={{ width: "10%" }} />
           <col style={{ width: "16%" }} />
         </colgroup>
@@ -105,7 +105,7 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                 </td>
                 <td className={TD}>
                   {sub.lastEditedAt ? (
-                    <span className={freshnessBadgeClass(freshness)}>{formatDateTime(sub.lastEditedAt)}</span>
+                    <span className={freshnessBadgeClass(freshness)}>{formatUpdateTime(sub.lastEditedAt)}</span>
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}

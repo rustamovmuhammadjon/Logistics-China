@@ -1,25 +1,15 @@
 import { Suspense } from "react";
-import { Box1, Truck } from "iconsax-react";
-import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
+import { Box1 } from "iconsax-react";
+import { withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { SubOrdersMonitoringTable } from "@/components/SubOrdersMonitoringTable";
-import { SearchSortBar } from "@/components/SearchSortBar";
-import { StatCard } from "@/components/StatCard";
-import { EmptyState } from "@/components/EmptyState";
+import { MonitoringView } from "@/components/MonitoringView";
 import { DbError } from "@/components/DbError";
 import { MonitoringTabs } from "@/components/MonitoringTabs";
 import { ResultsSkeleton } from "@/components/ResultsSkeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function MonitoringPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; sort?: string }>;
-}) {
-  const { q, sort } = await searchParams;
-  const normalizedSort = normalizeSort(sort);
-
+export default function MonitoringPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -29,21 +19,15 @@ export default async function MonitoringPage({
 
       <MonitoringTabs />
 
-      <SearchSortBar q={q ?? ""} sort={normalizedSort} exportHref="/api/monitoring/export" />
-
       <Suspense fallback={<ResultsSkeleton />}>
-        <MonitoringResults q={q} sort={normalizedSort} />
+        <MonitoringResults />
       </Suspense>
     </div>
   );
 }
 
-async function MonitoringResults({ q, sort }: { q?: string; sort: string }) {
-  const query = new URLSearchParams();
-  if (q) query.set("q", q);
-  query.set("sort", sort);
-
-  const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
+async function MonitoringResults() {
+  const { data, error } = await serverApiSafe<MonitoringResponse>("/api/monitoring/orders");
   const scoped = data ? withOwnOrders(data, data.user) : null;
 
   if (error || !scoped) {
@@ -51,20 +35,14 @@ async function MonitoringResults({ q, sort }: { q?: string; sort: string }) {
   }
 
   return (
-    <>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Orders" value={scoped.orders.length} icon={<Box1 size={20} variant="Bold" />} />
-        <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
-      </section>
-
-      {!scoped.orders.some((o) => o.subOrders.length > 0) ? (
-        <EmptyState
-          icon={<Box1 size={36} variant="Bold" />}
-          title={q ? "No active sub-orders match your search." : "No active sub-orders."}
-        />
-      ) : (
-        <SubOrdersMonitoringTable orders={scoped.orders} ctx={scoped.ctx} />
-      )}
-    </>
+    <MonitoringView
+      orders={scoped.orders}
+      ctx={scoped.ctx}
+      exportHref="/api/monitoring/export"
+      statIcon={<Box1 size={20} variant="Bold" />}
+      emptyIcon={<Box1 size={36} variant="Bold" />}
+      emptyTitle="No active sub-orders."
+      emptySearchTitle="No active sub-orders match your search."
+    />
   );
 }

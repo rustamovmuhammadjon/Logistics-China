@@ -1,25 +1,15 @@
 import { Suspense } from "react";
-import { CloseCircle, Truck } from "iconsax-react";
-import { normalizeSort, withOwnOrders, type MonitoringResponse } from "@logistics/shared";
+import { CloseCircle } from "iconsax-react";
+import { withOwnOrders, type MonitoringResponse } from "@logistics/shared";
 import { serverApiSafe } from "@/lib/server-api";
-import { SubOrdersMonitoringTable } from "@/components/SubOrdersMonitoringTable";
-import { SearchSortBar } from "@/components/SearchSortBar";
-import { StatCard } from "@/components/StatCard";
-import { EmptyState } from "@/components/EmptyState";
+import { MonitoringView } from "@/components/MonitoringView";
 import { DbError } from "@/components/DbError";
 import { MonitoringTabs } from "@/components/MonitoringTabs";
 import { ResultsSkeleton } from "@/components/ResultsSkeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function CancelledOrdersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; sort?: string }>;
-}) {
-  const { q, sort } = await searchParams;
-  const normalizedSort = normalizeSort(sort);
-
+export default function CancelledOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -32,20 +22,15 @@ export default async function CancelledOrdersPage({
 
       <MonitoringTabs />
 
-      <SearchSortBar q={q ?? ""} sort={normalizedSort} exportHref="/api/monitoring/export?canceled=1" />
-
       <Suspense fallback={<ResultsSkeleton />}>
-        <CancelledResults q={q} sort={normalizedSort} />
+        <CancelledResults />
       </Suspense>
     </div>
   );
 }
 
-async function CancelledResults({ q, sort }: { q?: string; sort: string }) {
-  const query = new URLSearchParams({ canceled: "1", sort });
-  if (q) query.set("q", q);
-
-  const { data, error } = await serverApiSafe<MonitoringResponse>(`/api/monitoring/orders?${query.toString()}`);
+async function CancelledResults() {
+  const { data, error } = await serverApiSafe<MonitoringResponse>("/api/monitoring/orders?canceled=1");
   const scoped = data ? withOwnOrders(data, data.user) : null;
 
   if (error || !scoped) {
@@ -53,20 +38,14 @@ async function CancelledResults({ q, sort }: { q?: string; sort: string }) {
   }
 
   return (
-    <>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Orders" value={scoped.orders.length} icon={<CloseCircle size={20} variant="Bold" />} />
-        <StatCard label="Trucks" value={scoped.stats.total} icon={<Truck size={20} variant="Bold" />} />
-      </section>
-
-      {!scoped.orders.some((o) => o.subOrders.length > 0) ? (
-        <EmptyState
-          icon={<CloseCircle size={36} variant="Bold" />}
-          title={q ? "No cancelled orders match your search." : "No cancelled orders yet."}
-        />
-      ) : (
-        <SubOrdersMonitoringTable orders={scoped.orders} ctx={scoped.ctx} />
-      )}
-    </>
+    <MonitoringView
+      orders={scoped.orders}
+      ctx={scoped.ctx}
+      exportHref="/api/monitoring/export?canceled=1"
+      statIcon={<CloseCircle size={20} variant="Bold" />}
+      emptyIcon={<CloseCircle size={36} variant="Bold" />}
+      emptyTitle="No cancelled orders yet."
+      emptySearchTitle="No cancelled orders match your search."
+    />
   );
 }
