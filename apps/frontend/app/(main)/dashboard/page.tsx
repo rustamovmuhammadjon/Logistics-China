@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Box1 } from "iconsax-react";
 import type { CompanyAnalyticsDto, DashboardResponse, OperatorCompanyAnalyticsDto } from "@logistics/shared";
@@ -7,6 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LinkPanel } from "@/components/LinkPanel";
 import { CompanyAnalytics } from "./CompanyAnalytics";
 import { OperatorCompanyAnalytics } from "./OperatorCompanyAnalytics";
+import { OperatorOrdersList } from "./OperatorOrdersList";
 
 export const dynamic = "force-dynamic";
 
@@ -41,27 +41,17 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Orders to track</h1>
         <p className="text-sm text-slate-500">
-          Orders from consignees linked to you. Update truck location and add comments on sub-orders.
+          Active orders from consignees linked to you. Update truck location and add comments on sub-orders.
+          Completed and cancelled orders move to Monitoring.
         </p>
       </div>
 
       <LinkPanel myCode={me.user.linkCode} counterpartLabel="consignee" links={me.links} isConsignee={false} />
 
       {me.orders.length === 0 ? (
-        <EmptyState icon={<Box1 size={36} variant="Bold" />} title="No orders yet — link with a consignee above." />
+        <EmptyState icon={<Box1 size={36} variant="Bold" />} title="No active orders — link with a consignee above." />
       ) : (
-        <ul className="space-y-3">
-          {me.orders.map((order) => (
-            <li key={order.id}>
-              <Link href={`/dashboard/orders/${order.id}`} className="card block hover:border-brand-300">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-slate-900">{order.name}</h2>
-                  <span className="badge-slate">{order.subOrders.length} sub-order(s)</span>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <OperatorOrdersList orders={me.orders} />
       )}
     </div>
   );

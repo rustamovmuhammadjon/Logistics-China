@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { listInclude, orderVisibilityWhere, stripGpsNumber } from "../lib/orders.js";
+import { buildOrderWhere, listInclude, orderVisibilityWhere, stripGpsNumber } from "../lib/orders.js";
 import { toPublicUser } from "../lib/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireRegisteredUser, type AuthedRequest } from "../middleware/auth.js";
@@ -101,8 +101,11 @@ dashboardRouter.get(
       }),
       orderVisibilityWhere({ isAdmin: false, user: me }),
     ]);
+    // The operator's own dashboard is a working list, not full history — only
+    // active orders belong here, so it doesn't grow forever with old
+    // completed/cancelled ones. Those stay reachable via Monitoring.
     const orders = await prisma.groupOrder.findMany({
-      where: visibility,
+      where: { AND: [visibility, buildOrderWhere(false)] },
       include: listInclude,
       orderBy: { createdAt: "desc" },
     });
