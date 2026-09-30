@@ -34,13 +34,13 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
           <col style={{ width: "7%" }} />
           <col style={{ width: "7%" }} />
           <col style={{ width: "7.5%" }} />
-          {isOperator && <col style={{ width: "7%" }} />}
+          {isOperator && <col style={{ width: "10%" }} />}
           <col style={{ width: "7%" }} />
           <col style={{ width: "7.5%" }} />
           <col style={{ width: "9%" }} />
           <col style={{ width: "6%" }} />
-          <col style={{ width: "14.5%" }} />
-          <col style={{ width: "10%" }} />
+          <col style={{ width: "16.5%" }} />
+          <col style={{ width: "8%" }} />
           <col style={{ width: "16%" }} />
         </colgroup>
         <thead>
