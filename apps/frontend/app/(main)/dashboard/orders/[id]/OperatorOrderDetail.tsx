@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import { Ban, CheckCircle2 } from "lucide-react";
 import {
   currentTruckOf,
   formatDate,
@@ -48,6 +48,18 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
           <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
             This order is {order.canceledAt ? "cancelled" : "completed"} and cannot be changed.
           </p>
+        )}
+        {!order.canceledAt && (
+          <div className="flex justify-end">
+            <ConfirmButton
+              confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."
+              disabled={pending}
+              onConfirm={() => submit(`/api/operator/orders/${order.id}/cancel`, { method: "POST", redirectTo: "/cancelled" })}
+            >
+              <Ban className="h-4 w-4" />
+              Cancel order
+            </ConfirmButton>
+          </div>
         )}
         <OrderPolForm orderId={order.id} pol={order.pol} />
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -171,16 +183,29 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                       />
                     )}
                     {canMutate && (
-                      <ConfirmButton
-                        confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
-                        disabled={pending}
-                        onConfirm={() =>
-                          submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
-                        }
-                      >
-                        <Ban className="h-4 w-4" />
-                        Cancel sub-order
-                      </ConfirmButton>
+                      <div className="flex flex-wrap gap-2">
+                        <ConfirmButton
+                          className="btn-primary"
+                          confirmText="Mark this sub-order as completed? The completed date will be set to today."
+                          disabled={pending}
+                          onConfirm={() =>
+                            submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/complete`, { method: "POST" })
+                          }
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Complete
+                        </ConfirmButton>
+                        <ConfirmButton
+                          confirmText="Cancel this sub-order? Other sub-orders in this order will stay as they are."
+                          disabled={pending}
+                          onConfirm={() =>
+                            submit(`/api/operator/orders/${order.id}/sub-orders/${sub.id}/cancel`, { method: "POST" })
+                          }
+                        >
+                          <Ban className="h-4 w-4" />
+                          Cancel sub-order
+                        </ConfirmButton>
+                      </div>
                     )}
                   </div>
                 </details>

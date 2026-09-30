@@ -11,7 +11,15 @@ import {
 } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
-import { assertCanAddDirectTruck, assertSubOrderMutable, assertTruckMutable, cancelSubOrder, cancelTruck } from "../lib/lifecycle.js";
+import {
+  assertCanAddDirectTruck,
+  assertSubOrderMutable,
+  assertTruckMutable,
+  cancelGroupOrder,
+  cancelSubOrder,
+  cancelTruck,
+  completeSubOrder,
+} from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
 import { broadcastOnMutation } from "../middleware/realtime.js";
@@ -52,6 +60,16 @@ operatorRouter.patch(
       data: { pol: optionalString(req.body?.pol), lastEditedByEmail: me.email, lastEditedAt: new Date() },
     });
     res.json({ order });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/cancel",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await loadLinkedOrder(me.id, req.params.id);
+    await cancelGroupOrder(req.params.id);
+    res.json({ ok: true });
   })
 );
 
@@ -220,6 +238,17 @@ operatorRouter.delete(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     const truck = await assertTruckMutable(req.params.truckId, req.params.subId);
     await prisma.track718Tracking.deleteMany({ where: { truckId: truck.id } });
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ ok: true });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/complete",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await completeSubOrder(req.params.subId, req.params.id);
     await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ ok: true });
   })

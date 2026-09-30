@@ -9,7 +9,8 @@ import { createCargoTransfer } from "../lib/transfers.js";
 import {
   assertCanAddDirectTruck,
   assertGroupOrderActive,
-  assertTruckNotFrozen,
+  assertSubOrderMutable,
+  assertTruckMutable,
   cancelGroupOrder,
   cancelSubOrder,
   cancelTruck,
@@ -199,6 +200,7 @@ adminRouter.patch(
   asyncHandler(async (req, res) => {
     const existing = await prisma.subOrder.findUnique({ where: { id: req.params.subId } });
     if (!existing || existing.groupOrderId !== req.params.id) notFound();
+    await assertSubOrderMutable(req.params.subId);
     const subOrder = await prisma.subOrder.update({
       where: { id: existing.id },
       data: {
@@ -222,6 +224,7 @@ adminRouter.post(
 adminRouter.post(
   "/orders/:id/sub-orders/:subId/cancel",
   asyncHandler(async (req, res) => {
+    await assertSubOrderMutable(req.params.subId);
     await cancelSubOrder(req.params.subId, req.params.id);
     res.json({ ok: true });
   })
@@ -286,7 +289,7 @@ adminRouter.get(
 adminRouter.patch(
   "/orders/:id/sub-orders/:subId/trucks/:truckId",
   asyncHandler(async (req, res) => {
-    const existing = await assertTruckNotFrozen(req.params.truckId, req.params.subId);
+    const existing = await assertTruckMutable(req.params.truckId, req.params.subId);
     const data = truckFields(req.body);
     const clash = await findActivePlateConflict({
       plateNumber: data.plateNumber,
@@ -310,6 +313,7 @@ adminRouter.patch(
 adminRouter.post(
   "/orders/:id/sub-orders/:subId/trucks/:truckId/cancel",
   asyncHandler(async (req, res) => {
+    await assertTruckMutable(req.params.truckId, req.params.subId);
     await cancelTruck(req.params.truckId, req.params.subId);
     res.json({ ok: true });
   })
@@ -318,6 +322,7 @@ adminRouter.post(
 adminRouter.delete(
   "/orders/:id/sub-orders/:subId/trucks/:truckId",
   asyncHandler(async (req, res) => {
+    await assertTruckMutable(req.params.truckId, req.params.subId);
     await cancelTruck(req.params.truckId, req.params.subId);
     res.json({ ok: true });
   })
@@ -340,6 +345,7 @@ adminRouter.post(
 adminRouter.post(
   "/orders/:id/sub-orders/:subId/assignments/:assignmentId/regenerate",
   asyncHandler(async (req, res) => {
+    await assertSubOrderMutable(req.params.subId);
     const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId);
     res.json(result);
   })
@@ -348,6 +354,7 @@ adminRouter.post(
 adminRouter.delete(
   "/orders/:id/sub-orders/:subId/assignments/:assignmentId",
   asyncHandler(async (req, res) => {
+    await assertSubOrderMutable(req.params.subId);
     await revokeDriverAssignment(req.params.assignmentId, req.params.subId);
     res.json({ ok: true });
   })
@@ -367,6 +374,7 @@ adminRouter.post(
 adminRouter.delete(
   "/orders/:id/sub-orders/:subId/transfers/:transferId",
   asyncHandler(async (req, res) => {
+    await assertSubOrderMutable(req.params.subId);
     await prisma.cargoTransfer.delete({ where: { id: req.params.transferId } });
     res.json({ ok: true });
   })
@@ -377,11 +385,13 @@ adminRouter.post(
   asyncHandler(async (req, res) => {
     const level = requiredString(req.body?.level, "level");
     if (level !== "sub") badRequest("Comments are only allowed on sub-orders");
+    const subOrderId = requiredString(req.body?.subOrderId, "subOrderId");
+    await assertSubOrderMutable(subOrderId);
     const comment = await prisma.comment.create({
       data: {
         text: requiredString(req.body?.text, "text"),
         author: optionalString(req.body?.author),
-        subOrderId: requiredString(req.body?.subOrderId, "subOrderId"),
+        subOrderId,
       },
     });
     res.json({ comment });
@@ -400,7 +410,7 @@ adminRouter.post(
   "/media",
   asyncHandler(async (req, res) => {
     const truckId = requiredString(req.body?.truckId, "truckId");
-    await assertTruckNotFrozen(truckId);
+    await assertTruckMutable(truckId);
     const url = requiredString(req.body?.url, "url");
     assertSupabasePublicUrl(url);
     const type = req.body?.type === "VIDEO" ? "VIDEO" : "IMAGE";
