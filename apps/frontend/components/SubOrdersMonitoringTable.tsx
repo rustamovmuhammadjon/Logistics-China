@@ -30,17 +30,18 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
     <div className="-mx-4 overflow-x-auto border-y border-slate-200 bg-white">
       <table className="w-full min-w-[1100px] table-fixed">
         <colgroup>
-          <col style={{ width: "13%" }} />
-          <col style={{ width: "11%" }} />
-          <col style={{ width: "7%" }} />
           <col style={{ width: "9%" }} />
-          {isOperator && <col style={{ width: "9%" }} />}
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "10%" }} />
+          <col style={{ width: "8%" }} />
           <col style={{ width: "7%" }} />
-          <col style={{ width: "13%" }} />
-          <col style={{ width: "11%" }} />
+          <col style={{ width: "8%" }} />
+          {isOperator && <col style={{ width: "7%" }} />}
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "6%" }} />
+          <col style={{ width: "12%" }} />
           <col style={{ width: "10%" }} />
+          <col style={{ width: "16%" }} />
         </colgroup>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left font-semibold uppercase tracking-wide text-slate-500">
@@ -49,6 +50,7 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
             <th className={TH}>FLD</th>
             <th className={TH}>Truck #</th>
             {isOperator && <th className={TH}>GPS #</th>}
+            <th className={TH}>Country</th>
             <th className={TH}>Trailer #</th>
             <th className={TH}>Driver #</th>
             <th className={TH}>Weight</th>
@@ -62,7 +64,11 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
             // Cancelled sub-orders don't need their truck shown; otherwise a
             // sub-order's cargo lives in exactly one truck at a time.
             const current = sub.status === "CANCELED" ? null : currentTruckOf(sub.trucks);
-            const freshness = locationFreshness(current?.locationUpdatedAt);
+            // Last update reflects ANY change to this sub-order or its
+            // trucks (a comment, a truck edit, a transfer, ...) — not just a
+            // location change — so it's driven by lastEditedAt, not by the
+            // truck's own locationUpdatedAt.
+            const freshness = locationFreshness(sub.lastEditedAt);
             const comment = sub.comments?.[0]?.text ?? null;
             return (
               <tr key={sub.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
@@ -88,6 +94,7 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                 <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
                 {isOperator && <td className={`${TD} truncate text-slate-600`}>{current?.gpsNumber || "—"}</td>}
+                <td className={`${TD} truncate text-slate-600`}>{current?.country || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>
@@ -97,8 +104,8 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                   {current?.currentLocation || "—"}
                 </td>
                 <td className={TD}>
-                  {current?.locationUpdatedAt ? (
-                    <span className={freshnessBadgeClass(freshness)}>{formatDateTime(current.locationUpdatedAt)}</span>
+                  {sub.lastEditedAt ? (
+                    <span className={freshnessBadgeClass(freshness)}>{formatDateTime(sub.lastEditedAt)}</span>
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}

@@ -108,13 +108,16 @@ operatorRouter.post(
     const subOrderId = requiredString(req.body?.subOrderId, "subOrderId");
     await requireLinkedSubOrder(me.id, groupOrderId, subOrderId);
     await assertSubOrderMutable(subOrderId);
-    const comment = await prisma.comment.create({
-      data: {
-        text: requiredString(req.body?.text, "text"),
-        author: me.email,
-        subOrderId,
-      },
-    });
+    const [comment] = await Promise.all([
+      prisma.comment.create({
+        data: {
+          text: requiredString(req.body?.text, "text"),
+          author: me.email,
+          subOrderId,
+        },
+      }),
+      touchSubOrderEditor(subOrderId, me.email),
+    ]);
     res.json({ comment });
   })
 );
@@ -229,6 +232,7 @@ operatorRouter.post(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertSubOrderMutable(req.params.subId);
     await cancelSubOrder(req.params.subId, req.params.id);
+    await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ ok: true });
   })
 );
@@ -240,6 +244,7 @@ operatorRouter.post(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertTruckMutable(req.params.truckId, req.params.subId);
     await cancelTruck(req.params.truckId, req.params.subId);
+    await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ ok: true });
   })
 );
@@ -251,6 +256,7 @@ operatorRouter.delete(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertTruckMutable(req.params.truckId, req.params.subId);
     await cancelTruck(req.params.truckId, req.params.subId);
+    await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ ok: true });
   })
 );
@@ -268,6 +274,7 @@ operatorRouter.post(
       createdByUserId: me.id,
       createdByLabel: me.email,
     });
+    await touchSubOrderEditor(req.params.subId, me.email);
     res.json(result);
   })
 );
@@ -279,6 +286,7 @@ operatorRouter.post(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertSubOrderMutable(req.params.subId);
     const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId);
+    await touchSubOrderEditor(req.params.subId, me.email);
     res.json(result);
   })
 );
@@ -290,6 +298,7 @@ operatorRouter.delete(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertSubOrderMutable(req.params.subId);
     await revokeDriverAssignment(req.params.assignmentId, req.params.subId);
+    await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ ok: true });
   })
 );

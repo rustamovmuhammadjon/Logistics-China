@@ -477,8 +477,8 @@ export function locationFreshness(value: string | Date | null | undefined): Fres
   const updatedAt = toDate(value);
   if (!updatedAt) return "none";
   const days = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
-  if (days <= 2) return "green";
-  if (days <= 5) return "amber";
+  if (days <= 1) return "green";
+  if (days <= 2) return "amber";
   return "red";
 }
 
