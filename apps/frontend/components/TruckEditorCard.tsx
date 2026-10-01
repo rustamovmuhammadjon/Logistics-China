@@ -8,6 +8,7 @@ import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { TruckFields } from "@/components/TruckFields";
 import { TruckHistoryRow, TruckReadout } from "@/components/TruckReadout";
+import { Track718MapButton } from "@/components/Track718MapModal";
 
 export function TruckEditorCard({
   truck,
@@ -74,7 +75,7 @@ export function TruckEditorCard({
         </form>
       ) : null}
 
-      {canEdit && <Track718Status truck={truck} />}
+      {canEdit && <Track718StatusRow truck={truck} eventsUrl={`${patchUrl}/track718/events`} />}
     </div>
   );
 }
@@ -90,7 +91,7 @@ const TRACK718_BADGE: Record<Track718Status, string> = {
 // nothing to enter here — the GPS number field above (in TruckFields) is
 // the only place that number is ever typed, and the backend starts/stops
 // track718 tracking automatically whenever it changes.
-function Track718Status({ truck }: { truck: TruckDto }) {
+function Track718StatusRow({ truck, eventsUrl }: { truck: TruckDto; eventsUrl: string }) {
   const track718 = truck.track718;
   if (!track718) return null;
 
@@ -99,6 +100,7 @@ function Track718Status({ truck }: { truck: TruckDto }) {
       <span className="text-sm font-semibold text-slate-800">track718 GPS box</span>
       <span className={TRACK718_BADGE[track718.status]}>{track718.status}</span>
       {track718.error && <span className="text-red-600">{track718.error}</span>}
+      <Track718MapButton eventsUrl={eventsUrl} />
     </div>
   );
 }

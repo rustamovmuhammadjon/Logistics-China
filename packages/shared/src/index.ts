@@ -136,6 +136,19 @@ export type Track718TrackingDto = {
   updatedAt: string;
 };
 
+// One GPS/status point out of track718's webhook history for a truck —
+// same visibility as Track718TrackingDto.
+export type Track718EventDto = {
+  id: string;
+  occurredAt: string;
+  statusText: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
 export type TruckDto = {
   id: string;
   subOrderId: string;

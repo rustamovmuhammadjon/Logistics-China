@@ -215,6 +215,45 @@ operatorRouter.patch(
   })
 );
 
+// Read-only, so unlike the routes above it never asserts the sub-order is
+// mutable — a completed or cancelled order's trucks still have a GPS
+// history worth looking at, even once nothing about them can change.
+operatorRouter.get(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/track718/events",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    const truck = await prisma.truck.findUnique({
+      where: { id: req.params.truckId },
+      include: { track718: true },
+    });
+    if (!truck || truck.subOrderId !== req.params.subId) notFound();
+    if (!truck.track718) {
+      res.json({ events: [] });
+      return;
+    }
+    const events = await prisma.track718Event.findMany({
+      where: {
+        trackingId: truck.track718.id,
+        occurredAt: { gte: truck.track718.trackFrom },
+      },
+      orderBy: { occurredAt: "asc" },
+      take: 1000,
+      select: {
+        id: true,
+        occurredAt: true,
+        statusText: true,
+        address: true,
+        city: true,
+        country: true,
+        lat: true,
+        lng: true,
+      },
+    });
+    res.json({ events });
+  })
+);
+
 operatorRouter.post(
   "/orders/:id/sub-orders/:subId/complete",
   asyncHandler(async (req, res) => {
