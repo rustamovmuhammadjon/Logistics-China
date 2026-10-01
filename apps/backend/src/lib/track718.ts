@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma.js";
+import { touchSubOrderEditor } from "./orders.js";
 
 const DEFAULT_TZ = process.env.TRACK718_DEFAULT_TZ || "+08:00";
 
@@ -205,14 +206,19 @@ export async function processTrack718Payload(payload: Track718Payload) {
       // on whatever was last typed in by hand, which defeats the point of
       // having live GPS. Same idea as a driver's own ping updating it.
       if (isNewer && latest.address) {
-        await prisma.truck.update({
+        const updatedTruck = await prisma.truck.update({
           where: { id: tracking.truckId },
           data: {
             currentLocation: latest.address,
             locationUpdatedAt: latest.occurredAt,
             ...(latest.lat != null && latest.lng != null ? { lastLat: latest.lat, lastLng: latest.lng } : {}),
           },
+          select: { subOrderId: true },
         });
+        // "Last update" (Monitoring's freshness column) needs to move too —
+        // it's driven by the sub-order, not the truck, and otherwise a
+        // GPS-only update would silently not count as one.
+        await touchSubOrderEditor(updatedTruck.subOrderId, "track718");
       }
     }
   }
