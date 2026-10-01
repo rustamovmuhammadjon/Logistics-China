@@ -199,6 +199,21 @@ export async function processTrack718Payload(payload: Track718Payload) {
             : {}),
         },
       });
+
+      // Mirror the new position onto the truck itself — otherwise "Current
+      // location" (shown in Monitoring and the truck detail view) just sits
+      // on whatever was last typed in by hand, which defeats the point of
+      // having live GPS. Same idea as a driver's own ping updating it.
+      if (isNewer && latest.address) {
+        await prisma.truck.update({
+          where: { id: tracking.truckId },
+          data: {
+            currentLocation: latest.address,
+            locationUpdatedAt: latest.occurredAt,
+            ...(latest.lat != null && latest.lng != null ? { lastLat: latest.lat, lastLng: latest.lng } : {}),
+          },
+        });
+      }
     }
   }
 }
