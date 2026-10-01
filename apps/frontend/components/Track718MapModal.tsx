@@ -99,10 +99,10 @@ function Track718MapModal({ eventsUrl, onClose }: { eventsUrl: string; onClose: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
       <div
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
           <h3 className="font-semibold text-slate-900">track718 route</h3>
           <button
             type="button"
@@ -114,27 +114,29 @@ function Track718MapModal({ eventsUrl, onClose }: { eventsUrl: string; onClose: 
           </button>
         </div>
 
-        {error && <p className="p-4 text-sm text-red-600">{error}</p>}
-        {!error && !events && <p className="p-4 text-sm text-slate-400">Loading…</p>}
-        {!error && events && !hasPoints && (
-          <p className="p-4 text-sm text-slate-400">No GPS points received yet.</p>
-        )}
-        {!error && hasPoints && <div ref={containerRef} className="h-[400px] w-full" />}
+        <div className="flex-1 overflow-y-auto">
+          {error && <p className="p-4 text-sm text-red-600">{error}</p>}
+          {!error && !events && <p className="p-4 text-sm text-slate-400">Loading…</p>}
+          {!error && events && !hasPoints && (
+            <p className="p-4 text-sm text-slate-400">No GPS points received yet.</p>
+          )}
+          {!error && hasPoints && <div ref={containerRef} className="h-[55vh] w-full" />}
 
-        {!error && events && events.length > 0 && (
-          <div className="overflow-y-auto border-t border-slate-200 p-3 text-xs">
-            {events
-              .slice()
-              .reverse()
-              .map((e) => (
-                <p key={e.id} className="border-b border-slate-100 py-1 last:border-0">
-                  <span className="text-slate-400">{formatDateTime(e.occurredAt)}</span>{" "}
-                  {e.address || [e.city, e.country].filter(Boolean).join(", ") || "—"}
-                  {e.statusText ? ` · ${e.statusText}` : ""}
-                </p>
-              ))}
-          </div>
-        )}
+          {!error && events && events.length > 0 && (
+            <div className="border-t border-slate-200 p-3 text-xs">
+              {events
+                .slice()
+                .reverse()
+                .map((e) => (
+                  <p key={e.id} className="border-b border-slate-100 py-1 last:border-0">
+                    <span className="text-slate-400">{formatDateTime(e.occurredAt)}</span>{" "}
+                    {e.address || [e.city, e.country].filter(Boolean).join(", ") || "—"}
+                    {e.statusText ? ` · ${e.statusText}` : ""}
+                  </p>
+                ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
