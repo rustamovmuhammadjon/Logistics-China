@@ -11,6 +11,7 @@ import {
 } from "../lib/orders.js";
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
+import { syncTrack718Tracking } from "../lib/track718.js";
 import {
   assertCanAddDirectTruck,
   assertSubOrderMutable,
@@ -160,20 +161,24 @@ operatorRouter.post(
       subOrderId: req.params.subId,
     });
     if (clash) conflict(plateConflictMessage(clash));
+    // GPS number is operator-only and lives outside truckFields() on
+    // purpose — admin's own truck routes call truckFields() too, and must
+    // not gain the ability to set it just by sharing that helper. It's also
+    // the one and only number track718 tracking is keyed on — see
+    // syncTrack718Tracking below.
+    const gpsNumber = optionalString(req.body?.gpsNumber);
     const [truck] = await Promise.all([
       prisma.truck.create({
         data: {
           subOrderId: req.params.subId,
           ...data,
-          // GPS number is operator-only and lives outside truckFields() on
-          // purpose — admin's own truck routes call truckFields() too, and
-          // must not gain the ability to set it just by sharing that helper.
-          gpsNumber: optionalString(req.body?.gpsNumber),
+          gpsNumber,
           locationUpdatedAt: data.currentLocation ? new Date() : null,
         },
       }),
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
+    await syncTrack718Tracking(truck.id, gpsNumber);
     res.json({ truck });
   })
 );
@@ -193,53 +198,20 @@ operatorRouter.patch(
     });
     if (clash) conflict(plateConflictMessage(clash));
     const locationChanged = data.currentLocation !== existing.currentLocation;
+    const gpsNumber = optionalString(req.body?.gpsNumber);
     const [truck] = await Promise.all([
       prisma.truck.update({
         where: { id: existing.id },
         data: {
           ...data,
-          gpsNumber: optionalString(req.body?.gpsNumber),
+          gpsNumber,
           locationUpdatedAt: locationChanged ? new Date() : existing.locationUpdatedAt,
         },
       }),
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
+    await syncTrack718Tracking(existing.id, gpsNumber);
     res.json({ truck });
-  })
-);
-
-// track718 (Starlink Box) — Phase 1: just save the number. Saving always
-// resets status to PENDING and clears any old error, since a changed number
-// (or a re-save) means whatever happened before is no longer relevant; a
-// later phase moves it to ACTIVE once the first webhook push arrives.
-operatorRouter.patch(
-  "/orders/:id/sub-orders/:subId/trucks/:truckId/track718",
-  asyncHandler(async (req, res) => {
-    const me = (req as AuthedRequest).user!;
-    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
-    const truck = await assertTruckMutable(req.params.truckId, req.params.subId);
-    const trackingNumber = requiredString(req.body?.trackingNumber, "trackingNumber");
-    const trackFrom = optionalDate(req.body?.trackFrom) ?? new Date();
-
-    const track718 = await prisma.track718Tracking.upsert({
-      where: { truckId: truck.id },
-      create: { truckId: truck.id, trackingNumber, trackFrom },
-      update: { trackingNumber, trackFrom, status: "PENDING", error: null },
-    });
-    await touchSubOrderEditor(req.params.subId, me.email);
-    res.json({ track718 });
-  })
-);
-
-operatorRouter.delete(
-  "/orders/:id/sub-orders/:subId/trucks/:truckId/track718",
-  asyncHandler(async (req, res) => {
-    const me = (req as AuthedRequest).user!;
-    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
-    const truck = await assertTruckMutable(req.params.truckId, req.params.subId);
-    await prisma.track718Tracking.deleteMany({ where: { truckId: truck.id } });
-    await touchSubOrderEditor(req.params.subId, me.email);
-    res.json({ ok: true });
   })
 );
 

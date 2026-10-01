@@ -131,6 +131,27 @@ export function collectEvents(item: Track718WebhookItem): NormalizedTrack718Even
   return [...byKey.values()];
 }
 
+// A truck has exactly one GPS number (Truck.gpsNumber) — operators used to
+// also be asked to separately type the same number into a "track718
+// tracking number" field, which just invited the two to drift apart. Now
+// gpsNumber is the only input anywhere, and this keeps Track718Tracking in
+// lockstep with it: cleared gpsNumber removes tracking, a genuinely new
+// number restarts tracking (PENDING, error cleared), and re-saving the same
+// number leaves an already-ACTIVE tracking's status alone.
+export async function syncTrack718Tracking(truckId: string, gpsNumber: string | null) {
+  if (!gpsNumber) {
+    await prisma.track718Tracking.deleteMany({ where: { truckId } });
+    return;
+  }
+  const existing = await prisma.track718Tracking.findUnique({ where: { truckId } });
+  if (existing?.trackingNumber === gpsNumber) return;
+  await prisma.track718Tracking.upsert({
+    where: { truckId },
+    create: { truckId, trackingNumber: gpsNumber, trackFrom: new Date() },
+    update: { trackingNumber: gpsNumber, trackFrom: new Date(), status: "PENDING", error: null },
+  });
+}
+
 function isUniqueConstraintError(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
 }
