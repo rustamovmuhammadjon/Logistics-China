@@ -11,14 +11,29 @@ import { clientApi } from "@/lib/api";
 // OpenStreetMap map (via Leaflet — no API key needed). Leaflet touches
 // `window` the moment it's loaded, so it's imported dynamically inside an
 // effect rather than at module scope, keeping this safe under SSR.
-export function Track718MapButton({ eventsUrl }: { eventsUrl: string }) {
+export function Track718MapButton({ eventsUrl, compact = false }: { eventsUrl: string; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="btn-secondary text-xs" onClick={() => setOpen(true)}>
-        <MapIcon className="h-3.5 w-3.5" />
-        View in map
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          className="shrink-0 text-brand-600 hover:text-brand-800"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          title="View in map"
+          aria-label="View in map"
+        >
+          <MapIcon className="h-3.5 w-3.5" />
+        </button>
+      ) : (
+        <button type="button" className="btn-secondary text-xs" onClick={() => setOpen(true)}>
+          <MapIcon className="h-3.5 w-3.5" />
+          View in map
+        </button>
+      )}
       {open && <Track718MapModal eventsUrl={eventsUrl} onClose={() => setOpen(false)} />}
     </>
   );

@@ -12,6 +12,7 @@ import {
   type GroupOrderDto,
   type ViewerContext,
 } from "@logistics/shared";
+import { Track718MapButton } from "@/components/Track718MapModal";
 
 const TH = "px-3 py-2 text-[11px]";
 const TD = "px-3 py-2 text-xs";
@@ -93,7 +94,19 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                 </td>
                 <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
-                {isOperator && <td className={`${TD} truncate text-slate-600`}>{current?.gpsNumber || "—"}</td>}
+                {isOperator && (
+                  <td className={`${TD} text-slate-600`}>
+                    <span className="flex items-center gap-1">
+                      <span className="truncate">{current?.gpsNumber || "—"}</span>
+                      {current?.track718 && (
+                        <Track718MapButton
+                          eventsUrl={`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${current.id}/track718/events`}
+                          compact
+                        />
+                      )}
+                    </span>
+                  </td>
+                )}
                 <td className={`${TD} truncate text-slate-600`}>{current?.country || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
