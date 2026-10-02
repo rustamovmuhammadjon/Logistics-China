@@ -7,6 +7,9 @@ import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { DriverAssignPanel } from "@/components/DriverAssignPanel";
 import { CargoTransferForm } from "@/components/CargoTransferForm";
+import { PlateNumberField } from "@/components/PlateNumberField";
+import { CountryField } from "@/components/CountryField";
+import { PhoneField } from "@/components/PhoneField";
 
 export function AdminSubOrderForms({
   orderId,
@@ -117,11 +120,11 @@ export function AdminSubOrderForms({
           }}
           className="grid grid-cols-1 gap-4 sm:grid-cols-3"
         >
-          <Field name="plateNumber" label="Truck plate number" />
-          <Field name="trailerPlateNumber" label="Trailer plate number" />
-          <Field name="country" label="Country" />
+          <PlateNumberField name="plateNumber" label="Truck plate number" />
+          <PlateNumberField name="trailerPlateNumber" label="Trailer plate number" />
+          <CountryField name="country" label="Country" />
           <Field name="driverName" label="Driver name" />
-          <Field name="driverPhone" label="Driver phone" />
+          <PhoneField name="driverPhone" label="Driver phone" />
           <Field name="cargoWeight" label="Gross weight (tons)" type="number" />
           <div className="sm:col-span-3">
             <Field name="currentLocation" label="Current location" />

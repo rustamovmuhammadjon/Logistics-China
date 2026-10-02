@@ -5,6 +5,9 @@ import { formatDateTime, hasTransferredOut, type TruckDto } from "@logistics/sha
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { PlateNumberField } from "@/components/PlateNumberField";
+import { CountryField } from "@/components/CountryField";
+import { PhoneField } from "@/components/PhoneField";
 
 export function AdminTruckForms({
   orderId,
@@ -50,11 +53,11 @@ export function AdminTruckForms({
         }}
         className="grid grid-cols-1 gap-4 sm:grid-cols-3"
       >
-        <Field name="plateNumber" label="Truck plate number" defaultValue={truck.plateNumber} readOnly={frozen} />
-        <Field name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck.trailerPlateNumber} readOnly={frozen} />
-        <Field name="country" label="Country" defaultValue={truck.country} readOnly={frozen} />
+        <PlateNumberField name="plateNumber" label="Truck plate number" defaultValue={truck.plateNumber} readOnly={frozen} />
+        <PlateNumberField name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck.trailerPlateNumber} readOnly={frozen} />
+        <CountryField name="country" label="Country" defaultValue={truck.country} readOnly={frozen} />
         <Field name="driverName" label="Driver name" defaultValue={truck.driverName} readOnly={frozen} />
-        <Field name="driverPhone" label="Driver phone" defaultValue={truck.driverPhone} readOnly={frozen} />
+        <PhoneField name="driverPhone" label="Driver phone" defaultValue={truck.driverPhone} readOnly={frozen} />
         <Field name="cargoWeight" label="Gross weight (tons)" type="number" defaultValue={truck.cargoWeight} readOnly={frozen} />
         <div className="sm:col-span-3">
           <Field name="currentLocation" label="Current location" defaultValue={truck.currentLocation} readOnly={frozen} />

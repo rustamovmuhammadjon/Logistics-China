@@ -2,7 +2,15 @@ import { MAX_TRANSFERS_PER_SUB_ORDER } from "@logistics/shared";
 import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
-import { dateOrToday, normalizePhone, normalizePlate, optionalString, requiredString, truthyFlag } from "./input.js";
+import {
+  dateOrToday,
+  optionalDisplayPhone,
+  optionalPlate,
+  normalizePlate,
+  optionalString,
+  requiredString,
+  truthyFlag,
+} from "./input.js";
 import { assertSubOrderMutable } from "./lifecycle.js";
 
 export async function createCargoTransfer(params: {
@@ -46,8 +54,7 @@ export async function createCargoTransfer(params: {
   let toPlate = toPlateRaw ? normalizePlate(toPlateRaw, "toPlateNumber") : null;
   let toTrailer = keepTrailer
     ? fromTruck.trailerPlateNumber
-    : optionalString(body.toTrailerPlateNumber) ?? optionalString(body.trailerPlateNumber);
-  if (toTrailer) toTrailer = toTrailer.replace(/\s+/g, "").toUpperCase();
+    : optionalPlate(body.toTrailerPlateNumber ?? body.trailerPlateNumber);
 
   if (keepTrailer && !fromTruck.trailerPlateNumber) {
     badRequest("This truck has no trailer to keep. Add a trailer number first, or uncheck keep-trailer.");
@@ -62,16 +69,14 @@ export async function createCargoTransfer(params: {
     if (existing.canceledAt) badRequest("Destination truck is canceled");
     if (existing.transfersFrom.length > 0) badRequest("Destination truck already transferred cargo");
     if (existing.id === fromTruck.id) badRequest("Choose a different destination truck");
-    toPlate = existing.plateNumber ? existing.plateNumber.replace(/\s+/g, "").toUpperCase() : toPlate;
+    toPlate = existing.plateNumber ? optionalPlate(existing.plateNumber) : toPlate;
   } else {
     if (!toPlate) badRequest("Enter the destination truck plate number");
     const trucks = await prisma.truck.findMany({
       where: { subOrderId },
       include: { transfersFrom: { select: { id: true } } },
     });
-    const existing = trucks.find(
-      (truck) => truck.plateNumber && truck.plateNumber.replace(/\s+/g, "").toUpperCase() === toPlate
-    );
+    const existing = trucks.find((truck) => truck.plateNumber && optionalPlate(truck.plateNumber) === toPlate);
     if (existing) {
       if (existing.id === fromTruck.id) badRequest("Destination truck must be different from the source");
       if (existing.canceledAt) badRequest("Destination truck is canceled");
@@ -98,7 +103,7 @@ export async function createCargoTransfer(params: {
         trailerPlateNumber: toTrailer,
         country,
         driverName: optionalString(body.driverName),
-        driverPhone: optionalString(body.driverPhone) ? normalizePhone(body.driverPhone) : null,
+        driverPhone: optionalDisplayPhone(body.driverPhone),
         gpsNumber,
         cargoWeight: fromTruck.cargoWeight,
         currentLocation,
@@ -108,7 +113,7 @@ export async function createCargoTransfer(params: {
     toTruckId = created.id;
   } else {
     const driverName = optionalString(body.driverName);
-    const driverPhoneRaw = optionalString(body.driverPhone);
+    const driverPhone = optionalDisplayPhone(body.driverPhone);
     await prisma.truck.update({
       where: { id: toTruckId },
       data: {
@@ -118,7 +123,7 @@ export async function createCargoTransfer(params: {
         country,
         ...(toTrailer ? { trailerPlateNumber: toTrailer } : {}),
         ...(driverName ? { driverName } : {}),
-        ...(driverPhoneRaw ? { driverPhone: normalizePhone(driverPhoneRaw) } : {}),
+        ...(driverPhone ? { driverPhone } : {}),
         // Only overwrite if the operator actually typed one here — this
         // truck (matched/reused by plate) may already have its own GPS
         // number set from before, and an empty transfer field shouldn't

@@ -43,10 +43,44 @@ export function normalizePhone(value: unknown): string {
   return digits;
 }
 
+// Plates are letters/digits only — no spaces, hyphens, or any other
+// punctuation — uppercased, and Latin-only (toUpperCase() leaves non-Latin
+// letters as non-A-Z characters, so the A-Z0-9 filter drops them too).
+function cleanPlateChars(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 export function normalizePlate(value: unknown, field = "plateNumber"): string {
-  const plate = requiredString(value, field).replace(/\s+/g, "").toUpperCase();
+  const plate = cleanPlateChars(requiredString(value, field));
   if (plate.length < 3) badRequest(`"${field}" looks too short`);
   return plate;
+}
+
+export function optionalPlate(value: unknown): string | null {
+  const raw = optionalString(value);
+  return raw ? cleanPlateChars(raw) : null;
+}
+
+// Display phone numbers (Truck.driverPhone, User.phone) — distinct from
+// normalizePhone() above, which strips to bare digits for driver-assignment
+// pairing lookups and must stay that way for existing pairings to keep
+// matching. These instead keep the "+<country code><number>" (E.164) shape
+// the frontend's phone input already sends, since the whole point here is
+// to show a real, correctly formatted international number.
+const E164_PATTERN = /^\+[1-9]\d{6,14}$/;
+
+export function optionalDisplayPhone(value: unknown, field = "phone"): string | null {
+  const raw = optionalString(value);
+  if (!raw) return null;
+  const cleaned = raw.replace(/[\s()-]/g, "");
+  if (!E164_PATTERN.test(cleaned)) badRequest(`Enter a valid "${field}" number, including the country code`);
+  return cleaned;
+}
+
+export function requiredDisplayPhone(value: unknown, field = "phone"): string {
+  const result = optionalDisplayPhone(value, field);
+  if (!result) badRequest(`"${field}" is required`);
+  return result;
 }
 
 export function optionalDate(value: unknown): Date | null {

@@ -1,6 +1,6 @@
 import type { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "./prisma.js";
-import { optionalFloat, optionalString } from "./input.js";
+import { optionalDisplayPhone, optionalFloat, optionalPlate, optionalString } from "./input.js";
 
 // A company's employee creates orders on the company's behalf — the order
 // (and its operator links) belong to the company, not the employee, so
@@ -288,11 +288,11 @@ export function stripGpsNumber<T extends { subOrders: Array<{ trucks: Array<Reco
 
 export function truckFields(body: Record<string, unknown>) {
   return {
-    plateNumber: optionalString(body.plateNumber),
-    trailerPlateNumber: optionalString(body.trailerPlateNumber),
+    plateNumber: optionalPlate(body.plateNumber),
+    trailerPlateNumber: optionalPlate(body.trailerPlateNumber),
     country: optionalString(body.country),
     driverName: optionalString(body.driverName),
-    driverPhone: optionalString(body.driverPhone),
+    driverPhone: optionalDisplayPhone(body.driverPhone),
     cargoWeight: optionalFloat(body.cargoWeight),
     currentLocation: optionalString(body.currentLocation),
   };

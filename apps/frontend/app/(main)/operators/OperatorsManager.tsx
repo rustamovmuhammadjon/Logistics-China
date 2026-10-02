@@ -6,6 +6,7 @@ import { formatDate, type OperatorEmployeeDto } from "@logistics/shared";
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { PhoneField } from "@/components/PhoneField";
 
 export function OperatorsManager({ operators }: { operators: OperatorEmployeeDto[] }) {
   const { submit, pending, error } = useApiSubmit();
@@ -38,7 +39,7 @@ export function OperatorsManager({ operators }: { operators: OperatorEmployeeDto
             <Field name="firstName" label="First name" pattern="^[\p{L}\s]+$" />
             <Field name="lastName" label="Last name" pattern="^[\p{L}\s]+$" />
             <Field name="email" label="Email" type="email" />
-            <Field name="phone" label="Phone" />
+            <PhoneField name="phone" label="Phone" required />
             <Field name="dateOfBirth" label="Date of birth" type="date" />
             <div className="sm:col-span-2">
               <Field name="password" label="Password (min. 8 characters)" type="password" minLength={8} />
@@ -136,7 +137,7 @@ function EditOperatorForm({ operator, onDone }: { operator: OperatorEmployeeDto;
       <Field name="firstName" label="First name" pattern="^[\p{L}\s]+$" defaultValue={operator.firstName ?? ""} />
       <Field name="lastName" label="Last name" pattern="^[\p{L}\s]+$" defaultValue={operator.lastName ?? ""} />
       <Field name="email" label="Email" type="email" defaultValue={operator.email} />
-      <Field name="phone" label="Phone" defaultValue={operator.phone ?? ""} />
+      <PhoneField name="phone" label="Phone" defaultValue={operator.phone} required />
       <Field
         name="dateOfBirth"
         label="Date of birth"

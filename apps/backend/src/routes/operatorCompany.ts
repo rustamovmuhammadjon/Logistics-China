@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound } from "../lib/errors.js";
-import { parseDateOfBirth, requiredString } from "../lib/input.js";
+import { parseDateOfBirth, requiredDisplayPhone } from "../lib/input.js";
 import { generateUniqueLinkCode, toPublicUser } from "../lib/auth.js";
 import { orderVisibilityWhere } from "../lib/orders.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -27,7 +27,7 @@ function operatorFields(body: Record<string, unknown>) {
   if (!EMAIL_PATTERN.test(email)) badRequest("Enter a valid email address");
   if (!firstName || !isLettersOnly(firstName)) badRequest("First name is required and may only contain letters");
   if (!lastName || !isLettersOnly(lastName)) badRequest("Last name is required and may only contain letters");
-  const phone = requiredString(body.phone, "phone");
+  const phone = requiredDisplayPhone(body.phone);
   const dateOfBirth = parseDateOfBirth(body.dateOfBirth, true);
   return { email, firstName, lastName, phone, dateOfBirth };
 }

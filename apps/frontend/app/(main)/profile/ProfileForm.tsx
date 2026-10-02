@@ -2,6 +2,7 @@
 
 import { toDateInputValue } from "@logistics/shared";
 import { useApiSubmit } from "@/lib/hooks";
+import { PhoneField } from "@/components/PhoneField";
 
 export function ProfileForm({
   isCompany = false,
@@ -80,10 +81,7 @@ export function ProfileForm({
           </div>
         </>
       )}
-      <div>
-        <label className="field-label">Phone number</label>
-        <input className="field-input" type="text" name="phone" defaultValue={phone ?? ""} readOnly={readOnly} />
-      </div>
+      <PhoneField name="phone" label="Phone number" defaultValue={phone} readOnly={readOnly} />
       <div className="sm:col-span-2">
         <label className="field-label">Email (used to log in)</label>
         <input className="field-input" type="email" name="email" defaultValue={email} readOnly={readOnly} required />

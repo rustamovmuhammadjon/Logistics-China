@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, isLettersOnly } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest } from "../lib/errors.js";
-import { optionalString, parseDateOfBirth } from "../lib/input.js";
+import { optionalDisplayPhone, parseDateOfBirth } from "../lib/input.js";
 import { toPublicUser } from "../lib/auth.js";
 import { assertSupabasePublicUrl, removePublicFiles } from "../lib/supabase.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -34,7 +34,7 @@ profileRouter.patch(
         ? (() => {
             const companyName = String(req.body?.companyName ?? "").trim();
             if (!companyName) badRequest("Company name is required");
-            return { email, companyName, phone: optionalString(req.body?.phone) };
+            return { email, companyName, phone: optionalDisplayPhone(req.body?.phone) };
           })()
         : (() => {
             const firstName = String(req.body?.firstName ?? "").trim();
@@ -49,7 +49,7 @@ profileRouter.patch(
               email,
               firstName,
               lastName,
-              phone: optionalString(req.body?.phone),
+              phone: optionalDisplayPhone(req.body?.phone),
               dateOfBirth: parseDateOfBirth(req.body?.dateOfBirth, true),
             };
           })();

@@ -5,6 +5,8 @@ import { formatDateTime, type DriverAssignmentDto, type TruckDto } from "@logist
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { PhoneField } from "@/components/PhoneField";
+import { PlateNumberField } from "@/components/PlateNumberField";
 
 export function DriverAssignPanel({
   apiBase,
@@ -51,9 +53,7 @@ export function DriverAssignPanel({
         }}
         className="grid grid-cols-2 gap-2 sm:grid-cols-3"
       >
-        <div>
-          <label className="field-label">Truck plate</label>
-          <input className="field-input" name="plateNumber" list="driver-assign-plates" placeholder="80Z476PA" required />
+        <PlateNumberField name="plateNumber" label="Truck plate" list="driver-assign-plates" placeholder="80Z476PA" required>
           <datalist id="driver-assign-plates">
             {trucks.map((truck) =>
               truck.plateNumber ? (
@@ -61,11 +61,8 @@ export function DriverAssignPanel({
               ) : null
             )}
           </datalist>
-        </div>
-        <div>
-          <label className="field-label">Driver phone</label>
-          <input className="field-input" name="phone" placeholder="+99890..." required />
-        </div>
+        </PlateNumberField>
+        <PhoneField name="phone" label="Driver phone" required />
         <div className="col-span-2 flex items-end sm:col-span-1">
           <button type="submit" className="btn-primary w-full" disabled={pending}>
             {pending ? "Creating…" : "Create pairing"}

@@ -5,6 +5,9 @@ import { formatDate, MAX_TRANSFERS_PER_SUB_ORDER, type CargoTransferDto, type Tr
 import { formToJson } from "@/lib/api";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { PlateNumberField } from "@/components/PlateNumberField";
+import { CountryField } from "@/components/CountryField";
+import { PhoneField } from "@/components/PhoneField";
 
 export function CargoTransferForm({
   apiBase,
@@ -61,10 +64,7 @@ export function CargoTransferForm({
                 ))}
               </select>
             </div>
-            <div>
-              <label className="field-label">To truck plate</label>
-              <input className="field-input" name="toPlateNumber" placeholder="85Y294PA" required />
-            </div>
+            <PlateNumberField name="toPlateNumber" label="To truck plate" placeholder="85Y294PA" required />
             {showGps && (
               <div>
                 <label className="field-label">New GPS number</label>
@@ -81,18 +81,11 @@ export function CargoTransferForm({
             </label>
             {!keepTrailer && (
               <div className="col-span-2 sm:col-span-3">
-                <label className="field-label">To trailer plate</label>
-                <input className="field-input" name="toTrailerPlateNumber" placeholder="LB7178TR" />
+                <PlateNumberField name="toTrailerPlateNumber" label="To trailer plate" placeholder="LB7178TR" />
               </div>
             )}
-            <div>
-              <label className="field-label">New vehicle country</label>
-              <input className="field-input" name="country" required />
-            </div>
-            <div>
-              <label className="field-label">New driver phone</label>
-              <input className="field-input" name="driverPhone" placeholder="optional" />
-            </div>
+            <CountryField name="country" label="New vehicle country" required />
+            <PhoneField name="driverPhone" label="New driver phone" />
             <div>
               <label className="field-label">New driver name</label>
               <input className="field-input" name="driverName" placeholder="optional" />

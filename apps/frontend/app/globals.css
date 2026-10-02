@@ -37,6 +37,25 @@
     @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10;
   }
 
+  /* react-phone-number-input's own root element — styled to look like one
+     field-input, with its inner country-select and number input made
+     borderless/transparent so they blend into it as a single control. */
+  .phone-input {
+    @apply flex w-full items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10;
+  }
+
+  .phone-input .PhoneInputInput {
+    @apply w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none placeholder:text-slate-400;
+  }
+
+  .phone-input .PhoneInputCountry {
+    @apply shrink-0;
+  }
+
+  .phone-input.PhoneInput--disabled {
+    @apply opacity-60;
+  }
+
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }

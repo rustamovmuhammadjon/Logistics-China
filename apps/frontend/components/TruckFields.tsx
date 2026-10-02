@@ -1,3 +1,7 @@
+import { PlateNumberField } from "@/components/PlateNumberField";
+import { CountryField } from "@/components/CountryField";
+import { PhoneField } from "@/components/PhoneField";
+
 export function TruckFields({
   truck,
   showGps = false,
@@ -19,12 +23,12 @@ export function TruckFields({
 }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      <Field name="plateNumber" label="Truck plate number" defaultValue={truck?.plateNumber} />
+      <PlateNumberField name="plateNumber" label="Truck plate number" defaultValue={truck?.plateNumber} />
       {showGps && <Field name="gpsNumber" label="GPS number" defaultValue={truck?.gpsNumber} />}
-      <Field name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck?.trailerPlateNumber} />
-      <Field name="country" label="Country" defaultValue={truck?.country} />
+      <PlateNumberField name="trailerPlateNumber" label="Trailer plate number" defaultValue={truck?.trailerPlateNumber} />
+      <CountryField name="country" label="Country" defaultValue={truck?.country} />
       <Field name="driverName" label="Driver name" defaultValue={truck?.driverName} />
-      <Field name="driverPhone" label="Driver phone" defaultValue={truck?.driverPhone} />
+      <PhoneField name="driverPhone" label="Driver phone" defaultValue={truck?.driverPhone} />
       <Field name="cargoWeight" label="Gross weight (tons)" type="number" defaultValue={truck?.cargoWeight} />
       <div className="col-span-2 sm:col-span-4">
         <Field name="currentLocation" label="Current location" defaultValue={truck?.currentLocation} />
