@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { clearToken, driverRequest } from "../api";
+import { LinearGradient } from "expo-linear-gradient";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { clearToken, driverRequest, unpairDriver } from "../api";
 import { sendCurrentLocation, startLocationUpdates, stopLocationUpdates } from "../location";
+import { colors, radius, spacing } from "../theme";
 
 type DriverMe = {
   driver: {
@@ -55,50 +58,176 @@ export function HomeScreen({ onUnpaired }: { onUnpaired: () => Promise<void> }) 
 
   async function unpair() {
     await stopLocationUpdates();
+    // Must happen before clearToken() — the request still needs the token
+    // to authenticate as this driver.
+    await unpairDriver();
     await clearToken();
     await onUnpaired();
   }
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.kicker}>Biriktirilgan yuk</Text>
-      <Text style={styles.title}>{me?.truck?.plateNumber || "Truck"}</Text>
-      {me?.truck?.trailerPlateNumber ? (
-        <Text style={styles.meta}>Treyler: {me.truck.trailerPlateNumber}</Text>
-      ) : null}
-      <Text style={styles.meta}>
-        {me?.truck?.orderName}
-        {me?.truck?.subOrderName ? ` · ${me.truck.subOrderName}` : ""}
-      </Text>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Oxirgi joylashuv</Text>
-        <Text style={styles.cardValue}>{me?.lastLocationText || me?.truck?.currentLocation || "Hali yuborilmagan"}</Text>
-        <Text style={styles.cardHint}>
-          {me?.lastPingAt ? new Date(me.lastPingAt).toLocaleString() : "Ilova har 3 soatda avtomatik yuboradi"}
-        </Text>
+    <LinearGradient colors={[colors.bg, colors.bgElevated]} style={styles.fill}>
+      <View style={styles.wrap}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.kicker}>Biriktirilgan yuk</Text>
+            <Text style={styles.title}>{me?.truck?.plateNumber || "Truck"}</Text>
+          </View>
+          <View style={styles.badge}>
+            <MaterialCommunityIcons name="truck-outline" size={26} color={colors.accent} />
+          </View>
+        </View>
+
+        <View style={styles.chipRow}>
+          {me?.truck?.trailerPlateNumber ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>Treyler · {me.truck.trailerPlateNumber}</Text>
+            </View>
+          ) : null}
+          {me?.truck?.orderName ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>
+                {me.truck.orderName}
+                {me.truck.subOrderName ? ` · ${me.truck.subOrderName}` : ""}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardIcon}>
+            <Feather name="map-pin" size={18} color={colors.accent} />
+          </View>
+          <View style={styles.cardBody}>
+            <Text style={styles.cardLabel}>Oxirgi joylashuv</Text>
+            <Text style={styles.cardValue} numberOfLines={2}>
+              {me?.lastLocationText || me?.truck?.currentLocation || "Hali yuborilmagan"}
+            </Text>
+            <Text style={styles.cardHint}>
+              {me?.lastPingAt ? new Date(me.lastPingAt).toLocaleString() : "Ilova har 3 soatda avtomatik yuboradi"}
+            </Text>
+          </View>
+        </View>
+
+        {error ? (
+          <View style={styles.errorBox}>
+            <Feather name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.spacer} />
+
+        <Pressable
+          style={({ pressed }) => [styles.button, pending && styles.buttonDisabled, pressed && styles.buttonPressed]}
+          onPress={() => void pingNow()}
+          disabled={pending}
+        >
+          {pending ? (
+            <Text style={styles.buttonText}>Yuborilmoqda…</Text>
+          ) : (
+            <>
+              <Feather name="navigation" size={17} color={colors.bg} />
+              <Text style={styles.buttonText}>Hozir joylashuvni yuborish</Text>
+            </>
+          )}
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}
+          onPress={() => void unpair()}
+        >
+          <Feather name="log-out" size={15} color={colors.textTertiary} />
+          <Text style={styles.linkText}>Shu telefondan chiqish</Text>
+        </Pressable>
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable style={styles.button} onPress={() => void pingNow()} disabled={pending}>
-        <Text style={styles.buttonText}>{pending ? "Yuborilmoqda…" : "Hozir joylashuvni yuborish"}</Text>
-      </Pressable>
-      <Pressable onPress={() => void unpair()}>
-        <Text style={styles.link}>Shu telefondan chiqish</Text>
-      </Pressable>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 24, paddingTop: 72, gap: 10 },
-  kicker: { color: "#7dd3fc", fontSize: 13, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: "white", fontSize: 32, fontWeight: "800" },
-  meta: { color: "#94a3b8", fontSize: 15 },
-  card: { backgroundColor: "#1e293b", borderRadius: 18, padding: 18, marginTop: 16, gap: 6 },
-  cardLabel: { color: "#64748b", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.6 },
-  cardValue: { color: "white", fontSize: 18, fontWeight: "600" },
-  cardHint: { color: "#94a3b8", fontSize: 13 },
-  error: { color: "#fca5a5" },
-  button: { backgroundColor: "#0284c7", borderRadius: 14, paddingVertical: 16, alignItems: "center", marginTop: 12 },
-  buttonText: { color: "white", fontSize: 16, fontWeight: "700" },
-  link: { color: "#64748b", textAlign: "center", marginTop: 18 },
+  fill: { flex: 1 },
+  wrap: { flex: 1, padding: spacing.xl, paddingTop: 64 },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  kicker: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+  title: { color: colors.textPrimary, fontSize: 34, fontWeight: "800", marginTop: 4 },
+  badge: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.lg },
+  chip: {
+    backgroundColor: colors.surfaceAlt,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+  },
+  chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: "500" },
+  card: {
+    flexDirection: "row",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.xl,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardBody: { flex: 1, gap: 4 },
+  cardLabel: { color: colors.textTertiary, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.6 },
+  cardValue: { color: colors.textPrimary, fontSize: 18, fontWeight: "600" },
+  cardHint: { color: colors.textSecondary, fontSize: 13 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    marginTop: spacing.lg,
+  },
+  errorText: { color: colors.danger, fontSize: 13, flexShrink: 1 },
+  spacer: { flex: 1 },
+  button: {
+    flexDirection: "row",
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    paddingVertical: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  buttonPressed: { opacity: 0.85 },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: colors.bg, fontSize: 16, fontWeight: "700" },
+  link: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    marginTop: spacing.xl,
+    paddingVertical: spacing.sm,
+  },
+  linkText: { color: colors.textTertiary, fontSize: 14 },
 });

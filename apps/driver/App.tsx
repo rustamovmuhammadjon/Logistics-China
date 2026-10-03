@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { getToken } from "./src/api";
 import { PairScreen } from "./src/screens/PairScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { colors } from "./src/theme";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -25,14 +26,14 @@ export default function App() {
 
   if (!ready) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0f172a" }}>
-        <ActivityIndicator color="#38bdf8" />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f172a" }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <StatusBar style="light" />
       {token ? <HomeScreen onUnpaired={reload} /> : <PairScreen onPaired={reload} />}
     </View>

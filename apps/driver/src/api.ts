@@ -53,3 +53,15 @@ export async function pairDriver(phone: string, code: string) {
   await setToken(data.token);
   return data;
 }
+
+// Tell the server to revoke this pairing (so the web dashboard stops
+// showing "Paired") before wiping the local token. Best-effort — if the
+// phone has no connectivity right now, the sign-out still proceeds locally
+// rather than trapping the driver in a pairing they can't reach anymore.
+export async function unpairDriver() {
+  try {
+    await driverRequest("/unpair", { method: "POST" });
+  } catch {
+    // ignore — local sign-out still happens either way
+  }
+}

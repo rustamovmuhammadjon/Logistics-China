@@ -137,6 +137,23 @@ export async function revokeDriverAssignment(assignmentId: string, subOrderId: s
   });
 }
 
+// The driver's own "sign out of this phone" action — same end state as an
+// operator/admin revoking the pairing, just self-service and scoped to
+// whichever assignment their own JWT already names (requireDriver already
+// proved they hold a valid token for exactly this assignment, so there's no
+// separate ownership check to make here).
+export async function unpairDriver(assignmentId: string) {
+  await prisma.driverAssignment.update({
+    where: { id: assignmentId },
+    data: {
+      status: "REVOKED",
+      pairingCodeHash: null,
+      pairingExpiresAt: null,
+      tokenVersion: { increment: 1 },
+    },
+  });
+}
+
 export async function pairDriver(phone: unknown, code: unknown) {
   const phoneNormalized = normalizePhone(phone);
   const pairingCode = String(code ?? "").replace(/\s+/g, "");

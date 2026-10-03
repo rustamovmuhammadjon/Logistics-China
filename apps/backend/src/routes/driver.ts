@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { optionalFloat, optionalString, requiredNumber } from "../lib/input.js";
-import { loadActiveDriver, pairDriver, recordDriverPing, toDriverMe } from "../lib/assignments.js";
+import { loadActiveDriver, pairDriver, recordDriverPing, toDriverMe, unpairDriver } from "../lib/assignments.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireDriver, type DriverRequest } from "../middleware/auth.js";
 import { broadcastOnMutation } from "../middleware/realtime.js";
@@ -27,6 +27,20 @@ driverRouter.get(
     const session = (req as DriverRequest).driver;
     const assignment = await loadActiveDriver(session.assignmentId, session.tokenVersion);
     res.json({ driver: toDriverMe(assignment) });
+  })
+);
+
+// The phone app's "sign out of this phone" button — revokes the pairing
+// server-side so the web dashboard stops showing it as paired, instead of
+// only ever clearing the token locally (which was the bug: the website kept
+// showing "Paired" forever since nothing had told the backend).
+driverRouter.post(
+  "/unpair",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const session = (req as DriverRequest).driver;
+    await unpairDriver(session.assignmentId);
+    res.json({ ok: true });
   })
 );
 

@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.26.0",
+    "@expo/vector-icons": "~14.0.4",
     "expo": "~52.0.46",
     "expo-background-fetch": "~13.0.6",
+    "expo-linear-gradient": "~14.0.2",
     "expo-location": "~18.0.10",
     "expo-secure-store": "~14.0.1",
     "expo-status-bar": "~2.0.1",
