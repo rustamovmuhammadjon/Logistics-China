@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
@@ -29,20 +30,38 @@ export function PhoneField({
     return defaultValue.startsWith("+") ? defaultValue : `+${defaultValue}`;
   });
 
+  // Optional fields need an obvious way to blank out an already-set number
+  // — backspacing a formatted international value back to nothing isn't
+  // always straightforward, so give it an explicit clear button instead.
+  const clearable = !readOnly && !required && Boolean(value);
+
   return (
     <div>
       <label className="field-label">{label}</label>
-      <PhoneInput
-        className="phone-input"
-        name={name}
-        value={value}
-        onChange={setValue}
-        defaultCountry="UZ"
-        international
-        readOnly={readOnly}
-        required={required}
-        placeholder={placeholder}
-      />
+      <div className="flex items-center gap-1.5">
+        <PhoneInput
+          className="phone-input flex-1"
+          name={name}
+          value={value}
+          onChange={setValue}
+          defaultCountry="UZ"
+          international
+          readOnly={readOnly}
+          required={required}
+          placeholder={placeholder}
+        />
+        {clearable && (
+          <button
+            type="button"
+            onClick={() => setValue(undefined)}
+            className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label={`Clear ${label}`}
+            tabIndex={-1}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
