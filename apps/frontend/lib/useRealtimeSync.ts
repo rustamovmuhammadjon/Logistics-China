@@ -4,12 +4,15 @@ import { useEffect, useRef } from "react";
 
 const RECONNECT_DELAY_MS = 5000;
 
+// "data-updated" is the shared "go refetch" signal; anything else (e.g.
+// "chat") is a personal event addressed to this user only.
+export type RealtimeEvent = { type: string } & Record<string, unknown>;
+
 // Opens (and keeps re-opening) a WebSocket to the backend's realtime feed,
-// calling `onMessage` every time any change is broadcast — the message
-// itself carries no data, it's just a "go refetch" signal. `onMessage` is
-// read from a ref so the socket connects once per mount and isn't torn
-// down and reopened just because the caller passed a new closure.
-export function useRealtimeSync(onMessage: () => void) {
+// calling `onMessage` for every event it pushes. `onMessage` is read from a
+// ref so the socket connects once per mount and isn't torn down and
+// reopened just because the caller passed a new closure.
+export function useRealtimeSync(onMessage: (event: RealtimeEvent) => void) {
   const handlerRef = useRef(onMessage);
   handlerRef.current = onMessage;
 
@@ -27,7 +30,15 @@ export function useRealtimeSync(onMessage: () => void) {
         if (!data.wsUrl || cancelled) return;
 
         socket = new WebSocket(data.wsUrl);
-        socket.onmessage = () => handlerRef.current();
+        socket.onmessage = (message) => {
+          let event: RealtimeEvent = { type: "data-updated" };
+          try {
+            event = JSON.parse(String(message.data)) as RealtimeEvent;
+          } catch {
+            // an unparseable frame still means "something changed"
+          }
+          handlerRef.current(event);
+        };
         socket.onclose = () => {
           if (!cancelled) reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
         };

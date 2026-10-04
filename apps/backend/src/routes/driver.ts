@@ -14,9 +14,11 @@ import {
   toDriverTrip,
   updateDriverProfile,
 } from "../lib/drivers.js";
+import { driverSend, driverThread, driverUnreadCount, listDriverChats } from "../lib/chat.js";
+import { getDriverListing, saveDriverListing } from "../lib/fleet.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireDriver, type DriverRequest } from "../middleware/auth.js";
-import { broadcastOnMutation } from "../middleware/realtime.js";
+import { broadcastOnMutation, skipBroadcast } from "../middleware/realtime.js";
 
 export const driverRouter = Router();
 
@@ -88,6 +90,61 @@ driverRouter.get(
     const id = optionalString(req.params.id);
     if (!id) notFound("Trip not found");
     res.json(await getDriverTrip(driver.id, id));
+  })
+);
+
+driverRouter.get(
+  "/chats",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ chats: await listDriverChats(driver.id) });
+  })
+);
+
+driverRouter.get(
+  "/chats/unread-count",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ count: await driverUnreadCount(driver.id) });
+  })
+);
+
+driverRouter.get(
+  "/chats/:operatorId/messages",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ messages: await driverThread(driver.id, req.params.operatorId) });
+  })
+);
+
+driverRouter.post(
+  "/chats/:operatorId/messages",
+  skipBroadcast,
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ message: await driverSend(driver.id, req.params.operatorId, req.body?.text) });
+  })
+);
+
+driverRouter.get(
+  "/listing",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ listing: await getDriverListing(driver.id) });
+  })
+);
+
+driverRouter.put(
+  "/listing",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ listing: await saveDriverListing(driver.id, req.body ?? {}) });
   })
 );
 

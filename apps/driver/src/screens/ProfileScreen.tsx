@@ -7,10 +7,11 @@ import { useNav } from "../navigation";
 import { colors, radius, spacing, type } from "../theme";
 import { formatDate } from "../format";
 import { formatPhone, phoneDigits } from "../components/PhoneField";
-import { Avatar, Button, Card, Chip, InfoRow, Screen, SectionTitle } from "../components/ui";
+import { Avatar, Button, Card, Chip, IconBadge, InfoRow, Screen, SectionTitle } from "../components/ui";
+import { bodyTypeLabel } from "./ListingScreen";
 
 export function ProfileScreen() {
-  const { me, trips, loadTrips, signOut, refresh } = useSession();
+  const { me, trips, loadTrips, signOut, refresh, listing, loadListing } = useSession();
   const nav = useNav();
   const profile = me?.profile;
   const [refreshing, setRefreshing] = useState(false);
@@ -19,6 +20,10 @@ export function ProfileScreen() {
   useEffect(() => {
     if (trips === null) void loadTrips();
   }, [trips, loadTrips]);
+
+  useEffect(() => {
+    if (listing === undefined) void loadListing();
+  }, [listing, loadListing]);
 
   const stats = useMemo(
     () => ({
@@ -32,9 +37,20 @@ export function ProfileScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([refresh(), loadTrips()]);
+    await Promise.all([refresh(), loadTrips(), loadListing()]);
     setRefreshing(false);
   }
+
+  const listingSummary = listing
+    ? [
+        bodyTypeLabel(listing.bodyType),
+        listing.capacityTons ? `${listing.capacityTons} t` : null,
+        listing.lengthM ? `${listing.lengthM} m` : null,
+        listing.axles ? `${listing.axles} o'q` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
 
   function confirmSignOut() {
     Alert.alert(
@@ -78,6 +94,25 @@ export function ProfileScreen() {
         <Stat label="Yakunlangan" value={stats.completed} />
         <Stat label="Hozir" value={me?.currentTrip ? "Reysda" : "Bo'sh"} accent={Boolean(me?.currentTrip)} />
       </View>
+
+      <Pressable onPress={() => nav.push({ name: "listing" })} style={({ pressed }) => [pressed && { opacity: 0.85 }]}>
+        <Card style={[styles.listingCard, listing?.published && styles.listingCardLive]}>
+          <IconBadge icon="truck" tone={listing?.published ? "success" : "accent"} size={44} />
+          <View style={styles.listingText}>
+            <Text style={styles.listingTitle}>Mashina e'loni</Text>
+            <Text style={styles.listingSub} numberOfLines={2}>
+              {listing === undefined
+                ? "Yuklanmoqda…"
+                : listing?.published
+                  ? `Kompaniyalarga ko'rinadi${listingSummary ? ` · ${listingSummary}` : ""}`
+                  : listing
+                    ? "Yashirin — e'lon qilish uchun oching"
+                    : "Mashinangizni e'lon qiling — kompaniyalar sizga yuk taklif qiladi"}
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={20} color={colors.textTertiary} />
+        </Card>
+      </Pressable>
 
       <SectionTitle title="Shaxsiy ma'lumotlar" action={<EditLink onPress={() => nav.push({ name: "editProfile" })} />} />
       <Card style={styles.list}>
@@ -145,6 +180,11 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: "800", color: colors.textPrimary, fontVariant: ["tabular-nums"] },
   statLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: "600" },
   list: { paddingVertical: spacing.xs },
+  listingCard: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  listingCardLive: { borderColor: colors.success },
+  listingText: { flex: 1, gap: 2 },
+  listingTitle: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
+  listingSub: { ...type.caption, color: colors.textSecondary },
   editLink: { flexDirection: "row", alignItems: "center", gap: 4 },
   editText: { fontSize: 13, fontWeight: "700", color: colors.accent },
 });

@@ -174,6 +174,80 @@ export type AdminDriverTripDto = DriverTripDto & {
   truckId: string;
 };
 
+export type ChatSender = "DRIVER" | "OPERATOR";
+
+export type ChatMessageDto = {
+  id: string;
+  sender: ChatSender;
+  text: string;
+  createdAt: string;
+};
+
+// The driver's view: one entry per operator who ever paired them.
+export type DriverChatSummaryDto = {
+  operator: { id: string; name: string; companyName: string | null; phone: string | null };
+  current: boolean;
+  lastMessage: ChatMessageDto | null;
+  unread: number;
+};
+
+// The operator's view: one entry per registered driver they paired.
+export type OperatorChatSummaryDto = {
+  driver: { id: string; firstName: string; lastName: string; phone: string };
+  latestTrip: { plateNumber: string | null; reference: string; subOrderName: string | null; active: boolean };
+  lastMessage: ChatMessageDto | null;
+  unread: number;
+  pairedAt: string;
+};
+
+export type TruckListingDto = {
+  published: boolean;
+  bodyType: string | null;
+  lengthM: number | null;
+  widthM: number | null;
+  heightM: number | null;
+  capacityTons: number | null;
+  volumeM3: number | null;
+  axles: number | null;
+  baseCity: string | null;
+  note: string | null;
+  updatedAt: string;
+};
+
+// A driver as a tracking company sees them. hasApp=false is a "guest":
+// someone who has never signed in to the app.
+export type FleetDriverDto = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  hasApp: boolean;
+  truckPlate: string | null;
+  truckModel: string | null;
+  trailerPlate: string | null;
+  trailerType: string | null;
+  listing: TruckListingDto | null;
+  onTrip: boolean;
+};
+
+export type GlobalDriverDto = FleetDriverDto & { inMyDrivers: boolean };
+
+export type MyDriverDto = FleetDriverDto & { addedAt: string; addedByLabel: string | null };
+
+// A driver typed onto one of the company's trucks who isn't in "My drivers".
+export type GuestDriverSuggestionDto = {
+  phone: string;
+  name: string | null;
+  plateNumber: string | null;
+  trailerPlateNumber: string | null;
+  lastOrder: string;
+  lastSeenAt: string;
+  driverId: string | null;
+  hasApp: boolean;
+};
+
+export const TRUCK_BODY_TYPES = ["Tent", "Refrigerated", "Isothermal", "Flatbed", "Container", "Tipper", "Car carrier"] as const;
+
 export function driverTripStatusLabel(status: DriverTripStatus): string {
   switch (status) {
     case "ACTIVE":

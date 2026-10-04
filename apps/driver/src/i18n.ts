@@ -30,11 +30,17 @@ const EXACT: Record<string, string> = {
   "Enter a valid truck plate": "Mashina raqamini to'g'ri kiriting",
   "Enter a valid trailer plate": "Treyler raqamini to'g'ri kiriting",
   "Network request failed": "Internet aloqasi yo'q. Qayta urinib ko'ring.",
+  "Message is empty": "Xabar bo'sh",
+  "Message is too long": "Xabar juda uzun",
+  "Conversation not found": "Suhbat topilmadi",
+  "Add the body type and capacity before publishing": "E'lon qilish uchun kuzov turi va sig'imini kiriting",
+  "Enter a valid number of axles": "O'qlar sonini to'g'ri kiriting (2–10)",
   "EXPO_PUBLIC_API_URL is not set": "Server manzili sozlanmagan (EXPO_PUBLIC_API_URL).",
 };
 
 const PATTERNS: [RegExp, string][] = [
   [/is too long/, "Kiritilgan matn juda uzun"],
+  [/^Enter a valid (length|width|height|capacity|volume)$/, "O'lchamni to'g'ri kiriting"],
   [/location is unavailable|location services/i, "Joylashuvni aniqlab bo'lmadi. GPS yoqilganini tekshiring."],
   [/timed out/i, "Joylashuvni aniqlash uzoq davom etdi. Ochiq joyda qayta urinib ko'ring."],
 ];

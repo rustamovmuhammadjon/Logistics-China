@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { Profile2User } from "iconsax-react";
 import { roleLabel, type AuthMe } from "@logistics/shared";
 import { serverApi } from "@/lib/server-api";
@@ -7,18 +8,42 @@ import { ProfilePhotoUploader } from "./ProfilePhotoUploader";
 import { PasswordChangeForm } from "./PasswordChangeForm";
 import { LogoutButton } from "./LogoutButton";
 import { ProfileSkeleton } from "@/components/ProfileSkeleton";
+import { PartnersSection, canSeePartners } from "../partners/PartnersSection";
 
 export const dynamic = "force-dynamic";
 
-export default function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
   return (
     <Suspense fallback={<ProfileSkeleton />}>
-      <ProfileContent />
+      <ProfileContent tab={tab === "partners" ? "partners" : "account"} />
     </Suspense>
   );
 }
 
-async function ProfileContent() {
+function ProfileTabs({ active }: { active: "account" | "partners" }) {
+  const tabs = [
+    { key: "account", href: "/profile", label: "Account" },
+    { key: "partners", href: "/profile?tab=partners", label: "Partner company" },
+  ] as const;
+  return (
+    <div className="inline-flex gap-1 rounded-xl border border-slate-200/80 bg-white p-1">
+      {tabs.map((t) => (
+        <Link
+          key={t.key}
+          href={t.href}
+          className={`rounded-lg px-3.5 py-1.5 text-sm transition ${
+            active === t.key ? "bg-brand-600 font-semibold text-white shadow-sm" : "font-medium text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          {t.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+async function ProfileContent({ tab }: { tab: "account" | "partners" }) {
   const me = await serverApi<AuthMe>("/api/auth/me");
 
   if (!me.user) {
@@ -44,9 +69,20 @@ async function ProfileContent() {
   // a standalone operator (no companyId) keeps full self-service.
   const managedByCompany = me.user.role === "EMPLOYEE" || (me.user.role === "OPERATOR" && !!me.user.companyId);
   const isCompanyShaped = me.user.role === "COMPANY" || me.user.role === "OPERATOR_COMPANY";
+  const showPartners = canSeePartners(me.user);
+
+  if (showPartners && tab === "partners") {
+    return (
+      <div className="space-y-6">
+        <ProfileTabs active="partners" />
+        <PartnersSection user={me.user} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {showPartners && <ProfileTabs active="account" />}
       <div className="card space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">

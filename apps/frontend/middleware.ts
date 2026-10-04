@@ -51,6 +51,8 @@ export const config = {
     "/employees/:path*",
     "/operators/:path*",
     "/partners/:path*",
+    "/chat/:path*",
+    "/drivers/:path*",
     "/profile",
   ],
 };

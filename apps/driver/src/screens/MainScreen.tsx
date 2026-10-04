@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
 import { colors } from "../theme";
+import { useSession } from "../session";
 import { NavContext, type Nav, type Route } from "../navigation";
 import { TabBar, type Tab } from "../components/TabBar";
 import { HomeScreen } from "./HomeScreen";
 import { TripsScreen } from "./TripsScreen";
+import { ChatsScreen } from "./ChatsScreen";
+import { ChatThreadScreen } from "./ChatThreadScreen";
 import { ProfileScreen } from "./ProfileScreen";
+import { ListingScreen } from "./ListingScreen";
 import { TripDetailScreen } from "./TripDetailScreen";
 import { EditProfileScreen } from "./EditProfileScreen";
 import { EditVehicleScreen } from "./EditVehicleScreen";
@@ -19,6 +23,7 @@ function TabPane({ visible, mounted, children }: { visible: boolean; mounted: bo
 }
 
 export function MainScreen() {
+  const { unreadChats } = useSession();
   const [tab, setTab] = useState<Tab>("home");
   const [visited, setVisited] = useState<Set<Tab>>(() => new Set(["home"]));
   const [stack, setStack] = useState<Route[]>([]);
@@ -68,11 +73,15 @@ export function MainScreen() {
           <TabPane visible={tab === "trips"} mounted={visited.has("trips")}>
             <TripsScreen />
           </TabPane>
+          <TabPane visible={tab === "chat"} mounted={visited.has("chat")}>
+            {/* Only polls while it is the visible tab and nothing is pushed over it. */}
+            <ChatsScreen active={tab === "chat" && !top} />
+          </TabPane>
           <TabPane visible={tab === "profile"} mounted={visited.has("profile")}>
             <ProfileScreen />
           </TabPane>
         </View>
-        <TabBar tab={tab} onChange={selectTab} />
+        <TabBar tab={tab} onChange={selectTab} badges={{ chat: unreadChats }} />
         {top ? <View style={StyleSheet.absoluteFill}>{renderRoute(top, nav)}</View> : null}
       </View>
     </NavContext.Provider>
@@ -87,6 +96,18 @@ function renderRoute(route: Route, nav: Nav) {
       return <EditProfileScreen onBack={nav.pop} />;
     case "editVehicle":
       return <EditVehicleScreen onBack={nav.pop} />;
+    case "listing":
+      return <ListingScreen onBack={nav.pop} />;
+    case "thread":
+      return (
+        <ChatThreadScreen
+          operatorId={route.operatorId}
+          title={route.title}
+          subtitle={route.subtitle}
+          phone={route.phone}
+          onBack={nav.pop}
+        />
+      );
     case "attachTrip":
       return (
         <PairScreen

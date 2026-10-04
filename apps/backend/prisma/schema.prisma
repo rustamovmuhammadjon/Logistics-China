@@ -43,6 +43,13 @@ enum OperatorLinkScope {
 enum DriverRegistrationSource {
   ADMIN
   APP
+  // Entered by a tracking company for a driver who doesn't use the app yet.
+  COMPANY
+}
+
+enum ChatSender {
+  DRIVER
+  OPERATOR
 }
 
 model User {
@@ -95,6 +102,11 @@ model User {
   // create these; everyone in that company can view them.
   partnerLinksAsCompany         CompanyPartnerLink[] @relation("PartnerAsCompany")
   partnerLinksAsOperatorCompany CompanyPartnerLink[] @relation("PartnerAsOperatorCompany")
+
+  // OPERATOR_COMPANY only: its own driver roster ("My drivers").
+  fleetDrivers CompanyDriver[] @relation("FleetDrivers")
+  // OPERATOR only: conversations with the drivers they paired.
+  driverChats ChatConversation[] @relation("DriverChats")
 
   @@index([companyId])
 }
@@ -409,7 +421,93 @@ model Driver {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignments DriverAssignment[]
+  assignments   DriverAssignment[]
+  listing       TruckListing?
+  companies     CompanyDriver[]
+  conversations ChatConversation[]
+}
+
+// A driver's own advert for their truck. Published listings are what
+// tracking companies browse as "Global drivers"; an unpublished one is just
+// saved specs. For a driver without the app, the companies that keep them
+// in "My drivers" maintain it instead.
+model TruckListing {
+  id String @id @default(cuid())
+
+  driverId String @unique
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  published    Boolean @default(false)
+  bodyType     String?
+  lengthM      Float?
+  widthM       Float?
+  heightM      Float?
+  capacityTons Float?
+  volumeM3     Float?
+  axles        Int?
+  baseCity     String?
+  note         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, updatedAt])
+}
+
+// A tracking company's roster ("My drivers"). Removing a driver from it only
+// drops this row — the driver, their trips and their listing stay.
+model CompanyDriver {
+  id String @id @default(cuid())
+
+  companyId String
+  company   User   @relation("FleetDrivers", fields: [companyId], references: [id], onDelete: Cascade)
+
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  addedByLabel String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, driverId])
+  @@index([driverId])
+}
+
+// One thread per driver and the operator who paired them; created on the
+// first message from either side.
+model ChatConversation {
+  id String @id @default(cuid())
+
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  operatorId String
+  operator   User   @relation("DriverChats", fields: [operatorId], references: [id], onDelete: Cascade)
+
+  lastMessageAt      DateTime?
+  driverLastReadAt   DateTime?
+  operatorLastReadAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  messages ChatMessage[]
+
+  @@unique([driverId, operatorId])
+  @@index([operatorId, lastMessageAt])
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  sender ChatSender
+  text   String
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model DriverAssignment {

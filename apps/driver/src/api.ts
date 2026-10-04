@@ -1,9 +1,12 @@
 import * as SecureStore from "expo-secure-store";
 import type {
+  ChatMessageDto,
+  DriverChatSummaryDto,
   DriverLocationPingDto,
   DriverMeDto,
   DriverProfileDto,
   DriverTripDto,
+  TruckListingDto,
 } from "@logistics/shared";
 
 const TOKEN_KEY = "driver_token";
@@ -119,4 +122,17 @@ export const api = {
   sendLocation: (body: { lat: number; lng: number; accuracy: number | null; locationText: string | null }) =>
     request<{ ok: true; lastPingAt: string; lastLocationText: string }>("/location", { method: "POST", body }),
   signOut: () => request<{ ok: true }>("/unpair", { method: "POST" }),
+  chats: () => request<{ chats: DriverChatSummaryDto[] }>("/chats"),
+  unreadCount: () => request<{ count: number }>("/chats/unread-count"),
+  thread: (operatorId: string) =>
+    request<{ messages: ChatMessageDto[] }>(`/chats/${encodeURIComponent(operatorId)}/messages`),
+  send: (operatorId: string, text: string) =>
+    request<{ message: ChatMessageDto }>(`/chats/${encodeURIComponent(operatorId)}/messages`, {
+      method: "POST",
+      body: { text },
+    }),
+  listing: () => request<{ listing: TruckListingDto | null }>("/listing"),
+  saveListing: (body: ListingInput) => request<{ listing: TruckListingDto }>("/listing", { method: "PUT", body }),
 };
+
+export type ListingInput = Partial<Omit<TruckListingDto, "updatedAt">>;

@@ -5,7 +5,9 @@ export type Route =
   | { name: "trip"; tripId: string }
   | { name: "editProfile" }
   | { name: "editVehicle" }
-  | { name: "attachTrip" };
+  | { name: "attachTrip" }
+  | { name: "listing" }
+  | { name: "thread"; operatorId: string; title: string; subtitle: string | null; phone: string | null };
 
 export type Nav = {
   push: (route: Route) => void;

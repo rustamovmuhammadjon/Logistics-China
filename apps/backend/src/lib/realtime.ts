@@ -3,6 +3,9 @@ import { WebSocketServer, WebSocket } from "ws";
 import { verifyAdminSessionFromToken, verifyUserSessionFromToken } from "./auth.js";
 
 const clients = new Set<WebSocket>();
+// Which signed-in user each socket belongs to (admin sockets have none), so
+// a personal event like a chat message reaches only its recipient.
+const socketUser = new WeakMap<WebSocket, string>();
 
 // Attaches a WebSocket endpoint (at /ws) to the same HTTP server Express
 // listens on, so any open page can be pushed an update the moment anything
@@ -35,6 +38,7 @@ export function attachRealtime(server: HttpServer) {
           return;
         }
         wss.handleUpgrade(req, socket, head, (ws) => {
+          if (session) socketUser.set(ws, session.userId);
           wss.emit("connection", ws, req);
         });
       })
@@ -59,5 +63,14 @@ export function broadcastUpdate() {
   const message = JSON.stringify({ type: "data-updated" });
   for (const ws of clients) {
     if (ws.readyState === WebSocket.OPEN) ws.send(message);
+  }
+}
+
+// Unlike broadcastUpdate, this one carries data meant for one person, so it
+// only goes to that user's own sockets.
+export function notifyUser(userId: string, event: { type: string } & Record<string, unknown>) {
+  const message = JSON.stringify(event);
+  for (const ws of clients) {
+    if (ws.readyState === WebSocket.OPEN && socketUser.get(ws) === userId) ws.send(message);
   }
 }

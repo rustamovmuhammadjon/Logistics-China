@@ -13,7 +13,7 @@ export type DriverTripStatus = "ACTIVE" | "COMPLETED" | "CANCELED" | "TRANSFERRE
 // Latin uses (G'ulomov, Ro'ziyev) — the shared NAME_PATTERN would reject those.
 const DRIVER_NAME_PATTERN = /^\p{L}[\p{L}\s'’ʻʼ`-]*$/u;
 
-function requiredName(value: unknown, label: string): string {
+export function requiredName(value: unknown, label: string): string {
   const raw = optionalString(value);
   if (!raw) badRequest(`"${label}" is required`);
   const name = raw.replace(/\s+/g, " ");
@@ -21,12 +21,12 @@ function requiredName(value: unknown, label: string): string {
   return name;
 }
 
-function parseDriverPhone(value: unknown) {
+export function parseDriverPhone(value: unknown) {
   const phone = requiredDisplayPhone(value, "phone");
   return { phone, phoneNormalized: phone.replace(/\D/g, "") };
 }
 
-function optionalText(value: unknown, max: number, label: string): string | null {
+export function optionalText(value: unknown, max: number, label: string): string | null {
   const text = optionalString(value);
   if (text && text.length > max) badRequest(`"${label}" is too long`);
   return text;
@@ -243,7 +243,7 @@ export async function signOutDriver(session: DriverSession) {
   }
 }
 
-type DriverFields = {
+export type DriverFields = {
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -258,7 +258,7 @@ type DriverFields = {
 
 // Partial update: only the keys present in the body are touched, so the
 // personal-info and vehicle forms can each save just their own fields.
-async function parseDriverFields(driverId: string | null, body: Record<string, unknown>): Promise<DriverFields> {
+export async function parseDriverFields(driverId: string | null, body: Record<string, unknown>): Promise<DriverFields> {
   const has = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
   const fields: DriverFields = {};
   if (has("firstName")) fields.firstName = requiredName(body.firstName, "first name");

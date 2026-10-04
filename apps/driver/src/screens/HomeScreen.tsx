@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import type { DriverTripDto } from "@logistics/shared";
+import type { DriverChatSummaryDto, DriverTripDto } from "@logistics/shared";
 import { useSession } from "../session";
 import { useNav } from "../navigation";
 import { ensureForegroundPermission, sendCurrentLocation } from "../location";
@@ -21,10 +21,11 @@ import { MiniStat, RouteView, tripTitle } from "../components/trip";
 type Feedback = { tone: "success" | "danger"; message: string } | null;
 
 export function HomeScreen() {
-  const { me, refresh, patchCurrentTrip, handleError, locationIssue, retryLocation } = useSession();
+  const { me, refresh, patchCurrentTrip, handleError, locationIssue, retryLocation, chats } = useSession();
   const nav = useNav();
   const profile = me?.profile;
   const trip = me?.currentTrip ?? null;
+  const dispatcher = chats?.find((chat) => chat.current) ?? null;
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -79,6 +80,20 @@ export function HomeScreen() {
         <>
           <TripHero trip={trip} onOpen={() => nav.push({ name: "trip", tripId: trip.id })} />
           <LocationCard trip={trip} sending={sending} onSend={() => void sendNow()} />
+          {dispatcher ? (
+            <DispatcherCard
+              chat={dispatcher}
+              onWrite={() =>
+                nav.push({
+                  name: "thread",
+                  operatorId: dispatcher.operator.id,
+                  title: dispatcher.operator.name,
+                  subtitle: dispatcher.operator.companyName,
+                  phone: dispatcher.operator.phone,
+                })
+              }
+            />
+          ) : null}
         </>
       ) : (
         <EmptyState
@@ -163,8 +178,70 @@ function LocationCard({ trip, sending, onSend }: { trip: DriverTripDto; sending:
   );
 }
 
+function DispatcherCard({ chat, onWrite }: { chat: DriverChatSummaryDto; onWrite: () => void }) {
+  const [first, ...rest] = chat.operator.name.split(" ");
+  return (
+    <Card style={styles.dispatcher}>
+      <Avatar firstName={first} lastName={rest.join(" ")} size={44} />
+      <View style={styles.dispatcherText}>
+        <Text style={styles.dispatcherLabel}>Dispetcheringiz</Text>
+        <Text style={styles.dispatcherName} numberOfLines={1}>
+          {chat.operator.name}
+        </Text>
+        {chat.operator.companyName ? (
+          <Text style={styles.dispatcherCompany} numberOfLines={1}>
+            {chat.operator.companyName}
+          </Text>
+        ) : null}
+      </View>
+      {chat.operator.phone ? (
+        <Pressable
+          onPress={() => void Linking.openURL(`tel:${chat.operator.phone}`)}
+          style={({ pressed }) => [styles.roundButton, pressed && styles.pressed]}
+          accessibilityLabel="Qo'ng'iroq qilish"
+        >
+          <Feather name="phone" size={18} color={colors.accent} />
+        </Pressable>
+      ) : null}
+      <Pressable
+        onPress={onWrite}
+        style={({ pressed }) => [styles.roundButton, styles.roundButtonPrimary, pressed && styles.pressed]}
+        accessibilityLabel="Yozish"
+      >
+        <Feather name="message-circle" size={18} color={colors.bg} />
+        {chat.unread > 0 ? <View style={styles.dot} /> : null}
+      </Pressable>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   pressed: { opacity: 0.9 },
+  dispatcher: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  dispatcherText: { flex: 1, gap: 1 },
+  dispatcherLabel: { ...type.label, color: colors.textTertiary },
+  dispatcherName: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
+  dispatcherCompany: { ...type.caption, color: colors.textSecondary },
+  roundButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roundButtonPrimary: { backgroundColor: colors.accent },
+  dot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.danger,
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   headerText: { flex: 1, gap: 2 },
   date: { ...type.caption, color: colors.textSecondary, textTransform: "capitalize" },

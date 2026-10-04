@@ -16,7 +16,15 @@ export function broadcastOnMutation(req: Request, res: Response, next: NextFunct
     return;
   }
   res.on("finish", () => {
-    if (res.statusCode < 400) broadcastUpdate();
+    if (res.statusCode < 400 && !res.locals.skipBroadcast) broadcastUpdate();
   });
+  next();
+}
+
+// For a write on a broadcasting router that only matters to one person (a
+// chat message): it notifies its recipient itself instead of making every
+// open page everywhere refetch.
+export function skipBroadcast(_req: Request, res: Response, next: NextFunction) {
+  res.locals.skipBroadcast = true;
   next();
 }

@@ -1,6 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppState } from "react-native";
-import type { DriverMeDto, DriverProfileDto, DriverTripDto } from "@logistics/shared";
+import type {
+  DriverChatSummaryDto,
+  DriverMeDto,
+  DriverProfileDto,
+  DriverTripDto,
+  TruckListingDto,
+} from "@logistics/shared";
 import { api, ApiError, clearToken, getToken, saveIdentity, setToken } from "./api";
 import { errorMessage } from "./i18n";
 import { startLocationUpdates, stopLocationUpdates } from "./location";
@@ -25,11 +31,22 @@ type SessionValue = {
   patchCurrentTrip: (patch: Partial<DriverTripDto>) => void;
   loadTrips: () => Promise<string | null>;
   retryLocation: () => Promise<void>;
+  chats: DriverChatSummaryDto[] | null;
+  unreadChats: number;
+  loadChats: () => Promise<string | null>;
+  refreshUnread: () => Promise<void>;
+  // undefined until first loaded; null when the driver has no ad yet.
+  listing: TruckListingDto | null | undefined;
+  loadListing: () => Promise<string | null>;
+  setListing: (listing: TruckListingDto) => void;
 };
 
 const SessionContext = createContext<SessionValue | null>(null);
 
 const FOREGROUND_REFRESH_MS = 30_000;
+// The phone has no socket to the server: the unread badge is polled while
+// the app is open, and an open conversation polls on its own, faster.
+const UNREAD_POLL_MS = 30_000;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>("loading");
@@ -37,6 +54,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [locationIssue, setLocationIssue] = useState<string | null>(null);
   const [trips, setTrips] = useState<DriverTripDto[] | null>(null);
+  const [chats, setChats] = useState<DriverChatSummaryDto[] | null>(null);
+  const [unreadChats, setUnreadChats] = useState(0);
+  const [listing, setListing] = useState<TruckListingDto | null | undefined>(undefined);
   const trackedTrip = useRef<string | null>(null);
   const lastRefresh = useRef(0);
   const statusRef = useRef(status);
@@ -50,6 +70,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await stopLocationUpdates().catch(() => undefined);
     setMe(null);
     setTrips(null);
+    setChats(null);
+    setUnreadChats(0);
+    setListing(undefined);
     setLocationIssue(null);
     setNotice(reason);
     setStatus("signedOut");
@@ -137,6 +160,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await setToken(result.token);
       setNotice(null);
       setTrips(null);
+      setChats(null);
       acceptMe(result.me);
     },
     [acceptMe]
@@ -170,6 +194,43 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, [handleError]);
 
+  const loadChats = useCallback(async () => {
+    try {
+      const { chats: next } = await api.chats();
+      setChats(next);
+      setUnreadChats(next.reduce((sum, chat) => sum + chat.unread, 0));
+      return null;
+    } catch (err) {
+      return handleError(err);
+    }
+  }, [handleError]);
+
+  const refreshUnread = useCallback(async () => {
+    try {
+      setUnreadChats((await api.unreadCount()).count);
+    } catch (err) {
+      handleError(err);
+    }
+  }, [handleError]);
+
+  const loadListing = useCallback(async () => {
+    try {
+      setListing((await api.listing()).listing);
+      return null;
+    } catch (err) {
+      return handleError(err);
+    }
+  }, [handleError]);
+
+  useEffect(() => {
+    if (status !== "ready") return;
+    void loadChats();
+    const timer = setInterval(() => {
+      if (AppState.currentState === "active") void refreshUnread();
+    }, UNREAD_POLL_MS);
+    return () => clearInterval(timer);
+  }, [status, loadChats, refreshUnread]);
+
   const value = useMemo<SessionValue>(
     () => ({
       status,
@@ -185,8 +246,35 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       patchCurrentTrip,
       loadTrips,
       retryLocation,
+      chats,
+      unreadChats,
+      loadChats,
+      refreshUnread,
+      listing,
+      loadListing,
+      setListing,
     }),
-    [status, me, notice, locationIssue, trips, refresh, applyAuth, signOut, handleError, setProfile, patchCurrentTrip, loadTrips, retryLocation]
+    [
+      status,
+      me,
+      notice,
+      locationIssue,
+      trips,
+      refresh,
+      applyAuth,
+      signOut,
+      handleError,
+      setProfile,
+      patchCurrentTrip,
+      loadTrips,
+      retryLocation,
+      chats,
+      unreadChats,
+      loadChats,
+      refreshUnread,
+      listing,
+      loadListing,
+    ]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
