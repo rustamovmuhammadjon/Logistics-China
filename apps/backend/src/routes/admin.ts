@@ -20,6 +20,7 @@ import {
 } from "../lib/lifecycle.js";
 import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
+import { sendBukharaArrivalsReport } from "../lib/telegram.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { broadcastOnMutation } from "../middleware/realtime.js";
@@ -28,6 +29,17 @@ export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
 adminRouter.use(broadcastOnMutation);
+
+// Manual trigger for the same daily Telegram report the scheduler sends at
+// 09:00 Tashkent time — lets this be tested/resent on demand without
+// waiting for the schedule.
+adminRouter.post(
+  "/telegram/bukhara-report",
+  asyncHandler(async (_req, res) => {
+    const result = await sendBukharaArrivalsReport();
+    res.json({ ok: true, ...result });
+  })
+);
 
 adminRouter.get(
   "/users",

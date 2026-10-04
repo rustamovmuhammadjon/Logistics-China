@@ -10,19 +10,20 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.26.0",
-    "@expo/vector-icons": "~14.0.4",
-    "expo": "~52.0.46",
-    "expo-background-fetch": "~13.0.6",
-    "expo-linear-gradient": "~14.0.2",
-    "expo-location": "~18.0.10",
-    "expo-secure-store": "~14.0.1",
-    "expo-status-bar": "~2.0.1",
-    "expo-task-manager": "~12.0.6",
-    "react": "18.3.1",
-    "react-native": "0.76.9"
+    "@expo/vector-icons": "~15.1.1",
+    "expo": "~57.0.26",
+    "expo-background-fetch": "~57.0.21",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-location": "~57.0.20",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-task-manager": "~57.0.21",
+    "libphonenumber-js": "^1.13.14",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
   },
   "devDependencies": {
-    "@types/react": "~18.3.12",
-    "typescript": "^5.7.2"
+    "@types/react": "~19.2.18",
+    "typescript": "^6.0.3"
   }
 }

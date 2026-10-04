@@ -20,6 +20,7 @@ import { track718WebhookRouter } from "./routes/track718.js";
 import { attachSession } from "./middleware/auth.js";
 import { asyncHandler, errorHandler } from "./middleware/errors.js";
 import { attachRealtime } from "./lib/realtime.js";
+import { startScheduledJobs } from "./lib/scheduler.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -77,3 +78,5 @@ attachRealtime(server);
 server.listen(port, "0.0.0.0", () => {
   console.log(`Backend listening on http://0.0.0.0:${port}`);
 });
+
+startScheduledJobs();
