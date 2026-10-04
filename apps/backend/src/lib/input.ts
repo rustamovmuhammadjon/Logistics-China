@@ -73,6 +73,12 @@ export function optionalDisplayPhone(value: unknown, field = "phone"): string | 
   const raw = optionalString(value);
   if (!raw) return null;
   const cleaned = raw.replace(/[\s()-]/g, "");
+  // The phone input shows the selected country's calling code (e.g. "+998")
+  // the moment a country is picked, before any digits are typed — that's
+  // the field's empty state, not a real number, so it's treated the same
+  // as nothing entered rather than rejected as invalid. No real calling
+  // code is longer than 4 digits, so anything at or under that is bare.
+  if (cleaned.replace(/^\+/, "").length <= 4) return null;
   if (!E164_PATTERN.test(cleaned)) badRequest(`Enter a valid "${field}" number, including the country code`);
   return cleaned;
 }
