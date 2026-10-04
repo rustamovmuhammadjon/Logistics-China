@@ -13,6 +13,7 @@
     "@expo/vector-icons": "~15.1.1",
     "expo": "~57.0.26",
     "expo-background-fetch": "~57.0.21",
+    "expo-camera": "~57.0.6",
     "expo-linear-gradient": "~57.0.2",
     "expo-location": "~57.0.20",
     "expo-secure-store": "~57.0.4",

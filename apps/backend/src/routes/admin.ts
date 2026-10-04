@@ -346,7 +346,7 @@ adminRouter.post(
     const result = await createDriverAssignment({
       subOrderId: req.params.subId,
       plateNumber: req.body?.plateNumber,
-      phone: req.body?.phone ?? req.body?.driverPhone,
+      expiresInMinutes: req.body?.expiresInMinutes,
       createdByUserId: null,
       createdByLabel: "admin",
     });
@@ -358,7 +358,7 @@ adminRouter.post(
   "/orders/:id/sub-orders/:subId/assignments/:assignmentId/regenerate",
   asyncHandler(async (req, res) => {
     await assertSubOrderMutable(req.params.subId);
-    const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId);
+    const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId, req.body?.expiresInMinutes);
     res.json(result);
   })
 );

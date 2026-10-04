@@ -103,14 +103,14 @@ pnpm dev:backend
 - **Admin** — env login, full CRUD, trucks, payments, media
 - **Consignee** — owns orders/sub-orders, no truck/location writes
 - **Operator** — location + comments on linked consignees’ orders only
-- **Driver app** — operator pairs a truck plate + phone; driver enters phone + 6-digit code; GPS pings every 3 hours
+- **Driver app** — operator pairs a truck plate with a code/QR (no phone needed); driver enters the 8-character code or scans the QR; GPS pings every 3 hours
 
 ## Driver APK
 
 See `apps/driver/README.md`. Short version:
 
-1. Operator/admin opens a sub-order → **Pair driver app** → truck plate + phone → copy the 6-digit code.
-2. Driver installs the APK, enters phone + code. The code is one-time; the token stays on the phone.
+1. Operator/admin opens a sub-order → **Pair driver app** → truck plate + expiry → copy the 8-character code (or switch to QR).
+2. Driver installs the APK, enters the code or scans the QR. The code is one-time; the token stays on the phone.
 3. The app sends GPS every 3 hours (and when opened). The web truck card shows that location with a map link.
 
 Cargo **перекид**: on the same sub-order, pick the current truck and the next truck plate. Check “trailer stays the same” to keep `1907TAG` while swapping `80Z476PA` → `85Y294PA`, or enter a new trailer plate for a full swap.

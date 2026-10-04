@@ -29,7 +29,7 @@ EAS returns a download URL. Send that `.apk` to drivers.
 
 ## How pairing works
 
-1. Operator (or admin) on a sub-order: truck plate + driver phone → 6-digit code (shown once).
-2. Operator tells the driver the code.
-3. Driver enters phone + code. Server issues a token, the code is deleted, the token stays in SecureStore.
+1. Operator (or admin) on a sub-order: truck plate + expiry (15m/30m/1h/3h) → 8-character code (shown once), as text or QR.
+2. Operator tells/shows the driver the code.
+3. Driver types the code or scans the QR. Server issues a token, the code is deleted, the token stays in SecureStore.
 4. The app sends GPS every 3 hours (foreground service + background fetch). That location appears on the web truck card.

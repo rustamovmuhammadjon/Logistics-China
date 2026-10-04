@@ -12,7 +12,7 @@ You use this app to:
 
 - **Link** with a client (a company/employee, or an individual consignee) who has placed an order.
 - Update the **truck, driver, location, and GPS tracker details** for each of that client's sub-orders as cargo moves.
-- Record **cargo transfers** when a load switches trucks (e.g. at a border), and pair a **driver's phone** so it reports location automatically.
+- Record **cargo transfers** when a load switches trucks (e.g. at a border), and pair the **driver app** (via a code or QR) so it reports location automatically.
 
 You never create the order itself — that's the client's job. Your side is about tracking and updating it once you're linked.
 
@@ -135,10 +135,10 @@ A sub-order allows a limited number of transfers (currently 3) — once the limi
 
 Instead of typing location updates manually, you can have the driver's phone send it automatically.
 
-1. In the sub-order, under **Pair driver app**, fill in the **Truck plate** and the **driver's phone number**, then click **Create pairing**.
-2. A **one-time 6-digit code** appears — send it to the driver by phone call or Telegram (it's shown only once, so send it right away).
-3. The driver enters their phone number and this code in the driver app. Once they do, the pairing switches from **Waiting** to **Paired**, and their location starts updating automatically.
-4. If the code expires or wasn't received, click **New code** to issue a fresh one.
+1. In the sub-order, under **Pair driver app**, fill in the **Truck plate**, choose how long the code should stay valid (**15 minutes, 30 minutes, 1 hour, or 3 hours**), then click **Create pairing**. No phone number is needed.
+2. A **one-time 8-character code** appears — switch to **QR** if it's easier to let the driver scan it instead. Send/show it to the driver right away, since it's shown only once.
+3. The driver enters the code in the driver app (or taps **Scan QR** and scans it). Once accepted, the pairing switches from **Waiting** to **Paired**, and their location starts updating automatically.
+4. If the code expires or wasn't received, pick a duration and click **New code** to issue a fresh one.
 5. Click **Revoke** to stop a driver's app from sending location (e.g. if the driver changed).
 
 ## 10. Cancelling

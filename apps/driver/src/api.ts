@@ -45,10 +45,10 @@ export async function driverRequest<T>(path: string, init?: RequestInit): Promis
   return data;
 }
 
-export async function pairDriver(phone: string, code: string) {
+export async function pairDriver(code: string) {
   const data = await driverRequest<{ token: string }>("/pair", {
     method: "POST",
-    body: JSON.stringify({ phone, code }),
+    body: JSON.stringify({ code }),
   });
   await setToken(data.token);
   return data;

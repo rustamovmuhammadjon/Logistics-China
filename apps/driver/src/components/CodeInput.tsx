@@ -31,10 +31,19 @@ export function CodeInput({
       <TextInput
         ref={inputRef}
         value={value}
-        onChangeText={(t) => onChange(t.replace(/\D/g, "").slice(0, length))}
+        onChangeText={(t) =>
+          onChange(
+            t
+              .toUpperCase()
+              .replace(/[^A-Z0-9]/g, "")
+              .slice(0, length)
+          )
+        }
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        keyboardType="number-pad"
+        keyboardType="default"
+        autoCapitalize="characters"
+        autoCorrect={false}
         maxLength={length}
         autoFocus={autoFocus}
         style={styles.hiddenInput}

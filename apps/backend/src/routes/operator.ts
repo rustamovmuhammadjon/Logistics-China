@@ -310,7 +310,7 @@ operatorRouter.post(
     const result = await createDriverAssignment({
       subOrderId: req.params.subId,
       plateNumber: req.body?.plateNumber,
-      phone: req.body?.phone ?? req.body?.driverPhone,
+      expiresInMinutes: req.body?.expiresInMinutes,
       createdByUserId: me.id,
       createdByLabel: me.email,
     });
@@ -325,7 +325,7 @@ operatorRouter.post(
     const me = (req as AuthedRequest).user!;
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertSubOrderMutable(req.params.subId);
-    const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId);
+    const result = await regenerateDriverAssignment(req.params.assignmentId, req.params.subId, req.body?.expiresInMinutes);
     await touchSubOrderEditor(req.params.subId, me.email);
     res.json(result);
   })

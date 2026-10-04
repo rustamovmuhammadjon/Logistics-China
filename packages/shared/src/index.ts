@@ -86,7 +86,7 @@ export type DriverAssignmentStatus = "PENDING" | "ACTIVE" | "REVOKED";
 export type DriverAssignmentDto = {
   id: string;
   truckId: string;
-  phoneNormalized: string;
+  phoneNormalized: string | null;
   status: DriverAssignmentStatus;
   claimedAt: string | null;
   lastLat: number | null;

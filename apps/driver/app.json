@@ -16,6 +16,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "The app sends this truck’s location to the operator every 3 hours.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "The app sends this truck’s location to the operator every 3 hours, including in the background.",
+        "NSCameraUsageDescription": "The app uses the camera to scan the pairing QR code from the operator.",
         "UIBackgroundModes": [
           "location",
           "fetch"
@@ -31,11 +32,13 @@
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "POST_NOTIFICATIONS",
+        "CAMERA",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION"
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.CAMERA"
       ],
       "usesCleartextTraffic": true
     },
@@ -49,7 +52,13 @@
           "locationAlwaysAndWhenInUsePermission": "The app sends this truck’s location to the operator every 3 hours, including in the background."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "The app uses the camera to scan the pairing QR code from the operator."
+        }
+      ]
     ],
     "extra": {
       "apiUrl": "http://10.0.2.2:4000",

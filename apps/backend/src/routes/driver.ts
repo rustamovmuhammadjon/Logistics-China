@@ -15,7 +15,7 @@ driverRouter.use(broadcastOnMutation);
 driverRouter.post(
   "/pair",
   asyncHandler(async (req, res) => {
-    const { token, assignment } = await pairDriver(req.body?.phone, req.body?.code);
+    const { token, assignment } = await pairDriver(req.body?.code);
     res.json({ token, driver: toDriverMe(assignment) });
   })
 );

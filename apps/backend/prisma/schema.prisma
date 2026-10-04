@@ -378,7 +378,11 @@ model DriverAssignment {
   truckId String
   truck   Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
 
-  phoneNormalized String
+  // Nullable: pairing no longer collects the driver's phone number — the
+  // operator issues a code/QR and the driver signs in with that alone.
+  // Kept (rather than dropped) so already-paired rows from before this
+  // change keep their historical value.
+  phoneNormalized String?
   pairingCodeHash String?
   pairingExpiresAt DateTime?
   status          DriverAssignmentStatus @default(PENDING)

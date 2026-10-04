@@ -1,7 +1,13 @@
 import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound, unauthorized } from "./errors.js";
-import { hashPairingCode, issuePairingCode, pairingCodesMatch, pairingExpiryDate } from "./pairing.js";
-import { normalizePhone, normalizePlate, optionalString } from "./input.js";
+import {
+  CODE_PATTERN,
+  hashPairingCode,
+  issuePairingCode,
+  normalizePairingDuration,
+  pairingExpiryDate,
+} from "./pairing.js";
+import { normalizePlate } from "./input.js";
 import { signDriverToken } from "./auth.js";
 import { assertCanAddDirectTruck, assertSubOrderMutable } from "./lifecycle.js";
 
@@ -43,12 +49,12 @@ export async function findTruckInSubOrder(subOrderId: string, plateNumber: strin
 export async function createDriverAssignment(params: {
   subOrderId: string;
   plateNumber: unknown;
-  phone: unknown;
+  expiresInMinutes: unknown;
   createdByUserId: string | null;
   createdByLabel: string;
 }) {
   const plateNumber = normalizePlate(params.plateNumber);
-  const phoneNormalized = normalizePhone(params.phone);
+  const expiresInMinutes = normalizePairingDuration(params.expiresInMinutes);
   const sub = await prisma.subOrder.findUnique({ where: { id: params.subOrderId } });
   if (!sub) notFound("Sub-order not found");
   await assertSubOrderMutable(sub.id);
@@ -57,26 +63,12 @@ export async function createDriverAssignment(params: {
   if (!truck) {
     await assertCanAddDirectTruck(sub.id);
     truck = await prisma.truck.create({
-      data: {
-        subOrderId: sub.id,
-        plateNumber,
-        driverPhone: optionalString(params.phone),
-      },
-    });
-  } else {
-    truck = await prisma.truck.update({
-      where: { id: truck.id },
-      data: { driverPhone: optionalString(params.phone) ?? truck.driverPhone },
+      data: { subOrderId: sub.id, plateNumber },
     });
   }
 
   await prisma.driverAssignment.updateMany({
-    where: {
-      OR: [
-        { truckId: truck.id, status: { in: ["PENDING", "ACTIVE"] } },
-        { phoneNormalized, status: "PENDING" },
-      ],
-    },
+    where: { truckId: truck.id, status: { in: ["PENDING", "ACTIVE"] } },
     data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
   });
 
@@ -84,9 +76,8 @@ export async function createDriverAssignment(params: {
   const assignment = await prisma.driverAssignment.create({
     data: {
       truckId: truck.id,
-      phoneNormalized,
-      pairingCodeHash: hashPairingCode(phoneNormalized, pairingCode),
-      pairingExpiresAt: pairingExpiryDate(),
+      pairingCodeHash: hashPairingCode(pairingCode),
+      pairingExpiresAt: pairingExpiryDate(expiresInMinutes),
       status: "PENDING",
       createdByUserId: params.createdByUserId,
       createdByLabel: params.createdByLabel,
@@ -97,7 +88,12 @@ export async function createDriverAssignment(params: {
   return { assignment, pairingCode, truck };
 }
 
-export async function regenerateDriverAssignment(assignmentId: string, subOrderId: string) {
+export async function regenerateDriverAssignment(
+  assignmentId: string,
+  subOrderId: string,
+  expiresInMinutesRaw: unknown
+) {
+  const expiresInMinutes = normalizePairingDuration(expiresInMinutesRaw);
   const assignment = await prisma.driverAssignment.findUnique({
     where: { id: assignmentId },
     include: { truck: true },
@@ -112,8 +108,8 @@ export async function regenerateDriverAssignment(assignmentId: string, subOrderI
       status: "PENDING",
       claimedAt: null,
       tokenVersion: { increment: 1 },
-      pairingCodeHash: hashPairingCode(assignment.phoneNormalized, pairingCode),
-      pairingExpiresAt: pairingExpiryDate(),
+      pairingCodeHash: hashPairingCode(pairingCode),
+      pairingExpiresAt: pairingExpiryDate(expiresInMinutes),
     },
     select: assignmentPublicSelect,
   });
@@ -154,32 +150,29 @@ export async function unpairDriver(assignmentId: string) {
   });
 }
 
-export async function pairDriver(phone: unknown, code: unknown) {
-  const phoneNormalized = normalizePhone(phone);
-  const pairingCode = String(code ?? "").replace(/\s+/g, "");
-  if (!/^\d{6}$/.test(pairingCode)) unauthorized("Phone or code is not valid");
+export async function pairDriver(code: unknown) {
+  const pairingCode = String(code ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+  if (!CODE_PATTERN.test(pairingCode)) unauthorized("Code is not valid");
 
-  const candidates = await prisma.driverAssignment.findMany({
+  const match = await prisma.driverAssignment.findFirst({
     where: {
-      phoneNormalized,
+      pairingCodeHash: hashPairingCode(pairingCode),
       status: "PENDING",
-      pairingCodeHash: { not: null },
       pairingExpiresAt: { gt: new Date() },
     },
     include: driverTruckInclude,
     orderBy: { createdAt: "desc" },
   });
-
-  const match = candidates.find(
-    (row) => row.pairingCodeHash && pairingCodesMatch(row.pairingCodeHash, phoneNormalized, pairingCode)
-  );
-  if (!match) unauthorized("Phone or code is not valid");
+  if (!match) unauthorized("Code is not valid or has expired");
   if (match.truck.canceledAt) unauthorized("This truck is canceled");
   if (match.truck.subOrder.status !== "OPEN") unauthorized("This trip is already closed");
 
   await prisma.driverAssignment.updateMany({
     where: {
-      phoneNormalized,
+      truckId: match.truckId,
       id: { not: match.id },
       status: { in: ["PENDING", "ACTIVE"] },
     },
@@ -211,7 +204,6 @@ export function toDriverMe(assignment: Awaited<ReturnType<typeof pairDriver>>["a
   return {
     assignmentId: assignment.id,
     status: assignment.status,
-    phoneNormalized: assignment.phoneNormalized,
     lastLat: assignment.lastLat,
     lastLng: assignment.lastLng,
     lastLocationText: assignment.lastLocationText,
