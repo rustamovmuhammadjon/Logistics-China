@@ -29,7 +29,20 @@ export async function generateUniqueLinkCode() {
 }
 
 export type ViewerSession = { role: "viewer"; userId: string; email: string; remember: boolean };
-export type DriverSession = { role: "driver"; assignmentId: string; truckId: string; tokenVersion: number };
+
+// A driver token carries up to two independent identities: the registered
+// driver (survives across trips, so profile and history stay reachable after
+// a trip closes) and the trip pairing the phone is currently attached to.
+// Right after a code sign-in only the pairing is present — registering adds
+// the driver. Tokens issued before drivers had accounts are pairing-only.
+export type DriverSession = {
+  role: "driver";
+  driverId?: string;
+  driverTokenVersion?: number;
+  assignmentId?: string;
+  truckId?: string;
+  tokenVersion?: number;
+};
 
 const DRIVER_TOKEN_DURATION_SECONDS = 60 * 60 * 24 * 180;
 
@@ -148,9 +161,26 @@ export async function verifyDriverToken(token: string | undefined): Promise<Driv
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
-    if (payload.role !== "driver" || typeof payload.assignmentId !== "string") return null;
-    if (typeof payload.truckId !== "string" || typeof payload.tokenVersion !== "number") return null;
-    return payload as unknown as DriverSession;
+    if (payload.role !== "driver") return null;
+    const hasDriver = typeof payload.driverId === "string" && typeof payload.driverTokenVersion === "number";
+    const hasPairing =
+      typeof payload.assignmentId === "string" &&
+      typeof payload.truckId === "string" &&
+      typeof payload.tokenVersion === "number";
+    if (!hasDriver && !hasPairing) return null;
+    return {
+      role: "driver",
+      ...(hasDriver
+        ? { driverId: payload.driverId as string, driverTokenVersion: payload.driverTokenVersion as number }
+        : {}),
+      ...(hasPairing
+        ? {
+            assignmentId: payload.assignmentId as string,
+            truckId: payload.truckId as string,
+            tokenVersion: payload.tokenVersion as number,
+          }
+        : {}),
+    };
   } catch {
     return null;
   }

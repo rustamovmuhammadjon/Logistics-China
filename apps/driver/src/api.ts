@@ -1,6 +1,25 @@
 import * as SecureStore from "expo-secure-store";
+import type {
+  DriverLocationPingDto,
+  DriverMeDto,
+  DriverProfileDto,
+  DriverTripDto,
+} from "@logistics/shared";
 
 const TOKEN_KEY = "driver_token";
+// Name + phone from the last registration on this phone, so a returning
+// driver only has to confirm them when the next trip's code is entered.
+const IDENTITY_KEY = "driver_identity";
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
 function apiBase() {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, "");
@@ -14,54 +33,90 @@ export function apiBaseUrl() {
   return apiBase() || "(EXPO_PUBLIC_API_URL is not set)";
 }
 
+// SecureStore is slow enough to notice on every request — read it once.
+let tokenCache: string | null | undefined;
+
 export async function getToken() {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  if (tokenCache === undefined) tokenCache = await SecureStore.getItemAsync(TOKEN_KEY);
+  return tokenCache;
 }
 
 export async function setToken(token: string) {
+  tokenCache = token;
   await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
 export async function clearToken() {
+  tokenCache = null;
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
-export async function driverRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = apiBase();
-  if (!base) {
-    throw new Error("EXPO_PUBLIC_API_URL is not set. Rebuild the APK with the public website URL.");
+export type SavedIdentity = { firstName: string; lastName: string; phone: string };
+
+export async function getSavedIdentity(): Promise<SavedIdentity | null> {
+  try {
+    const raw = await SecureStore.getItemAsync(IDENTITY_KEY);
+    return raw ? (JSON.parse(raw) as SavedIdentity) : null;
+  } catch {
+    return null;
   }
+}
+
+export async function saveIdentity(profile: SavedIdentity) {
+  const value: SavedIdentity = { firstName: profile.firstName, lastName: profile.lastName, phone: profile.phone };
+  await SecureStore.setItemAsync(IDENTITY_KEY, JSON.stringify(value)).catch(() => undefined);
+}
+
+async function request<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+  const base = apiBase();
+  if (!base) throw new ApiError(0, "EXPO_PUBLIC_API_URL is not set");
 
   const token = await getToken();
-  const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${base}/api/driver${path}`, { ...init, headers });
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
-  }
-  return data;
-}
-
-export async function pairDriver(code: string) {
-  const data = await driverRequest<{ token: string }>("/pair", {
-    method: "POST",
-    body: JSON.stringify({ code }),
-  });
-  await setToken(data.token);
-  return data;
-}
-
-// Tell the server to revoke this pairing (so the web dashboard stops
-// showing "Paired") before wiping the local token. Best-effort — if the
-// phone has no connectivity right now, the sign-out still proceeds locally
-// rather than trapping the driver in a pairing they can't reach anymore.
-export async function unpairDriver() {
+  let res: Response;
   try {
-    await driverRequest("/unpair", { method: "POST" });
+    res = await fetch(`${base}/api/driver${path}`, {
+      method: init?.method ?? "GET",
+      headers,
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+    });
   } catch {
-    // ignore — local sign-out still happens either way
+    throw new ApiError(0, "Network request failed");
   }
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new ApiError(res.status, data.error || `Request failed (${res.status})`);
+  return data;
 }
+
+type AuthResult = { token: string; me: DriverMeDto };
+
+export type ProfilePatch = Partial<
+  Pick<
+    DriverProfileDto,
+    | "firstName"
+    | "lastName"
+    | "phone"
+    | "dateOfBirth"
+    | "licenseNumber"
+    | "truckPlate"
+    | "truckModel"
+    | "trailerPlate"
+    | "trailerType"
+  >
+>;
+
+export const api = {
+  pair: (code: string) => request<AuthResult>("/pair", { method: "POST", body: { code } }),
+  register: (input: SavedIdentity) => request<AuthResult>("/register", { method: "POST", body: input }),
+  me: () => request<{ me: DriverMeDto }>("/me"),
+  updateProfile: (patch: ProfilePatch) =>
+    request<{ profile: DriverProfileDto }>("/profile", { method: "PATCH", body: patch }),
+  trips: () => request<{ trips: DriverTripDto[] }>("/trips"),
+  trip: (id: string) =>
+    request<{ trip: DriverTripDto; pings: DriverLocationPingDto[] }>(`/trips/${encodeURIComponent(id)}`),
+  sendLocation: (body: { lat: number; lng: number; accuracy: number | null; locationText: string | null }) =>
+    request<{ ok: true; lastPingAt: string; lastLocationText: string }>("/location", { method: "POST", body }),
+  signOut: () => request<{ ok: true }>("/unpair", { method: "POST" }),
+};

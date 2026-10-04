@@ -40,6 +40,11 @@ enum OperatorLinkScope {
   SELECTED
 }
 
+enum DriverRegistrationSource {
+  ADMIN
+  APP
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -372,11 +377,51 @@ model CargoTransfer {
   @@index([toTruckId])
 }
 
+// A driver's identity across trips. A pairing (DriverAssignment) only lasts
+// one trip; the Driver row is what keeps their profile, vehicle and trip
+// history together. Created either by an admin or by the driver themselves
+// right after signing in with an operator's code — a returning driver is
+// recognized by phone number and re-linked rather than duplicated.
+model Driver {
+  id String @id @default(cuid())
+
+  firstName       String
+  lastName        String
+  phone           String // E.164 display form, e.g. "+998901234567"
+  phoneNormalized String @unique // digits only — the identity key
+
+  dateOfBirth   DateTime? @db.Date
+  licenseNumber String?
+
+  // The driver's own vehicle as they describe it. Never written onto the
+  // per-trip Truck rows operators manage.
+  truckPlate   String?
+  truckModel   String?
+  trailerPlate String?
+  trailerType  String?
+
+  registeredVia DriverRegistrationSource @default(APP)
+  // Disabling (admin) or signing out bumps tokenVersion, which invalidates
+  // every token issued to this driver before it.
+  active       Boolean @default(true)
+  tokenVersion Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments DriverAssignment[]
+}
+
 model DriverAssignment {
   id String @id @default(cuid())
 
   truckId String
   truck   Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  // Null until the driver registers on this pairing (and for rows from
+  // before drivers had accounts).
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
 
   // Nullable: pairing no longer collects the driver's phone number — the
   // operator issues a code/QR and the driver signs in with that alone.
@@ -404,6 +449,7 @@ model DriverAssignment {
 
   @@index([phoneNormalized, status])
   @@index([truckId, status])
+  @@index([driverId, status])
 }
 
 model LocationPing {

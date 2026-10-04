@@ -1,233 +1,200 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { clearToken, driverRequest, unpairDriver } from "../api";
-import { sendCurrentLocation, startLocationUpdates, stopLocationUpdates } from "../location";
-import { colors, radius, spacing } from "../theme";
+import { Feather } from "@expo/vector-icons";
+import type { DriverTripDto } from "@logistics/shared";
+import { useSession } from "../session";
+import { useNav } from "../navigation";
+import { ensureForegroundPermission, sendCurrentLocation } from "../location";
+import { colors, radius, spacing, type } from "../theme";
+import {
+  formatDate,
+  formatRelative,
+  formatToday,
+  formatWeight,
+  greeting,
+  isPingFresh,
+  splitLocationLabel,
+} from "../format";
+import { Avatar, Button, Card, Chip, EmptyState, IconBadge, Notice, Screen, StatusPill } from "../components/ui";
+import { MiniStat, RouteView, tripTitle } from "../components/trip";
 
-type DriverMe = {
-  driver: {
-    lastLocationText: string | null;
-    lastPingAt: string | null;
-    truck: {
-      plateNumber: string | null;
-      trailerPlateNumber: string | null;
-      orderName: string;
-      subOrderName: string | null;
-      currentLocation: string | null;
-    };
-  };
-};
+type Feedback = { tone: "success" | "danger"; message: string } | null;
 
-export function HomeScreen({ onUnpaired }: { onUnpaired: () => Promise<void> }) {
-  const [me, setMe] = useState<DriverMe["driver"] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const data = await driverRequest<DriverMe>("/me");
-      setMe(data.driver);
-      try {
-        await startLocationUpdates();
-      } catch (locErr) {
-        setError(locErr instanceof Error ? locErr.message : "Location permission is required");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load assignment");
-    }
-  }, []);
+export function HomeScreen() {
+  const { me, refresh, patchCurrentTrip, handleError, locationIssue, retryLocation } = useSession();
+  const nav = useNav();
+  const profile = me?.profile;
+  const trip = me?.currentTrip ?? null;
+  const [refreshing, setRefreshing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>(null);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (feedback?.tone !== "success") return;
+    const timer = setTimeout(() => setFeedback(null), 4000);
+    return () => clearTimeout(timer);
+  }, [feedback]);
 
-  async function pingNow() {
-    setPending(true);
-    setError(null);
-    try {
-      await sendCurrentLocation();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send location");
-    } finally {
-      setPending(false);
-    }
+  async function onRefresh() {
+    setRefreshing(true);
+    const error = await refresh();
+    setRefreshing(false);
+    setFeedback(error ? { tone: "danger", message: error } : null);
   }
 
-  async function unpair() {
-    await stopLocationUpdates();
-    // Must happen before clearToken() — the request still needs the token
-    // to authenticate as this driver.
-    await unpairDriver();
-    await clearToken();
-    await onUnpaired();
+  async function sendNow() {
+    setSending(true);
+    setFeedback(null);
+    try {
+      await ensureForegroundPermission();
+      const result = await sendCurrentLocation();
+      if (result) patchCurrentTrip({ lastPingAt: result.lastPingAt, lastLocationText: result.lastLocationText });
+      setFeedback({ tone: "success", message: "Joylashuv operatorga yuborildi" });
+    } catch (err) {
+      setFeedback({ tone: "danger", message: handleError(err) });
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
-    <LinearGradient colors={[colors.bg, colors.bgElevated]} style={styles.fill}>
-      <View style={styles.wrap}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.kicker}>Biriktirilgan yuk</Text>
-            <Text style={styles.title}>{me?.truck?.plateNumber || "Truck"}</Text>
-          </View>
-          <View style={styles.badge}>
-            <MaterialCommunityIcons name="truck-outline" size={26} color={colors.accent} />
-          </View>
+    <Screen onRefresh={onRefresh} refreshing={refreshing}>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.date}>{formatToday()}</Text>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {greeting()}, {profile?.firstName ?? "haydovchi"}
+          </Text>
         </View>
-
-        <View style={styles.chipRow}>
-          {me?.truck?.trailerPlateNumber ? (
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>Treyler · {me.truck.trailerPlateNumber}</Text>
-            </View>
-          ) : null}
-          {me?.truck?.orderName ? (
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>
-                {me.truck.orderName}
-                {me.truck.subOrderName ? ` · ${me.truck.subOrderName}` : ""}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardIcon}>
-            <Feather name="map-pin" size={18} color={colors.accent} />
-          </View>
-          <View style={styles.cardBody}>
-            <Text style={styles.cardLabel}>Oxirgi joylashuv</Text>
-            <Text style={styles.cardValue} numberOfLines={2}>
-              {me?.lastLocationText || me?.truck?.currentLocation || "Hali yuborilmagan"}
-            </Text>
-            <Text style={styles.cardHint}>
-              {me?.lastPingAt ? new Date(me.lastPingAt).toLocaleString() : "Ilova har 3 soatda avtomatik yuboradi"}
-            </Text>
-          </View>
-        </View>
-
-        {error ? (
-          <View style={styles.errorBox}>
-            <Feather name="alert-circle" size={16} color={colors.danger} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.spacer} />
-
-        <Pressable
-          style={({ pressed }) => [styles.button, pending && styles.buttonDisabled, pressed && styles.buttonPressed]}
-          onPress={() => void pingNow()}
-          disabled={pending}
-        >
-          {pending ? (
-            <Text style={styles.buttonText}>Yuborilmoqda…</Text>
-          ) : (
-            <>
-              <Feather name="navigation" size={17} color={colors.bg} />
-              <Text style={styles.buttonText}>Hozir joylashuvni yuborish</Text>
-            </>
-          )}
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}
-          onPress={() => void unpair()}
-        >
-          <Feather name="log-out" size={15} color={colors.textTertiary} />
-          <Text style={styles.linkText}>Shu telefondan chiqish</Text>
+        <Pressable onPress={() => nav.setTab("profile")} hitSlop={8}>
+          <Avatar firstName={profile?.firstName} lastName={profile?.lastName} size={46} />
         </Pressable>
       </View>
-    </LinearGradient>
+
+      {locationIssue ? (
+        <Notice tone="warning" message={locationIssue} actionLabel="Ruxsat berish" onAction={() => void retryLocation()} />
+      ) : null}
+
+      {trip ? (
+        <>
+          <TripHero trip={trip} onOpen={() => nav.push({ name: "trip", tripId: trip.id })} />
+          <LocationCard trip={trip} sending={sending} onSend={() => void sendNow()} />
+        </>
+      ) : (
+        <EmptyState
+          icon="truck"
+          title="Hozir faol reys yo'q"
+          text="Yangi reysga ulanish uchun operator bergan kodni kiriting. Profilingiz va reyslar tarixi saqlanib qoladi."
+          action={<Button title="Kodni kiritish" icon="key" onPress={() => nav.push({ name: "attachTrip" })} />}
+        />
+      )}
+
+      {feedback ? <Notice tone={feedback.tone} message={feedback.message} /> : null}
+    </Screen>
+  );
+}
+
+function TripHero({ trip, onOpen }: { trip: DriverTripDto; onOpen: () => void }) {
+  return (
+    <Pressable onPress={onOpen} style={({ pressed }) => [pressed && styles.pressed]}>
+      <Card style={styles.hero}>
+        <View style={styles.heroTop}>
+          <Text style={styles.kicker}>Joriy reys</Text>
+          <StatusPill status={trip.status} />
+        </View>
+
+        <Text style={styles.plate}>{trip.truck.plateNumber || "Mashina"}</Text>
+        <View style={styles.chips}>
+          <Chip icon="file-text" label={tripTitle(trip)} />
+          {trip.truck.trailerPlateNumber ? <Chip icon="link" label={`Treyler ${trip.truck.trailerPlateNumber}`} /> : null}
+        </View>
+
+        <View style={styles.divider} />
+        <RouteView origin={trip.order.origin} destination={trip.order.destination} />
+        <View style={styles.divider} />
+
+        <View style={styles.stats}>
+          <MiniStat label="Yuk" value={trip.order.commodity ?? trip.truck.cargoDescription} />
+          <MiniStat label="Og'irlik" value={formatWeight(trip.truck.cargoWeight)} />
+          <MiniStat label="Yuklash sanasi" value={trip.order.factoryLoadDate ? formatDate(trip.order.factoryLoadDate) : null} />
+          <MiniStat label="Port (POL)" value={trip.order.pol} />
+        </View>
+
+        <View style={styles.more}>
+          <Text style={styles.moreText}>Batafsil</Text>
+          <Feather name="chevron-right" size={16} color={colors.accent} />
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
+function LocationCard({ trip, sending, onSend }: { trip: DriverTripDto; sending: boolean; onSend: () => void }) {
+  const { place, coords } = splitLocationLabel(trip.lastLocationText);
+  const fresh = isPingFresh(trip.lastPingAt);
+  return (
+    <Card style={styles.location}>
+      <View style={styles.locationTop}>
+        <IconBadge icon="map-pin" tone={trip.lastPingAt ? (fresh ? "success" : "warning") : "accent"} />
+        <View style={styles.locationText}>
+          <Text style={styles.locationLabel}>Oxirgi joylashuv</Text>
+          <Text style={styles.locationPlace} numberOfLines={2}>
+            {place ?? (coords ? "Koordinatalar" : "Hali yuborilmagan")}
+          </Text>
+          {coords ? <Text style={styles.locationCoords}>{coords}</Text> : null}
+        </View>
+      </View>
+
+      <View style={styles.locationMeta}>
+        <View style={styles.metaItem}>
+          <Feather name="clock" size={13} color={fresh ? colors.success : colors.textTertiary} />
+          <Text style={[styles.metaText, fresh && { color: colors.success }]}>
+            {trip.lastPingAt ? formatRelative(trip.lastPingAt) : "Yuborilmagan"}
+          </Text>
+        </View>
+        <View style={styles.metaItem}>
+          <Feather name="refresh-cw" size={13} color={colors.textTertiary} />
+          <Text style={styles.metaText}>Har 3 soatda avtomatik</Text>
+        </View>
+      </View>
+
+      <Button title="Joylashuvni hozir yuborish" icon="navigation" onPress={onSend} loading={sending} />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  wrap: { flex: 1, padding: spacing.xl, paddingTop: 64 },
-  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  kicker: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  title: { color: colors.textPrimary, fontSize: 34, fontWeight: "800", marginTop: 4 },
-  badge: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accentSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.lg },
-  chip: {
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-  },
-  chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: "500" },
-  card: {
+  pressed: { opacity: 0.9 },
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  headerText: { flex: 1, gap: 2 },
+  date: { ...type.caption, color: colors.textSecondary, textTransform: "capitalize" },
+  greeting: { fontSize: 24, fontWeight: "800", color: colors.textPrimary, letterSpacing: -0.2 },
+
+  hero: { gap: spacing.md, borderColor: colors.borderStrong },
+  heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  kicker: { ...type.kicker, color: colors.accent },
+  plate: { fontSize: 34, fontWeight: "800", color: colors.textPrimary, letterSpacing: 1.5, marginTop: -4 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong },
+  stats: { flexDirection: "row", flexWrap: "wrap", rowGap: spacing.md, columnGap: spacing.lg },
+  more: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2 },
+  moreText: { ...type.caption, color: colors.accent, fontWeight: "700" },
+
+  location: { gap: spacing.lg },
+  locationTop: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start" },
+  locationText: { flex: 1, gap: 2 },
+  locationLabel: { ...type.label, color: colors.textTertiary },
+  locationPlace: { fontSize: 17, fontWeight: "700", color: colors.textPrimary },
+  locationCoords: { fontSize: 12, color: colors.textTertiary, fontVariant: ["tabular-nums"] },
+  locationMeta: {
     flexDirection: "row",
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginTop: spacing.xl,
-  },
-  cardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.accentSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardBody: { flex: 1, gap: 4 },
-  cardLabel: { color: colors.textTertiary, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.6 },
-  cardValue: { color: colors.textPrimary, fontSize: 18, fontWeight: "600" },
-  cardHint: { color: colors.textSecondary, fontSize: 13 },
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.dangerSoft,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    marginTop: spacing.lg,
-  },
-  errorText: { color: colors.danger, fontSize: 13, flexShrink: 1 },
-  spacer: { flex: 1 },
-  button: {
-    flexDirection: "row",
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingVertical: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  buttonPressed: { opacity: 0.85 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.bg, fontSize: 16, fontWeight: "700" },
-  link: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    marginTop: spacing.xl,
+    flexWrap: "wrap",
+    gap: spacing.lg,
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
   },
-  linkText: { color: colors.textTertiary, fontSize: 14 },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  metaText: { fontSize: 12, color: colors.textSecondary, fontWeight: "600" },
 });

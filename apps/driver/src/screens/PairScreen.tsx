@@ -1,30 +1,44 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { apiBaseUrl, pairDriver } from "../api";
-import { colors, radius, spacing } from "../theme";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { api, apiBaseUrl } from "../api";
+import { errorMessage } from "../i18n";
+import { useSession } from "../session";
+import { colors, radius, spacing, type } from "../theme";
 import { CodeInput } from "../components/CodeInput";
 import { QrScanner } from "../components/QrScanner";
+import { Button, Notice, Screen, ScreenHeader } from "../components/ui";
 
 const CODE_LENGTH = 8;
 
-export function PairScreen({ onPaired }: { onPaired: () => Promise<void> }) {
-  const [mode, setMode] = useState<"code" | "scan">("code");
+const cleanCode = (value: string) =>
+  value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, CODE_LENGTH);
+
+// Two uses: the first sign-in, and — with onBack — a registered driver
+// attaching their next trip without signing out.
+export function PairScreen({ onBack }: { onBack?: () => void }) {
+  const { applyAuth, notice } = useSession();
+  const [scanning, setScanning] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const attaching = Boolean(onBack);
 
-  async function submitCode(fullCode: string) {
+  async function submit(fullCode: string) {
     setPending(true);
     setError(null);
     try {
-      await pairDriver(fullCode);
-      await onPaired();
+      await applyAuth(await api.pair(fullCode));
+      onBack?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kodni tasdiqlab bo'lmadi");
+      // Not routed through the session: a wrong code must never sign a
+      // registered driver out.
+      setError(errorMessage(err));
       setCode("");
-      setMode("code");
     } finally {
       setPending(false);
     }
@@ -32,71 +46,65 @@ export function PairScreen({ onPaired }: { onPaired: () => Promise<void> }) {
 
   function onCodeChange(next: string) {
     setCode(next);
-    if (next.length === CODE_LENGTH && !pending) void submitCode(next);
+    if (next.length === CODE_LENGTH && !pending) void submit(next);
   }
 
-  function onScanned(data: string) {
-    const cleaned = data
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .slice(0, CODE_LENGTH);
-    setMode("code");
-    setCode(cleaned);
-    if (cleaned.length === CODE_LENGTH) void submitCode(cleaned);
-  }
-
-  if (mode === "scan") {
-    return <QrScanner onScanned={onScanned} onClose={() => setMode("code")} />;
+  if (scanning) {
+    return (
+      <QrScanner
+        onClose={() => setScanning(false)}
+        onScanned={(data) => {
+          const scanned = cleanCode(data);
+          setScanning(false);
+          setCode(scanned);
+          if (scanned.length === CODE_LENGTH) void submit(scanned);
+        }}
+      />
+    );
   }
 
   return (
-    <LinearGradient colors={[colors.bg, colors.bgElevated]} style={styles.fill}>
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          contentContainerStyle={styles.wrap}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.badge}>
-            <MaterialCommunityIcons name="truck-outline" size={30} color={colors.accent} />
-          </View>
-
-          <Text style={styles.kicker}>Haydovchi ilovasi</Text>
-          <Text style={styles.title}>Kodni kiriting</Text>
-          <Text style={styles.hint}>Operator bergan 8 xonali kodni kiriting yoki QR kodni skanerlang.</Text>
-
-          <View style={styles.codeWrap}>
-            <CodeInput value={code} onChange={onCodeChange} length={CODE_LENGTH} autoFocus />
-          </View>
-
-          {pending ? (
-            <Text style={styles.pendingText}>Tekshirilmoqda…</Text>
-          ) : error ? (
-            <View style={styles.errorBox}>
-              <Feather name="alert-circle" size={16} color={colors.danger} />
-              <Text style={styles.errorText}>{error}</Text>
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Screen edges={["top", "bottom"]} contentStyle={!attaching && styles.centered}>
+        {attaching ? (
+          <ScreenHeader title="Yangi reysga ulanish" onBack={onBack} />
+        ) : (
+          <View style={styles.hero}>
+            <View style={styles.badge}>
+              <MaterialCommunityIcons name="truck-outline" size={30} color={colors.accent} />
             </View>
-          ) : null}
+            <Text style={styles.kicker}>Haydovchi ilovasi</Text>
+            <Text style={styles.title}>Kodni kiriting</Text>
+          </View>
+        )}
 
-          <Pressable
-            style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-            onPress={() => setMode("scan")}
-          >
-            <Feather name="camera" size={18} color={colors.bg} />
-            <Text style={styles.buttonText}>QR kodni skanerlash</Text>
-          </Pressable>
+        <Text style={styles.hint}>
+          {attaching
+            ? "Operator bergan yangi 8 xonali kodni kiriting — reys profilingizga qo'shiladi."
+            : "Operator bergan 8 xonali kodni kiriting yoki QR kodni skanerlang."}
+        </Text>
 
-          <Text style={styles.meta}>{apiBaseUrl()}</Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+        {notice && !attaching ? <Notice tone="warning" message={notice} /> : null}
+
+        <View style={styles.codeWrap}>
+          <CodeInput value={code} onChange={onCodeChange} length={CODE_LENGTH} autoFocus />
+        </View>
+
+        {pending ? <Text style={styles.pending}>Tekshirilmoqda…</Text> : null}
+        {error && !pending ? <Notice message={error} /> : null}
+
+        <Button title="QR kodni skanerlash" icon="camera" variant="secondary" onPress={() => setScanning(true)} />
+
+        {!attaching ? <Text style={styles.meta}>{apiBaseUrl()}</Text> : null}
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  wrap: { flexGrow: 1, justifyContent: "center", padding: spacing.xl, paddingBottom: spacing.xxl * 2, gap: spacing.md },
+  fill: { flex: 1, backgroundColor: colors.bg },
+  centered: { flexGrow: 1, justifyContent: "center", paddingBottom: spacing.xxl * 2 },
+  hero: { gap: spacing.xs },
   badge: {
     width: 64,
     height: 64,
@@ -104,40 +112,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
-  kicker: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  title: { color: colors.textPrimary, fontSize: 30, fontWeight: "800", marginTop: 2 },
-  hint: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginTop: spacing.xs, marginBottom: spacing.sm },
-  codeWrap: { marginTop: spacing.sm, marginBottom: spacing.xs },
-  pendingText: { color: colors.textSecondary, fontSize: 13, textAlign: "center" },
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.dangerSoft,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-  },
-  errorText: { color: colors.danger, fontSize: 13, flexShrink: 1 },
-  button: {
-    flexDirection: "row",
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingVertical: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  buttonPressed: { opacity: 0.85 },
-  buttonText: { color: colors.bg, fontSize: 16, fontWeight: "700" },
-  meta: { color: colors.textTertiary, fontSize: 12, textAlign: "center", marginTop: spacing.lg },
+  kicker: { ...type.kicker, color: colors.accent },
+  title: { ...type.title, color: colors.textPrimary, fontSize: 30 },
+  hint: { ...type.body, color: colors.textSecondary },
+  codeWrap: { marginVertical: spacing.xs },
+  pending: { ...type.caption, color: colors.textSecondary, textAlign: "center" },
+  meta: { ...type.caption, color: colors.textTertiary, textAlign: "center", marginTop: spacing.sm, fontSize: 12 },
 });

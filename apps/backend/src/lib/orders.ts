@@ -1,6 +1,7 @@
 import type { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { optionalDisplayPhone, optionalFloat, optionalPlate, optionalString } from "./input.js";
+import { assignmentPublicSelect } from "./assignments.js";
 
 // A company's employee creates orders on the company's behalf — the order
 // (and its operator links) belong to the company, not the employee, so
@@ -171,20 +172,7 @@ export const detailInclude = {
           assignments: {
             where: { status: { in: ["PENDING", "ACTIVE"] as Array<"PENDING" | "ACTIVE"> } },
             orderBy: { createdAt: "desc" as const },
-            select: {
-              id: true,
-              truckId: true,
-              phoneNormalized: true,
-              status: true,
-              claimedAt: true,
-              lastLat: true,
-              lastLng: true,
-              lastLocationText: true,
-              lastPingAt: true,
-              pairingExpiresAt: true,
-              createdAt: true,
-              createdByLabel: true,
-            },
+            select: assignmentPublicSelect,
           },
         },
       },

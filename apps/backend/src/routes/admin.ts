@@ -4,7 +4,19 @@ import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
-import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
+import {
+  assignmentPublicSelect,
+  createDriverAssignment,
+  regenerateDriverAssignment,
+  revokeDriverAssignment,
+} from "../lib/assignments.js";
+import {
+  createDriverByAdmin,
+  deleteDriverByAdmin,
+  getDriverForAdmin,
+  listDriversForAdmin,
+  updateDriverByAdmin,
+} from "../lib/drivers.js";
 import { createCargoTransfer } from "../lib/transfers.js";
 import {
   assertCanAddDirectTruck,
@@ -63,6 +75,42 @@ adminRouter.delete(
   "/users/:id",
   asyncHandler(async (req, res) => {
     await deleteUserAndRelatedData(req.params.id);
+    res.json({ ok: true });
+  })
+);
+
+adminRouter.get(
+  "/drivers",
+  asyncHandler(async (_req, res) => {
+    res.json({ drivers: await listDriversForAdmin() });
+  })
+);
+
+adminRouter.post(
+  "/drivers",
+  asyncHandler(async (req, res) => {
+    res.json({ driver: await createDriverByAdmin(req.body ?? {}) });
+  })
+);
+
+adminRouter.get(
+  "/drivers/:id",
+  asyncHandler(async (req, res) => {
+    res.json(await getDriverForAdmin(req.params.id));
+  })
+);
+
+adminRouter.patch(
+  "/drivers/:id",
+  asyncHandler(async (req, res) => {
+    res.json({ driver: await updateDriverByAdmin(req.params.id, req.body ?? {}) });
+  })
+);
+
+adminRouter.delete(
+  "/drivers/:id",
+  asyncHandler(async (req, res) => {
+    await deleteDriverByAdmin(req.params.id);
     res.json({ ok: true });
   })
 );
@@ -183,20 +231,7 @@ adminRouter.get(
             assignments: {
               where: { status: { in: ["PENDING", "ACTIVE"] as Array<"PENDING" | "ACTIVE"> } },
               orderBy: { createdAt: "desc" },
-              select: {
-                id: true,
-                truckId: true,
-                phoneNormalized: true,
-                status: true,
-                claimedAt: true,
-                lastLat: true,
-                lastLng: true,
-                lastLocationText: true,
-                lastPingAt: true,
-                pairingExpiresAt: true,
-                createdAt: true,
-                createdByLabel: true,
-              },
+              select: assignmentPublicSelect,
             },
           },
         },

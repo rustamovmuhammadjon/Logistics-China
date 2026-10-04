@@ -1,6 +1,19 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { optionalFloat, optionalString, requiredNumber } from "../lib/input.js";
-import { loadActiveDriver, pairDriver, recordDriverPing, toDriverMe, unpairDriver } from "../lib/assignments.js";
+import { conflict, notFound } from "../lib/errors.js";
+import { recordDriverPing } from "../lib/assignments.js";
+import { readBearerToken, verifyDriverToken } from "../lib/auth.js";
+import {
+  buildDriverMe,
+  getDriverTrip,
+  listDriverTrips,
+  loadDriverContext,
+  pairWithCode,
+  registerDriver,
+  signOutDriver,
+  toDriverTrip,
+  updateDriverProfile,
+} from "../lib/drivers.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireDriver, type DriverRequest } from "../middleware/auth.js";
 import { broadcastOnMutation } from "../middleware/realtime.js";
@@ -12,11 +25,31 @@ export const driverRouter = Router();
 // updates, so every open Monitoring/order page picks it up live.
 driverRouter.use(broadcastOnMutation);
 
+const sessionOf = (req: Request) => (req as DriverRequest).driver;
+
+// Profile and history belong to a registered driver. Not a 401: the token
+// is still good (the app must not sign out), registration is just pending.
+async function requireRegistered(req: Request) {
+  const ctx = await loadDriverContext(sessionOf(req));
+  if (!ctx.driver) conflict("Complete registration first");
+  return { ...ctx, driver: ctx.driver };
+}
+
+// Open to anyone with a code. A registered driver who is already signed in
+// sends their token along, so the new trip lands on their existing account.
 driverRouter.post(
   "/pair",
   asyncHandler(async (req, res) => {
-    const { token, assignment } = await pairDriver(req.body?.code);
-    res.json({ token, driver: toDriverMe(assignment) });
+    const existing = await verifyDriverToken(readBearerToken(req));
+    res.json(await pairWithCode(req.body?.code, existing));
+  })
+);
+
+driverRouter.post(
+  "/register",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    res.json(await registerDriver(sessionOf(req), req.body ?? {}));
   })
 );
 
@@ -24,34 +57,60 @@ driverRouter.get(
   "/me",
   asyncHandler(requireDriver),
   asyncHandler(async (req, res) => {
-    const session = (req as DriverRequest).driver;
-    const assignment = await loadActiveDriver(session.assignmentId, session.tokenVersion);
-    res.json({ driver: toDriverMe(assignment) });
+    res.json({ me: buildDriverMe(await loadDriverContext(sessionOf(req))) });
   })
 );
 
-// The phone app's "sign out of this phone" button — revokes the pairing
-// server-side so the web dashboard stops showing it as paired, instead of
-// only ever clearing the token locally (which was the bug: the website kept
-// showing "Paired" forever since nothing had told the backend).
+driverRouter.patch(
+  "/profile",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json({ profile: await updateDriverProfile(driver, req.body ?? {}) });
+  })
+);
+
+driverRouter.get(
+  "/trips",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    const trips = await listDriverTrips(driver.id);
+    res.json({ trips: trips.map(toDriverTrip) });
+  })
+);
+
+driverRouter.get(
+  "/trips/:id",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    const id = optionalString(req.params.id);
+    if (!id) notFound("Trip not found");
+    res.json(await getDriverTrip(driver.id, id));
+  })
+);
+
+// "Sign out of this phone" — revokes the pairing server-side (so the web
+// dashboard stops showing it as paired) and invalidates the driver's token.
 driverRouter.post(
   "/unpair",
   asyncHandler(requireDriver),
   asyncHandler(async (req, res) => {
-    const session = (req as DriverRequest).driver;
-    await unpairDriver(session.assignmentId);
+    await signOutDriver(sessionOf(req));
     res.json({ ok: true });
   })
 );
 
+// Pairing-only sessions (app builds from before registration) keep working.
 driverRouter.post(
   "/location",
   asyncHandler(requireDriver),
   asyncHandler(async (req, res) => {
-    const session = (req as DriverRequest).driver;
-    await loadActiveDriver(session.assignmentId, session.tokenVersion);
+    const { assignment } = await loadDriverContext(sessionOf(req));
+    if (!assignment) conflict("No active trip — enter a new code from your operator");
     const result = await recordDriverPing({
-      assignmentId: session.assignmentId,
+      assignmentId: assignment.id,
       lat: requiredNumber(req.body?.lat, "lat"),
       lng: requiredNumber(req.body?.lng, "lng"),
       accuracy: optionalFloat(req.body?.accuracy),

@@ -96,7 +96,98 @@ export type DriverAssignmentDto = {
   pairingExpiresAt: string | null;
   createdAt: string;
   createdByLabel: string | null;
+  // Set once the driver registers in the app on this pairing.
+  driver?: { id: string; firstName: string; lastName: string; phone: string } | null;
 };
+
+export type DriverRegistrationSource = "ADMIN" | "APP";
+export type DriverTripStatus = "ACTIVE" | "COMPLETED" | "CANCELED" | "TRANSFERRED" | "ENDED";
+
+export type DriverProfileDto = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  dateOfBirth: string | null; // "YYYY-MM-DD"
+  licenseNumber: string | null;
+  truckPlate: string | null;
+  truckModel: string | null;
+  trailerPlate: string | null;
+  trailerType: string | null;
+  registeredVia: DriverRegistrationSource;
+  createdAt: string;
+};
+
+// The driver's own view of a trip — deliberately a narrow slice of the
+// order: no owner, operators, GPS box, comments, files or other trucks.
+export type DriverTripDto = {
+  id: string;
+  status: DriverTripStatus;
+  pairedAt: string;
+  lastPingAt: string | null;
+  lastLocationText: string | null;
+  lastLat: number | null;
+  lastLng: number | null;
+  truck: {
+    plateNumber: string | null;
+    trailerPlateNumber: string | null;
+    cargoWeight: number | null;
+    cargoDescription: string | null;
+  };
+  order: {
+    reference: string;
+    subOrderName: string | null;
+    origin: string | null;
+    destination: string | null;
+    pol: string | null;
+    commodity: string | null;
+    factoryLoadDate: string | null;
+    openedAt: string | null;
+    arrivedAt: string | null;
+  };
+};
+
+export type DriverLocationPingDto = {
+  id: string;
+  lat: number;
+  lng: number;
+  locationText: string | null;
+  recordedAt: string;
+};
+
+export type DriverMeDto = {
+  registered: boolean;
+  profile: DriverProfileDto | null;
+  currentTrip: DriverTripDto | null;
+};
+
+export type AdminDriverDto = DriverProfileDto & {
+  active: boolean;
+  tripCount: number;
+  lastPingAt: string | null;
+  activeTrip: { plateNumber: string | null; reference: string; subOrderName: string | null } | null;
+};
+
+export type AdminDriverTripDto = DriverTripDto & {
+  groupOrderId: string;
+  subOrderId: string;
+  truckId: string;
+};
+
+export function driverTripStatusLabel(status: DriverTripStatus): string {
+  switch (status) {
+    case "ACTIVE":
+      return "On trip";
+    case "COMPLETED":
+      return "Completed";
+    case "CANCELED":
+      return "Cancelled";
+    case "TRANSFERRED":
+      return "Cargo transferred";
+    case "ENDED":
+      return "Ended";
+  }
+}
 
 export type CargoTransferDto = {
   id: string;

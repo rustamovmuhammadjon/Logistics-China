@@ -5,10 +5,10 @@
     "owner": "mrustamov0109s-team",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#05070A"
     },
     "ios": {
       "supportsTablet": false,

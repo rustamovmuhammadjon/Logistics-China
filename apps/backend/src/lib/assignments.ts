@@ -8,7 +8,6 @@ import {
   pairingExpiryDate,
 } from "./pairing.js";
 import { normalizePlate } from "./input.js";
-import { signDriverToken } from "./auth.js";
 import { assertCanAddDirectTruck, assertSubOrderMutable } from "./lifecycle.js";
 
 export const assignmentPublicSelect = {
@@ -24,9 +23,10 @@ export const assignmentPublicSelect = {
   pairingExpiresAt: true,
   createdAt: true,
   createdByLabel: true,
+  driver: { select: { id: true, firstName: true, lastName: true, phone: true } },
 } as const;
 
-const driverTruckInclude = {
+export const driverTruckInclude = {
   truck: {
     include: {
       transfersFrom: { select: { id: true } },
@@ -102,6 +102,29 @@ export async function regenerateDriverAssignment(
   if (assignment.status === "REVOKED") badRequest("This pairing was revoked");
 
   const pairingCode = issuePairingCode();
+
+  // Once a driver has registered on this pairing it is part of their trip
+  // history — the new code (maybe for another driver) gets its own row
+  // instead of overwriting theirs.
+  if (assignment.driverId) {
+    await prisma.driverAssignment.update({
+      where: { id: assignment.id },
+      data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null, tokenVersion: { increment: 1 } },
+    });
+    const fresh = await prisma.driverAssignment.create({
+      data: {
+        truckId: assignment.truckId,
+        pairingCodeHash: hashPairingCode(pairingCode),
+        pairingExpiresAt: pairingExpiryDate(expiresInMinutes),
+        status: "PENDING",
+        createdByUserId: assignment.createdByUserId,
+        createdByLabel: assignment.createdByLabel,
+      },
+      select: assignmentPublicSelect,
+    });
+    return { assignment: fresh, pairingCode };
+  }
+
   const updated = await prisma.driverAssignment.update({
     where: { id: assignment.id },
     data: {
@@ -179,7 +202,7 @@ export async function pairDriver(code: unknown) {
     data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
   });
 
-  const assignment = await prisma.driverAssignment.update({
+  return prisma.driverAssignment.update({
     where: { id: match.id },
     data: {
       status: "ACTIVE",
@@ -190,35 +213,6 @@ export async function pairDriver(code: unknown) {
     },
     include: driverTruckInclude,
   });
-
-  const token = await signDriverToken({
-    assignmentId: assignment.id,
-    truckId: assignment.truckId,
-    tokenVersion: assignment.tokenVersion,
-  });
-
-  return { token, assignment };
-}
-
-export function toDriverMe(assignment: Awaited<ReturnType<typeof pairDriver>>["assignment"]) {
-  return {
-    assignmentId: assignment.id,
-    status: assignment.status,
-    lastLat: assignment.lastLat,
-    lastLng: assignment.lastLng,
-    lastLocationText: assignment.lastLocationText,
-    lastPingAt: assignment.lastPingAt,
-    truck: {
-      id: assignment.truck.id,
-      plateNumber: assignment.truck.plateNumber,
-      trailerPlateNumber: assignment.truck.trailerPlateNumber,
-      currentLocation: assignment.truck.currentLocation,
-      locationUpdatedAt: assignment.truck.locationUpdatedAt,
-      subOrderName: assignment.truck.subOrder.name,
-      orderName: assignment.truck.subOrder.groupOrder.name,
-      subOrderStatus: assignment.truck.subOrder.status,
-    },
-  };
 }
 
 export function assertAssignmentUsable(
@@ -301,14 +295,4 @@ export async function recordDriverPing(params: {
   });
 
   return { lastPingAt: now, lastLocationText: label };
-}
-
-export async function loadActiveDriver(assignmentId: string, tokenVersion: number) {
-  const assignment = await prisma.driverAssignment.findUnique({
-    where: { id: assignmentId },
-    include: driverTruckInclude,
-  });
-  if (!assignment) unauthorized();
-  assertAssignmentUsable(assignment, tokenVersion);
-  return assignment;
 }

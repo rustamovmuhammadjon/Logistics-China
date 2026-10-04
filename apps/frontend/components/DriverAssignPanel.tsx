@@ -127,6 +127,14 @@ export function DriverAssignPanel({
                   {assignment.status === "ACTIVE" ? "Paired" : "Waiting"}
                 </span>{" "}
                 <strong>{assignment.plateNumber || "Truck"}</strong>
+                {assignment.driver ? (
+                  <span className="text-slate-600">
+                    {" "}
+                    · {assignment.driver.firstName} {assignment.driver.lastName}, {assignment.driver.phone}
+                  </span>
+                ) : assignment.status === "ACTIVE" ? (
+                  <span className="text-slate-400"> · not registered yet</span>
+                ) : null}
                 {assignment.lastPingAt ? (
                   <span className="text-slate-400"> · GPS {formatDateTime(assignment.lastPingAt)}</span>
                 ) : null}

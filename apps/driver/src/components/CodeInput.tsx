@@ -17,14 +17,23 @@ export function CodeInput({
   const [focused, setFocused] = useState(false);
   const cells = Array.from({ length }, (_, i) => value[i] ?? "");
   const activeIndex = Math.min(value.length, length - 1);
+  // Eight cells have to fit a 360pt-wide phone too.
+  const compact = length > 6;
 
   return (
-    <Pressable onPress={() => inputRef.current?.focus()} style={styles.row}>
+    <Pressable onPress={() => inputRef.current?.focus()} style={[styles.row, compact && styles.rowCompact]}>
       {cells.map((char, i) => {
         const isActive = focused && i === activeIndex;
         return (
-          <View key={i} style={[styles.cell, !!char && styles.cellFilled, isActive && styles.cellActive]}>
-            {char ? <Text style={styles.cellText}>{char}</Text> : isActive ? <View style={styles.caret} /> : null}
+          <View
+            key={i}
+            style={[styles.cell, compact && styles.cellCompact, !!char && styles.cellFilled, isActive && styles.cellActive]}
+          >
+            {char ? (
+              <Text style={[styles.cellText, compact && styles.cellTextCompact]}>{char}</Text>
+            ) : isActive ? (
+              <View style={styles.caret} />
+            ) : null}
           </View>
         );
       })}
@@ -42,8 +51,10 @@ export function CodeInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         keyboardType="default"
+        keyboardAppearance="dark"
         autoCapitalize="characters"
         autoCorrect={false}
+        spellCheck={false}
         maxLength={length}
         autoFocus={autoFocus}
         style={styles.hiddenInput}
@@ -55,6 +66,9 @@ export function CodeInput({
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: spacing.sm },
+  rowCompact: { gap: 6 },
+  cellCompact: { borderRadius: 12 },
+  cellTextCompact: { fontSize: 20 },
   cell: {
     flex: 1,
     aspectRatio: 0.82,

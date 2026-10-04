@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box1, Profile2User } from "iconsax-react";
+import { Box1, Profile2User, Truck } from "iconsax-react";
 
 const items = [
   { href: "/admin/users", label: "Users", icon: Profile2User },
+  { href: "/admin/drivers", label: "Drivers", icon: Truck },
   { href: "/admin/orders", label: "Orders", icon: Box1 },
 ];
 
