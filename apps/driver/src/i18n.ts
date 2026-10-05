@@ -35,6 +35,8 @@ const EXACT: Record<string, string> = {
   "Conversation not found": "Suhbat topilmadi",
   "Add the body type and capacity before publishing": "E'lon qilish uchun kuzov turi va sig'imini kiriting",
   "Enter a valid number of axles": "O'qlar sonini to'g'ri kiriting (2–10)",
+  "Length × width × height comes to over 200 m³ — check the measurements":
+    "Uzunlik × eni × balandlik 200 CBM dan oshdi — o'lchamlarni tekshiring",
   "EXPO_PUBLIC_API_URL is not set": "Server manzili sozlanmagan (EXPO_PUBLIC_API_URL).",
 };
 

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Smartphone, UserRound } from "lucide-react";
-import { TRUCK_BODY_TYPES, type FleetDriverDto, type TruckListingDto } from "@logistics/shared";
+import { TRUCK_BODY_TYPES, cbmOf, type FleetDriverDto, type TruckListingDto } from "@logistics/shared";
 import { PhoneField } from "@/components/PhoneField";
 import { PlateNumberField } from "@/components/PlateNumberField";
 
@@ -40,7 +41,7 @@ export function SpecGrid({ listing }: { listing: TruckListingDto | null }) {
     ["Length", listing?.lengthM != null ? `${fmt(listing.lengthM)} m` : null],
     ["Width", listing?.widthM != null ? `${fmt(listing.widthM)} m` : null],
     ["Height", listing?.heightM != null ? `${fmt(listing.heightM)} m` : null],
-    ["Volume", listing?.volumeM3 != null ? `${fmt(listing.volumeM3)} m³` : null],
+    ["CBM", listing?.volumeM3 != null ? fmt(listing.volumeM3) : null],
     ["Axles", listing?.axles != null ? String(listing.axles) : null],
   ];
   return (
@@ -139,13 +140,7 @@ export function DriverFormFields({ values }: { values?: DriverFormValues }) {
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <NumberField name="lengthM" label="Length, m" value={listing?.lengthM} />
-          <NumberField name="widthM" label="Width, m" value={listing?.widthM} />
-          <NumberField name="heightM" label="Height, m" value={listing?.heightM} />
-          <NumberField name="capacityTons" label="Capacity, t" value={listing?.capacityTons} />
-          <NumberField name="volumeM3" label="Volume, m³" value={listing?.volumeM3} />
-        </div>
+        <MeasureFields listing={listing} />
         <div>
           <label className="field-label">Base city</label>
           <input className="field-input" name="baseCity" defaultValue={listing?.baseCity ?? ""} placeholder="Tashkent" />
@@ -159,21 +154,72 @@ export function DriverFormFields({ values }: { values?: DriverFormValues }) {
   );
 }
 
-function NumberField({ name, label, value }: { name: string; label: string; value?: number | null }) {
+type Measures = Record<"lengthM" | "widthM" | "heightM" | "volumeM3" | "capacityTons", string>;
+
+const measureText = (n: number | null | undefined) => (n == null ? "" : String(n));
+
+function measureValue(text: string) {
+  const n = Number(text.trim().replace(",", "."));
+  return text.trim() && Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// Once length, width and height are all in, the volume (CBM) fills itself in
+// — the backend stores the same product, so the two always agree.
+function MeasureFields({ listing }: { listing: TruckListingDto | null }) {
+  const [values, setValues] = useState<Measures>({
+    lengthM: measureText(listing?.lengthM),
+    widthM: measureText(listing?.widthM),
+    heightM: measureText(listing?.heightM),
+    volumeM3: measureText(listing?.volumeM3),
+    capacityTons: measureText(listing?.capacityTons),
+  });
+  const autoVolume = cbmOf(measureValue(values.lengthM), measureValue(values.widthM), measureValue(values.heightM));
+  const field = (name: keyof Measures, label: string) => (
+    <NumberField name={name} label={label} value={values[name]} onValue={(value) => setValues((v) => ({ ...v, [name]: value }))} />
+  );
+
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {field("lengthM", "Length, m")}
+      {field("widthM", "Width, m")}
+      {field("heightM", "Height, m")}
+      {autoVolume != null ? (
+        <NumberField name="volumeM3" label="Volume, CBM" value={String(autoVolume)} hint="L × W × H" readOnly />
+      ) : (
+        field("volumeM3", "Volume, CBM")
+      )}
+      {field("capacityTons", "Capacity, t")}
+    </div>
+  );
+}
+
+function NumberField({
+  name,
+  label,
+  value,
+  onValue,
+  hint,
+  readOnly,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  onValue?: (value: string) => void;
+  hint?: string;
+  readOnly?: boolean;
+}) {
   return (
     <div>
       <label className="field-label">{label}</label>
       <input
-        className="field-input tabular-nums"
+        className={`field-input tabular-nums ${readOnly ? "bg-slate-50 font-semibold text-brand-700" : ""}`}
         name={name}
         inputMode="decimal"
-        defaultValue={value ?? ""}
-        onInput={(e) => {
-          const el = e.currentTarget;
-          const cleaned = el.value.replace(/[^0-9.,]/g, "");
-          if (cleaned !== el.value) el.value = cleaned;
-        }}
+        value={value}
+        readOnly={readOnly}
+        onChange={(e) => onValue?.(e.currentTarget.value.replace(/[^0-9.,]/g, ""))}
       />
+      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
     </div>
   );
 }

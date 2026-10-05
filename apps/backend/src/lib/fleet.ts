@@ -1,4 +1,5 @@
 import type { Prisma, TruckListing, User } from "@prisma/client";
+import { MAX_TRUCK_VOLUME_M3, cbmOf } from "@logistics/shared";
 import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound, unauthorized } from "./errors.js";
 import { optionalString } from "./input.js";
@@ -33,7 +34,7 @@ function parseListingFields(body: Record<string, unknown>): ListingFields {
   if (has("widthM")) fields.widthM = optionalMeasure(body.widthM, "width", 5);
   if (has("heightM")) fields.heightM = optionalMeasure(body.heightM, "height", 6);
   if (has("capacityTons")) fields.capacityTons = optionalMeasure(body.capacityTons, "capacity", 60);
-  if (has("volumeM3")) fields.volumeM3 = optionalMeasure(body.volumeM3, "volume", 200);
+  if (has("volumeM3")) fields.volumeM3 = optionalMeasure(body.volumeM3, "volume", MAX_TRUCK_VOLUME_M3);
   if (has("axles")) fields.axles = optionalAxles(body.axles);
   if (has("baseCity")) fields.baseCity = optionalText(body.baseCity, 80, "base city");
   if (has("note")) fields.note = optionalText(body.note, 500, "note");
@@ -56,7 +57,26 @@ export function toListing(listing: TruckListing) {
   };
 }
 
-async function writeListing(driverId: string, fields: ListingFields) {
+const SIZE_KEYS = ["lengthM", "widthM", "heightM"] as const;
+
+// Volume follows the size: once length, width and height are all known it is
+// their product, whichever form saved them. While the size is incomplete a
+// volume typed in by hand is kept as it is.
+async function withVolume(driverId: string, fields: ListingFields): Promise<ListingFields> {
+  if (!SIZE_KEYS.some((key) => key in fields)) return fields;
+  const partial = SIZE_KEYS.some((key) => fields[key] === undefined);
+  const current = partial
+    ? await prisma.truckListing.findUnique({ where: { driverId }, select: { lengthM: true, widthM: true, heightM: true } })
+    : null;
+  const size = (key: (typeof SIZE_KEYS)[number]) => (fields[key] !== undefined ? fields[key] : current?.[key]);
+  const volume = cbmOf(size("lengthM"), size("widthM"), size("heightM"));
+  if (volume == null) return fields;
+  if (volume > MAX_TRUCK_VOLUME_M3) badRequest("Length × width × height comes to over 200 m³ — check the measurements");
+  return { ...fields, volumeM3: volume };
+}
+
+async function writeListing(driverId: string, input: ListingFields) {
+  const fields = await withVolume(driverId, input);
   const saved = await prisma.truckListing.upsert({
     where: { driverId },
     create: { driverId, ...fields },

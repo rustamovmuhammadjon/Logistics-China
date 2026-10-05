@@ -274,6 +274,15 @@ export type GuestDriverSuggestionDto = {
 
 export const TRUCK_BODY_TYPES = ["Tent", "Refrigerated", "Isothermal", "Flatbed", "Container", "Tipper", "Car carrier"] as const;
 
+export const MAX_TRUCK_VOLUME_M3 = 200;
+
+/** A truck body's volume in cubic metres (CBM) from its inside length × width
+ *  × height in metres, rounded to 2 decimals. Null until all three are known. */
+export function cbmOf(lengthM?: number | null, widthM?: number | null, heightM?: number | null): number | null {
+  if (!lengthM || !widthM || !heightM) return null;
+  return Math.round(lengthM * widthM * heightM * 100) / 100;
+}
+
 export function driverTripStatusLabel(status: DriverTripStatus): string {
   switch (status) {
     case "ACTIVE":

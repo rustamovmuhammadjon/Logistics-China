@@ -64,13 +64,23 @@ function parseMeasure(value: string): number | null | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-const MEASURES: { key: "lengthM" | "widthM" | "heightM" | "capacityTons" | "volumeM3"; label: string }[] = [
+// Volume sits right after the size it is calculated from.
+const MEASURES: { key: "lengthM" | "widthM" | "heightM" | "volumeM3" | "capacityTons"; label: string }[] = [
   { key: "lengthM", label: "Uzunlik, m" },
   { key: "widthM", label: "Eni, m" },
   { key: "heightM", label: "Balandlik, m" },
+  { key: "volumeM3", label: "Hajm, CBM" },
   { key: "capacityTons", label: "Sig'im, t" },
-  { key: "volumeM3", label: "Hajm, m³" },
 ];
+
+const MAX_VOLUME = 200;
+
+// Same as cbmOf in @logistics/shared (the app only takes types from there):
+// length × width × height in metres → cubic metres, 2 decimals.
+function cbmOf(lengthM: number | null | undefined, widthM: number | null | undefined, heightM: number | null | undefined) {
+  if (!lengthM || !widthM || !heightM) return null;
+  return Math.round(lengthM * widthM * heightM * 100) / 100;
+}
 
 export function ListingScreen({ onBack }: { onBack: () => void }) {
   const { me, listing, loadListing, setListing, handleError } = useSession();
@@ -92,14 +102,24 @@ export function ListingScreen({ onBack }: { onBack: () => void }) {
     setSaved(false);
   }
 
+  // Filled in by itself once the length, width and height are all entered.
+  const autoVolume = form
+    ? cbmOf(parseMeasure(form.lengthM), parseMeasure(form.widthM), parseMeasure(form.heightM))
+    : null;
+
   async function save() {
     if (!form) return;
     const errors: Partial<Record<keyof Form, string>> = {};
     const values: Partial<Record<(typeof MEASURES)[number]["key"], number | null>> = {};
     for (const { key } of MEASURES) {
+      if (key === "volumeM3" && autoVolume != null) continue;
       const parsed = parseMeasure(form[key]);
       if (parsed === undefined) errors[key] = "Raqam kiriting";
       else values[key] = parsed;
+    }
+    if (autoVolume != null) {
+      if (autoVolume > MAX_VOLUME) errors.volumeM3 = `${MAX_VOLUME} CBM dan oshdi — o'lchamlarni tekshiring`;
+      else values.volumeM3 = autoVolume;
     }
     if (form.published && !form.bodyType) errors.bodyType = "E'lon uchun kuzov turini tanlang";
     if (form.published && !values.capacityTons) errors.capacityTons = "E'lon uchun sig'imni kiriting";
@@ -183,18 +203,24 @@ export function ListingScreen({ onBack }: { onBack: () => void }) {
 
         <SectionTitle title="O'lchamlar va sig'im" />
         <View style={styles.grid}>
-          {MEASURES.map(({ key, label }) => (
-            <View key={key} style={styles.gridCell}>
-              <TextField
-                label={label}
-                value={form[key]}
-                onChangeText={(text) => update(key, text.replace(/[^0-9.,]/g, ""))}
-                keyboardType="decimal-pad"
-                placeholder="—"
-                error={fieldErrors[key]}
-              />
-            </View>
-          ))}
+          {MEASURES.map(({ key, label }) => {
+            const auto = key === "volumeM3" && autoVolume != null;
+            return (
+              <View key={key} style={styles.gridCell}>
+                <TextField
+                  label={label}
+                  value={auto ? String(autoVolume) : form[key]}
+                  onChangeText={(text) => update(key, text.replace(/[^0-9.,]/g, ""))}
+                  editable={!auto}
+                  keyboardType="decimal-pad"
+                  placeholder="—"
+                  hint={auto ? "U × E × B" : undefined}
+                  error={fieldErrors[key]}
+                  style={auto ? styles.autoValue : undefined}
+                />
+              </View>
+            );
+          })}
         </View>
 
         <SectionTitle title="O'qlar soni" />
@@ -280,6 +306,7 @@ const styles = StyleSheet.create({
   fieldError: { ...type.caption, color: colors.danger },
   grid: { flexDirection: "row", flexWrap: "wrap", columnGap: spacing.md, rowGap: spacing.md },
   gridCell: { flexBasis: "30%", flexGrow: 1 },
+  autoValue: { color: colors.accent, fontWeight: "700" },
   note: { minHeight: 80, textAlignVertical: "top" },
   link: { fontSize: 13, fontWeight: "700", color: colors.accent },
   vehicle: { gap: 4 },
