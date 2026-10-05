@@ -2,6 +2,7 @@ import type { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { optionalDisplayPhone, optionalFloat, optionalPlate, optionalString } from "./input.js";
 import { assignmentPublicSelect } from "./assignments.js";
+import { truckDocumentPublicSelect } from "./documents.js";
 
 // A company's employee creates orders on the company's behalf — the order
 // (and its operator links) belong to the company, not the employee, so
@@ -162,6 +163,7 @@ export const detailInclude = {
         orderBy: { createdAt: "asc" as const },
         include: {
           media: { orderBy: { createdAt: "desc" as const } },
+          documents: { orderBy: { createdAt: "asc" as const }, select: truckDocumentPublicSelect },
           track718: true,
           transfersFrom: {
             include: { toTruck: { select: { id: true, plateNumber: true, trailerPlateNumber: true } } },

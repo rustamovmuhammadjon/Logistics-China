@@ -12,6 +12,7 @@ import {
 import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignment } from "../lib/assignments.js";
 import { createCargoTransfer } from "../lib/transfers.js";
 import { syncTrack718Tracking } from "../lib/track718.js";
+import { createDocumentUploadUrl, deleteTruckDocument, finalizeDocumentUpload } from "../lib/documents.js";
 import {
   assertCanAddDirectTruck,
   assertSubOrderMutable,
@@ -23,7 +24,7 @@ import {
 } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { assertOperatorLinked, requireOperator, type AuthedRequest } from "../middleware/auth.js";
-import { broadcastOnMutation } from "../middleware/realtime.js";
+import { broadcastOnMutation, skipBroadcast } from "../middleware/realtime.js";
 
 export const operatorRouter = Router();
 
@@ -296,6 +297,50 @@ operatorRouter.delete(
     await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
     await assertTruckMutable(req.params.truckId, req.params.subId);
     await cancelTruck(req.params.truckId, req.params.subId);
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ ok: true });
+  })
+);
+
+// Shipping documents: step 1 of 2. The file goes straight from the browser
+// to storage with this signed URL — never through Vercel (4.5 MB body cap).
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/documents/upload-url",
+  skipBroadcast,
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await assertTruckMutable(req.params.truckId, req.params.subId);
+    res.json(await createDocumentUploadUrl(req.params.truckId, req.body ?? {}));
+  })
+);
+
+// Step 2 of 2: record the uploaded file once it's in storage.
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/documents",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await assertTruckMutable(req.params.truckId, req.params.subId);
+    const document = await finalizeDocumentUpload({
+      truckId: req.params.truckId,
+      path: req.body?.path,
+      fileName: req.body?.fileName,
+      uploadedByUserId: me.id,
+      uploadedByLabel: me.email,
+    });
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ document });
+  })
+);
+
+operatorRouter.delete(
+  "/orders/:id/sub-orders/:subId/trucks/:truckId/documents/:documentId",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await assertTruckMutable(req.params.truckId, req.params.subId);
+    await deleteTruckDocument(req.params.truckId, req.params.documentId);
     await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ ok: true });
   })

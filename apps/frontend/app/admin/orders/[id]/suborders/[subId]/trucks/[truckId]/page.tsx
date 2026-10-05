@@ -5,6 +5,7 @@ import type { CargoTransferDto, MediaDto, TruckDto } from "@logistics/shared";
 import { formatDate, hasTransferredOut } from "@logistics/shared";
 import { serverApiOrNull } from "@/lib/server-api";
 import { MediaUploader } from "@/components/MediaUploader";
+import { TruckDocuments } from "@/components/TruckDocuments";
 import { AdminTruckForms } from "./AdminTruckForms";
 import { MediaGrid } from "./MediaGrid";
 
@@ -60,6 +61,8 @@ export default async function AdminTruckPage({
             </div>
           )}
         </div>
+
+        <TruckDocuments documents={truck.documents ?? []} />
 
         <div className="card space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Photos & videos</h2>

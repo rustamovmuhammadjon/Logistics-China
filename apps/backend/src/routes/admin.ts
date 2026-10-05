@@ -33,6 +33,7 @@ import {
 import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
 import { sendBukharaArrivalsReport } from "../lib/telegram.js";
+import { truckDocumentPublicSelect } from "../lib/documents.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { broadcastOnMutation } from "../middleware/realtime.js";
@@ -317,6 +318,7 @@ adminRouter.get(
       include: {
         subOrder: { include: { groupOrder: true } },
         media: { orderBy: { createdAt: "desc" } },
+        documents: { orderBy: { createdAt: "asc" }, select: truckDocumentPublicSelect },
         track718: true,
         transfersFrom: { include: { toTruck: { select: { id: true, plateNumber: true } } } },
         transfersTo: { include: { fromTruck: { select: { id: true, plateNumber: true } } } },

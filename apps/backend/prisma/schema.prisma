@@ -268,8 +268,9 @@ model Truck {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  media    Media[]
-  comments Comment[]
+  media     Media[]
+  documents TruckDocument[]
+  comments  Comment[]
 
   transfersFrom CargoTransfer[] @relation("TransferFrom")
   transfersTo   CargoTransfer[] @relation("TransferTo")
@@ -575,6 +576,29 @@ model Media {
   url      String
   type     MediaType
   fileName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([truckId])
+}
+
+// Shipping documents (PDF/Word) for one truck. Only the linked operator
+// uploads; everyone who can see the truck can download. The file lives in a
+// PRIVATE storage bucket — never a public URL — and is only ever reached
+// through a short-lived signed link the backend issues after an access check.
+model TruckDocument {
+  id String @id @default(cuid())
+
+  truckId String
+  truck   Truck  @relation(fields: [truckId], references: [id], onDelete: Cascade)
+
+  fileName    String
+  storagePath String @unique
+  sizeBytes   Int
+  contentType String
+
+  uploadedByUserId String?
+  uploadedByLabel  String?
 
   createdAt DateTime @default(now())
 

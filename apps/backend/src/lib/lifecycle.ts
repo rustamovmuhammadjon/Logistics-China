@@ -1,6 +1,7 @@
 import { prisma } from "./prisma.js";
 import { badRequest, notFound } from "./errors.js";
 import { removePublicFiles } from "./supabase.js";
+import { removeDocumentFiles } from "./documents.js";
 
 export async function assertGroupOrderActive(orderId: string) {
   const order = await prisma.groupOrder.findUnique({ where: { id: orderId } });
@@ -126,14 +127,13 @@ export async function cancelTruck(id: string, subOrderId: string) {
 export async function deleteGroupOrder(id: string) {
   const order = await prisma.groupOrder.findUnique({
     where: { id },
-    include: { subOrders: { include: { trucks: { include: { media: true } } } } },
+    include: { subOrders: { include: { trucks: { include: { media: true, documents: true } } } } },
   });
   if (!order) notFound();
 
-  const fileUrls = order.subOrders.flatMap((sub) =>
-    sub.trucks.flatMap((truck) => truck.media.map((item) => item.url))
-  );
-  await removePublicFiles(fileUrls);
+  const trucks = order.subOrders.flatMap((sub) => sub.trucks);
+  await removePublicFiles(trucks.flatMap((truck) => truck.media.map((item) => item.url)));
+  await removeDocumentFiles(trucks.flatMap((truck) => truck.documents.map((doc) => doc.storagePath)));
   await prisma.groupOrder.delete({ where: { id } });
 }
 
@@ -141,12 +141,12 @@ export async function deleteGroupOrder(id: string) {
 export async function deleteSubOrder(id: string, groupOrderId: string) {
   const sub = await prisma.subOrder.findUnique({
     where: { id },
-    include: { trucks: { include: { media: true } } },
+    include: { trucks: { include: { media: true, documents: true } } },
   });
   if (!sub || sub.groupOrderId !== groupOrderId) notFound();
 
-  const fileUrls = sub.trucks.flatMap((truck) => truck.media.map((item) => item.url));
-  await removePublicFiles(fileUrls);
+  await removePublicFiles(sub.trucks.flatMap((truck) => truck.media.map((item) => item.url)));
+  await removeDocumentFiles(sub.trucks.flatMap((truck) => truck.documents.map((doc) => doc.storagePath)));
   await prisma.subOrder.delete({ where: { id } });
 }
 

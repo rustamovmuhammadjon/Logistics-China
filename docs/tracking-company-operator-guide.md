@@ -112,6 +112,14 @@ Each sub-order needs at least one truck before you can do anything else with it.
 
 Click **Edit** on a truck's card to update any of its fields (including plate, trailer, driver, location, and GPS number), then **Save truck**. You can only edit the **current** truck of a sub-order — once a truck has been transferred out or cancelled, it becomes read-only history (shown as a compact one-line summary instead of a full card).
 
+### Shipping documents
+
+Each truck's card has a **Shipping documents** box. Only you (the operator) can upload to it; the client — the company, its employees, or the individual consignee — can see and download every document, and so can admin.
+
+- **PDF or Word** files only (.pdf, .doc, .docx).
+- **Max 15 MB per document**, and **up to 3 documents per truck**. To add a fourth, delete one first (the bin icon).
+- Uploading and deleting work only on the truck's current, open sub-order; on completed/cancelled orders and transferred trucks the documents stay downloadable but can't be changed.
+
 ## 8. Cargo transfer
 
 Use this when the cargo physically moves to a **different truck** (for example, crossing into a different country requires a different vehicle).

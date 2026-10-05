@@ -81,6 +81,32 @@ export type MediaDto = {
   truckId: string;
 };
 
+// Never carries a URL — the file sits in a private bucket and is only
+// reachable through GET /api/documents/:id/download, which checks access.
+export type TruckDocumentDto = {
+  id: string;
+  truckId: string;
+  fileName: string;
+  sizeBytes: number;
+  contentType: string;
+  uploadedByLabel: string | null;
+  createdAt: string;
+};
+
+export const TRUCK_DOCUMENT_MAX_MB = 15;
+export const TRUCK_DOCUMENT_MAX_BYTES = TRUCK_DOCUMENT_MAX_MB * 1024 * 1024;
+export const TRUCK_DOCUMENT_MAX_COUNT = 3;
+export const TRUCK_DOCUMENT_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+
+export function truckDocumentExtension(fileName: string): string | null {
+  const ext = fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  return ext && ext in TRUCK_DOCUMENT_TYPES ? ext : null;
+}
+
 export type DriverAssignmentStatus = "PENDING" | "ACTIVE" | "REVOKED";
 
 export type DriverAssignmentDto = {
@@ -340,6 +366,7 @@ export type TruckDto = {
   createdAt: string;
   updatedAt: string;
   media?: MediaDto[];
+  documents?: TruckDocumentDto[];
   comments?: CommentDto[];
   transfersFrom?: CargoTransferDto[];
   transfersTo?: CargoTransferDto[];

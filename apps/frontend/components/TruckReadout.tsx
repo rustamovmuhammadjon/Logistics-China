@@ -8,6 +8,7 @@ import {
   type TruckDto,
 } from "@logistics/shared";
 import { LocationBadge } from "@/components/LocationBadge";
+import { TruckDocuments } from "@/components/TruckDocuments";
 
 export function TruckReadout({
   truck,
@@ -91,15 +92,18 @@ export function TruckHistoryRow({ truck, index }: { truck: TruckDto; index?: num
   const nextTransfer = (truck.transfersFrom ?? [])[0];
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-3 py-1.5 text-xs">
-      <span className="truncate text-slate-600">
-        {typeof index === "number" ? `#${index + 1} · ` : ""}
-        <span className="font-medium text-slate-800">{truck.plateNumber || "No plate"}</span>
-        {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
-        {truck.gpsNumber ? ` · GPS ${truck.gpsNumber}` : ""}
-        {nextTransfer ? ` → ${nextTransfer.toPlate || nextTransfer.toTruck?.plateNumber || "next truck"}` : ""}
-      </span>
-      <span className={role === "Cancelled" ? "badge-red" : "badge-slate"}>{role}</span>
+    <div className="space-y-1 rounded-lg bg-slate-50 px-3 py-1.5 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <span className="truncate text-slate-600">
+          {typeof index === "number" ? `#${index + 1} · ` : ""}
+          <span className="font-medium text-slate-800">{truck.plateNumber || "No plate"}</span>
+          {truck.trailerPlateNumber ? ` / ${truck.trailerPlateNumber}` : ""}
+          {truck.gpsNumber ? ` · GPS ${truck.gpsNumber}` : ""}
+          {nextTransfer ? ` → ${nextTransfer.toPlate || nextTransfer.toTruck?.plateNumber || "next truck"}` : ""}
+        </span>
+        <span className={role === "Cancelled" ? "badge-red" : "badge-slate"}>{role}</span>
+      </div>
+      <TruckDocuments documents={truck.documents ?? []} compact />
     </div>
   );
 }
@@ -112,8 +116,9 @@ export function TruckSequence({ trucks }: { trucks: TruckDto[] }) {
     <div className="space-y-2">
       {trucks.map((truck, index) =>
         isCurrentTruck(truck) ? (
-          <div key={truck.id} className="rounded-xl border border-slate-200 p-3">
+          <div key={truck.id} className="space-y-3 rounded-xl border border-slate-200 p-3">
             <TruckReadout truck={truck} index={index} total={trucks.length} />
+            <TruckDocuments documents={truck.documents ?? []} />
           </div>
         ) : (
           <TruckHistoryRow key={truck.id} truck={truck} index={index} />

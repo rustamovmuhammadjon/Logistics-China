@@ -18,6 +18,7 @@ import { adminRouter } from "./routes/admin.js";
 import { driverRouter } from "./routes/driver.js";
 import { chatsRouter } from "./routes/chats.js";
 import { fleetRouter } from "./routes/fleet.js";
+import { documentsRouter } from "./routes/documents.js";
 import { track718WebhookRouter } from "./routes/track718.js";
 import { attachSession } from "./middleware/auth.js";
 import { asyncHandler, errorHandler } from "./middleware/errors.js";
@@ -69,6 +70,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/driver", driverRouter);
 app.use("/api/chats", chatsRouter);
 app.use("/api/fleet", fleetRouter);
+app.use("/api/documents", documentsRouter);
 
 app.use(errorHandler);
 

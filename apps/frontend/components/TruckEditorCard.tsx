@@ -9,6 +9,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { TruckFields } from "@/components/TruckFields";
 import { TruckHistoryRow, TruckReadout } from "@/components/TruckReadout";
 import { Track718MapButton } from "@/components/Track718MapModal";
+import { TruckDocuments } from "@/components/TruckDocuments";
 
 export function TruckEditorCard({
   truck,
@@ -56,6 +57,8 @@ export function TruckEditorCard({
       )}
 
       <TruckReadout truck={truck} index={index} total={total} />
+
+      <TruckDocuments documents={truck.documents ?? []} truckUrl={canEdit ? patchUrl : undefined} />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
