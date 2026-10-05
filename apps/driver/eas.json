@@ -9,7 +9,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://logistics-china-frontend.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://backend-production-654f.up.railway.app"
       }
     },
     "production": {
@@ -17,7 +17,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://logistics-china-frontend.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://backend-production-654f.up.railway.app"
       }
     }
   }

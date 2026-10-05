@@ -49,13 +49,20 @@ async function lastMessageOf(conversationId: string) {
   return last ? toChatMessage(last) : null;
 }
 
-async function readThread(conversation: ChatConversation | null, reader: ChatSender) {
+// The permission check, the conversation and its messages are read in one
+// round trip (each costs ~100 ms to the database); the read marker is only
+// written after the check has passed.
+async function readThread(driverId: string, operatorId: string, reader: ChatSender) {
+  const [, conversation, messages] = await Promise.all([
+    assertChatAllowed(driverId, operatorId),
+    findConversation(driverId, operatorId),
+    prisma.chatMessage.findMany({
+      where: { conversation: { driverId, operatorId } },
+      orderBy: { createdAt: "desc" },
+      take: THREAD_PAGE,
+    }),
+  ]);
   if (!conversation) return [];
-  const messages = await prisma.chatMessage.findMany({
-    where: { conversationId: conversation.id },
-    orderBy: { createdAt: "desc" },
-    take: THREAD_PAGE,
-  });
   // Mark read only when there is something new from the other side, so an
   // open thread polling every few seconds doesn't write on every poll.
   const readAt = reader === "DRIVER" ? conversation.driverLastReadAt : conversation.operatorLastReadAt;
@@ -115,6 +122,9 @@ export async function listDriverChats(driverId: string) {
   const summaries = await Promise.all(
     operators.map(async (operator) => {
       const conversation = byOperator.get(operator.id);
+      const [lastMessage, unread] = conversation
+        ? await Promise.all([lastMessageOf(conversation.id), unreadFor(conversation, "DRIVER")])
+        : [null, 0];
       return {
         operator: {
           id: operator.id,
@@ -123,8 +133,8 @@ export async function listDriverChats(driverId: string) {
           phone: operator.phone,
         },
         current: operator.id === currentOperatorId,
-        lastMessage: conversation ? await lastMessageOf(conversation.id) : null,
-        unread: conversation ? await unreadFor(conversation, "DRIVER") : 0,
+        lastMessage,
+        unread,
       };
     })
   );
@@ -140,9 +150,8 @@ export async function driverUnreadCount(driverId: string) {
   return counts.reduce((sum, n) => sum + n, 0);
 }
 
-export async function driverThread(driverId: string, operatorId: string) {
-  await assertChatAllowed(driverId, operatorId);
-  return readThread(await findConversation(driverId, operatorId), "DRIVER");
+export function driverThread(driverId: string, operatorId: string) {
+  return readThread(driverId, operatorId, "DRIVER");
 }
 
 export function driverSend(driverId: string, operatorId: string, text: unknown) {
@@ -177,6 +186,9 @@ export async function listOperatorChats(operatorId: string) {
       const pairing = latestByDriver.get(driverId)!;
       const driver = pairing.driver!;
       const conversation = byDriver.get(driverId);
+      const [lastMessage, unread] = conversation
+        ? await Promise.all([lastMessageOf(conversation.id), unreadFor(conversation, "OPERATOR")])
+        : [null, 0];
       return {
         driver: { id: driver.id, firstName: driver.firstName, lastName: driver.lastName, phone: driver.phone },
         latestTrip: {
@@ -185,8 +197,8 @@ export async function listOperatorChats(operatorId: string) {
           subOrderName: pairing.truck.subOrder.name,
           active: pairing.status === "ACTIVE",
         },
-        lastMessage: conversation ? await lastMessageOf(conversation.id) : null,
-        unread: conversation ? await unreadFor(conversation, "OPERATOR") : 0,
+        lastMessage,
+        unread,
         pairedAt: pairing.createdAt.toISOString(),
       };
     })
@@ -204,9 +216,8 @@ export async function operatorUnreadCount(operatorId: string) {
   return counts.reduce((sum, n) => sum + n, 0);
 }
 
-export async function operatorThread(operatorId: string, driverId: string) {
-  await assertChatAllowed(driverId, operatorId);
-  return readThread(await findConversation(driverId, operatorId), "OPERATOR");
+export function operatorThread(operatorId: string, driverId: string) {
+  return readThread(driverId, operatorId, "OPERATOR");
 }
 
 export function operatorSend(operatorId: string, driverId: string, text: unknown) {

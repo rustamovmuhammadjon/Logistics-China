@@ -120,19 +120,24 @@ export type DriverContext = { driver: Driver | null; assignment: TripAssignment 
 // back null); a pairing-only session has nothing else to fall back on, so a
 // dead pairing still fails the request exactly as it did before accounts.
 export async function loadDriverContext(session: DriverSession): Promise<DriverContext> {
+  // Every driver request starts here, and the database is an ocean away from
+  // the API — fetch both rows in one round trip instead of two.
+  const [foundDriver, found] = await Promise.all([
+    session.driverId ? prisma.driver.findUnique({ where: { id: session.driverId } }) : null,
+    session.assignmentId
+      ? prisma.driverAssignment.findUnique({ where: { id: session.assignmentId }, include: driverTruckInclude })
+      : null,
+  ]);
+
   let driver: Driver | null = null;
   if (session.driverId) {
-    driver = await prisma.driver.findUnique({ where: { id: session.driverId } });
-    if (!driver || driver.tokenVersion !== session.driverTokenVersion) unauthorized("Sign in again with a new code");
-    if (!driver.active) unauthorized("This driver account is disabled");
+    if (!foundDriver || foundDriver.tokenVersion !== session.driverTokenVersion) unauthorized("Sign in again with a new code");
+    if (!foundDriver.active) unauthorized("This driver account is disabled");
+    driver = foundDriver;
   }
 
   let assignment: TripAssignment | null = null;
   if (session.assignmentId) {
-    const found = await prisma.driverAssignment.findUnique({
-      where: { id: session.assignmentId },
-      include: driverTruckInclude,
-    });
     if (found && isUsable(found, session.tokenVersion)) {
       assignment = found;
     } else if (!driver) {

@@ -26,6 +26,11 @@ import { Notice, ScreenHeader } from "../components/ui";
 const THREAD_POLL_MS = 4_000;
 const MAX_LENGTH = 2000;
 
+// The last copy of each conversation, so reopening one shows it at once while
+// the fresh copy loads over a slow connection.
+const threadCache = new Map<string, ChatMessageDto[]>();
+const lastIdOf = (list: ChatMessageDto[]) => (list.length > 0 ? list[list.length - 1].id : null);
+
 type Row = { kind: "message"; message: ChatMessageDto } | { kind: "day"; key: string; label: string };
 
 function dayKey(iso: string) {
@@ -56,19 +61,20 @@ export function ChatThreadScreen({
   onBack: () => void;
 }) {
   const { handleError, loadChats } = useSession();
-  const [messages, setMessages] = useState<ChatMessageDto[] | null>(null);
+  const [messages, setMessages] = useState<ChatMessageDto[] | null>(() => threadCache.get(operatorId) ?? null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const latestId = useRef<string | null | undefined>(undefined);
+  const latestId = useRef<string | null | undefined>(messages ? lastIdOf(messages) : undefined);
 
   const load = useCallback(async () => {
     try {
       const { messages: next } = await api.thread(operatorId);
-      const last = next.length > 0 ? next[next.length - 1].id : null;
+      const last = lastIdOf(next);
       // Skip the re-render when nothing changed since the last poll.
       if (last !== latestId.current) {
         latestId.current = last;
+        threadCache.set(operatorId, next);
         setMessages(next);
       }
       setError(null);
@@ -114,7 +120,11 @@ export function ChatThreadScreen({
     try {
       const { message } = await api.send(operatorId, body);
       latestId.current = message.id;
-      setMessages((current) => [...(current ?? []), message]);
+      setMessages((current) => {
+        const next = [...(current ?? []), message];
+        threadCache.set(operatorId, next);
+        return next;
+      });
       setText("");
     } catch (err) {
       setError(handleError(err));
@@ -149,8 +159,10 @@ export function ChatThreadScreen({
             />
           </View>
 
-          {messages === null && !error ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
+          {/* The message area always takes the free height, so the composer
+              stays at the bottom while the first copy is still loading. */}
+          {messages === null ? (
+            <View style={styles.pending}>{error ? null : <ActivityIndicator color={colors.accent} />}</View>
           ) : (
             <FlatList
               data={rows}
@@ -231,7 +243,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  loader: { marginTop: spacing.xxl },
+  pending: { flex: 1, alignItems: "center", justifyContent: "center" },
   messages: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: 6, flexGrow: 1 },
   empty: { alignItems: "center", gap: spacing.sm, padding: spacing.xl, transform: [{ scaleY: -1 }] },
   emptyText: { ...type.caption, color: colors.textTertiary, textAlign: "center" },
