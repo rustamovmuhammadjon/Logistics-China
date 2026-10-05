@@ -14,7 +14,7 @@ import { Avatar } from "@/components/Avatar";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { EmptyState } from "@/components/EmptyState";
 import { SlideOver } from "@/components/SlideOver";
-import { AppBadge, DriverFormFields, SpecGrid, listingHeadline, vehicleLine, type DriverFormValues } from "../FleetUi";
+import { AppBadge, DriverFormFields, RouteLine, SpecGrid, listingHeadline, vehicleLine, type DriverFormValues } from "../FleetUi";
 
 type Panel = { mode: "create"; values?: DriverFormValues } | { mode: "edit"; driver: MyDriverDto } | null;
 
@@ -126,6 +126,7 @@ export function MyDrivers({ drivers, suggestions }: { drivers: MyDriverDto[]; su
                 {listingHeadline(driver.listing) && (
                   <p className="text-sm font-medium text-slate-900">{listingHeadline(driver.listing)}</p>
                 )}
+                <RouteLine listing={driver.listing} />
                 {driver.listing && <SpecGrid listing={driver.listing} />}
               </div>
 

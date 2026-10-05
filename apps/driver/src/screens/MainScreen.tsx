@@ -9,10 +9,9 @@ import { TripsScreen } from "./TripsScreen";
 import { ChatsScreen } from "./ChatsScreen";
 import { ChatThreadScreen } from "./ChatThreadScreen";
 import { ProfileScreen } from "./ProfileScreen";
-import { ListingScreen } from "./ListingScreen";
+import { TruckScreen } from "./TruckScreen";
 import { TripDetailScreen } from "./TripDetailScreen";
 import { EditProfileScreen } from "./EditProfileScreen";
-import { EditVehicleScreen } from "./EditVehicleScreen";
 import { PairScreen } from "./PairScreen";
 
 // Tabs stay mounted once opened (scroll position and loaded data survive a
@@ -94,10 +93,8 @@ function renderRoute(route: Route, nav: Nav) {
       return <TripDetailScreen tripId={route.tripId} onBack={nav.pop} />;
     case "editProfile":
       return <EditProfileScreen onBack={nav.pop} />;
-    case "editVehicle":
-      return <EditVehicleScreen onBack={nav.pop} />;
-    case "listing":
-      return <ListingScreen onBack={nav.pop} />;
+    case "truck":
+      return <TruckScreen onBack={nav.pop} />;
     case "thread":
       return (
         <ChatThreadScreen

@@ -132,7 +132,10 @@ export const api = {
       body: { text },
     }),
   listing: () => request<{ listing: TruckListingDto | null }>("/listing"),
-  saveListing: (body: ListingInput) => request<{ listing: TruckListingDto }>("/listing", { method: "PUT", body }),
+  // "Mening mashinam": the vehicle and its ad, saved together.
+  saveTruck: (body: TruckInput) =>
+    request<{ profile: DriverProfileDto; listing: TruckListingDto }>("/truck", { method: "PUT", body }),
 };
 
-export type ListingInput = Partial<Omit<TruckListingDto, "updatedAt">>;
+export type TruckInput = Partial<Omit<TruckListingDto, "updatedAt">> &
+  Pick<ProfilePatch, "truckPlate" | "truckModel" | "trailerPlate">;

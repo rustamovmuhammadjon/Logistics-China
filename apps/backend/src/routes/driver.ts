@@ -15,7 +15,7 @@ import {
   updateDriverProfile,
 } from "../lib/drivers.js";
 import { driverSend, driverThread, driverUnreadCount, listDriverChats } from "../lib/chat.js";
-import { getDriverListing, saveDriverListing } from "../lib/fleet.js";
+import { getDriverListing, saveDriverListing, saveDriverTruck } from "../lib/fleet.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireDriver, type DriverRequest } from "../middleware/auth.js";
 import { broadcastOnMutation, skipBroadcast } from "../middleware/realtime.js";
@@ -145,6 +145,16 @@ driverRouter.put(
   asyncHandler(async (req, res) => {
     const { driver } = await requireRegistered(req);
     res.json({ listing: await saveDriverListing(driver.id, req.body ?? {}) });
+  })
+);
+
+// The app's "My truck": vehicle and ad saved in one go.
+driverRouter.put(
+  "/truck",
+  asyncHandler(requireDriver),
+  asyncHandler(async (req, res) => {
+    const { driver } = await requireRegistered(req);
+    res.json(await saveDriverTruck(driver.id, req.body ?? {}));
   })
 );
 

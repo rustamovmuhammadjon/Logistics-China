@@ -4,7 +4,7 @@ import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound, unauthorized } from "./errors.js";
 import { optionalString } from "./input.js";
 import { orderVisibilityWhere } from "./orders.js";
-import { optionalText, parseDriverFields, parseDriverPhone, requiredName } from "./drivers.js";
+import { optionalText, parseDriverFields, parseDriverPhone, requiredName, toDriverProfile } from "./drivers.js";
 
 // ---- Listing fields ----
 
@@ -36,7 +36,11 @@ function parseListingFields(body: Record<string, unknown>): ListingFields {
   if (has("capacityTons")) fields.capacityTons = optionalMeasure(body.capacityTons, "capacity", 60);
   if (has("volumeM3")) fields.volumeM3 = optionalMeasure(body.volumeM3, "volume", MAX_TRUCK_VOLUME_M3);
   if (has("axles")) fields.axles = optionalAxles(body.axles);
-  if (has("baseCity")) fields.baseCity = optionalText(body.baseCity, 80, "base city");
+  // App builds from before routes send the start as "baseCity".
+  if (has("routeFrom") || has("baseCity")) {
+    fields.routeFrom = optionalText(has("routeFrom") ? body.routeFrom : body.baseCity, 80, "route start");
+  }
+  if (has("routeTo")) fields.routeTo = optionalText(body.routeTo, 80, "route end");
   if (has("note")) fields.note = optionalText(body.note, 500, "note");
   return fields;
 }
@@ -51,43 +55,46 @@ export function toListing(listing: TruckListing) {
     capacityTons: listing.capacityTons,
     volumeM3: listing.volumeM3,
     axles: listing.axles,
-    baseCity: listing.baseCity,
+    routeFrom: listing.routeFrom,
+    routeTo: listing.routeTo,
     note: listing.note,
     updatedAt: listing.updatedAt.toISOString(),
   };
 }
 
 const SIZE_KEYS = ["lengthM", "widthM", "heightM"] as const;
+// What the volume and the publishing rule read. A partial update takes the
+// ones it leaves out from the saved listing.
+const RULE_KEYS = [...SIZE_KEYS, "bodyType", "capacityTons", "published"] as const;
 
-// Volume follows the size: once length, width and height are all known it is
-// their product, whichever form saved them. While the size is incomplete a
-// volume typed in by hand is kept as it is.
-async function withVolume(driverId: string, fields: ListingFields): Promise<ListingFields> {
-  if (!SIZE_KEYS.some((key) => key in fields)) return fields;
-  const partial = SIZE_KEYS.some((key) => fields[key] === undefined);
-  const current = partial
-    ? await prisma.truckListing.findUnique({ where: { driverId }, select: { lengthM: true, widthM: true, heightM: true } })
-    : null;
-  const size = (key: (typeof SIZE_KEYS)[number]) => (fields[key] !== undefined ? fields[key] : current?.[key]);
-  const volume = cbmOf(size("lengthM"), size("widthM"), size("heightM"));
-  if (volume == null) return fields;
-  if (volume > MAX_TRUCK_VOLUME_M3) badRequest("Length × width × height comes to over 200 m³ — check the measurements");
-  return { ...fields, volumeM3: volume };
+// Works out what follows from the input and checks it before anything is
+// written, so an ad that fails the check leaves the saved one as it was.
+async function prepareListing(driverId: string, input: ListingFields): Promise<ListingFields> {
+  const partial = RULE_KEYS.some((key) => input[key] === undefined);
+  const current = partial ? await prisma.truckListing.findUnique({ where: { driverId } }) : null;
+  const value = <K extends (typeof RULE_KEYS)[number]>(key: K) => (input[key] !== undefined ? input[key] : current?.[key]);
+
+  const fields = { ...input };
+  // Volume follows the size: once length, width and height are all known it
+  // is their product (CBM), whichever form saved them. While the size is
+  // incomplete a volume typed in by hand is kept as it is.
+  if (SIZE_KEYS.some((key) => key in input)) {
+    const volume = cbmOf(value("lengthM"), value("widthM"), value("heightM"));
+    if (volume != null) {
+      if (volume > MAX_TRUCK_VOLUME_M3) badRequest("Length × width × height comes to over 200 m³ — check the measurements");
+      fields.volumeM3 = volume;
+    }
+  }
+  // A published ad has to say at least what the truck is and what it carries.
+  if (value("published") && (!value("bodyType") || !value("capacityTons"))) {
+    badRequest("Add the body type and capacity before publishing");
+  }
+  return fields;
 }
 
 async function writeListing(driverId: string, input: ListingFields) {
-  const fields = await withVolume(driverId, input);
-  const saved = await prisma.truckListing.upsert({
-    where: { driverId },
-    create: { driverId, ...fields },
-    update: fields,
-  });
-  // A published ad has to say at least what the truck is and what it carries.
-  if (saved.published && (!saved.bodyType || !saved.capacityTons)) {
-    await prisma.truckListing.update({ where: { driverId }, data: { published: false } });
-    badRequest("Add the body type and capacity before publishing");
-  }
-  return saved;
+  const fields = await prepareListing(driverId, input);
+  return prisma.truckListing.upsert({ where: { driverId }, create: { driverId, ...fields }, update: fields });
 }
 
 export async function getDriverListing(driverId: string) {
@@ -97,6 +104,24 @@ export async function getDriverListing(driverId: string) {
 
 export async function saveDriverListing(driverId: string, body: Record<string, unknown>) {
   return toListing(await writeListing(driverId, parseListingFields(body)));
+}
+
+const VEHICLE_KEYS = ["truckPlate", "truckModel", "trailerPlate", "trailerType"] as const;
+
+// "Mening mashinam" in the app is one form: the vehicle (plates, model) is
+// kept on the driver, the specs and the ad on their listing. Both are checked
+// first and then written together — a failed check leaves both as they were.
+export async function saveDriverTruck(driverId: string, body: Record<string, unknown>) {
+  const vehicleBody = Object.fromEntries(VEHICLE_KEYS.filter((key) => key in body).map((key) => [key, body[key]]));
+  const [vehicle, listing] = await Promise.all([
+    parseDriverFields(driverId, vehicleBody),
+    prepareListing(driverId, parseListingFields(body)),
+  ]);
+  const [driver, saved] = await prisma.$transaction([
+    prisma.driver.update({ where: { id: driverId }, data: vehicle }),
+    prisma.truckListing.upsert({ where: { driverId }, create: { driverId, ...listing }, update: listing }),
+  ]);
+  return { profile: toDriverProfile(driver), listing: toListing(saved) };
 }
 
 // ---- Tracking-company fleet ----

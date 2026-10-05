@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Globe, MapPin, Phone, Plus, Search } from "lucide-react";
+import { Check, Globe, Phone, Plus, Search } from "lucide-react";
 import { TRUCK_BODY_TYPES, formatUpdateTime, type GlobalDriverDto } from "@logistics/shared";
 import { useApiSubmit } from "@/lib/hooks";
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
-import { SpecGrid, listingHeadline, vehicleLine } from "../FleetUi";
+import { AvailabilityBadge, RouteLine, SpecGrid, listingHeadline, vehicleLine } from "../FleetUi";
 
 function parseMin(value: string) {
   const n = Number(value.replace(",", "."));
@@ -36,7 +36,7 @@ export function GlobalDrivers({ drivers }: { drivers: GlobalDriverDto[] }) {
       if (cap != null && (l?.capacityTons ?? 0) < cap) return false;
       if (len != null && (l?.lengthM ?? 0) < len) return false;
       if (!q) return true;
-      return [driver.firstName, driver.lastName, driver.phone, driver.truckPlate, driver.truckModel, l?.baseCity, l?.note]
+      return [driver.firstName, driver.lastName, driver.phone, driver.truckPlate, driver.truckModel, l?.routeFrom, l?.routeTo, l?.note]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -64,7 +64,7 @@ export function GlobalDrivers({ drivers }: { drivers: GlobalDriverDto[] }) {
             className="field-input pl-9"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Name, phone, plate, city"
+            placeholder="Name, phone, plate, route"
           />
         </div>
         <div className="w-44">
@@ -102,20 +102,16 @@ export function GlobalDrivers({ drivers }: { drivers: GlobalDriverDto[] }) {
             return (
               <li key={driver.id} className="card flex min-w-0 flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-1">
                     <p className="text-lg font-semibold tracking-tight text-slate-900">
                       {listingHeadline(driver.listing) ?? "Truck"}
                     </p>
-                    {driver.listing?.baseCity && (
-                      <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-500">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {driver.listing.baseCity}
-                      </p>
-                    )}
+                    <RouteLine listing={driver.listing} />
                   </div>
-                  <span className="shrink-0 text-xs text-slate-400">
-                    Updated {formatUpdateTime(driver.listing?.updatedAt)}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <AvailabilityBadge onTrip={driver.onTrip} />
+                    <span className="text-xs text-slate-400">Updated {formatUpdateTime(driver.listing?.updatedAt)}</span>
+                  </div>
                 </div>
 
                 <SpecGrid listing={driver.listing} />

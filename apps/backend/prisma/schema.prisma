@@ -446,7 +446,10 @@ model TruckListing {
   capacityTons Float?
   volumeM3     Float?
   axles        Int?
-  baseCity     String?
+  // The route the driver offers, A → B. The start keeps the column of the old
+  // "base city" field, so ads saved before routes existed start from it.
+  routeFrom    String? @map("baseCity")
+  routeTo      String?
   note         String?
 
   createdAt DateTime @default(now())

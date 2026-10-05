@@ -235,7 +235,10 @@ export type TruckListingDto = {
   capacityTons: number | null;
   volumeM3: number | null;
   axles: number | null;
-  baseCity: string | null;
+  /** The route the driver offers: from A … */
+  routeFrom: string | null;
+  /** … to B. */
+  routeTo: string | null;
   note: string | null;
   updatedAt: string;
 };
@@ -275,6 +278,12 @@ export type GuestDriverSuggestionDto = {
 export const TRUCK_BODY_TYPES = ["Tent", "Refrigerated", "Isothermal", "Flatbed", "Container", "Tipper", "Car carrier"] as const;
 
 export const MAX_TRUCK_VOLUME_M3 = 200;
+
+/** "Tashkent → Moscow"; a missing end shows as "…". Null when neither is set. */
+export function routeLabel(listing: Pick<TruckListingDto, "routeFrom" | "routeTo"> | null | undefined): string | null {
+  if (!listing?.routeFrom && !listing?.routeTo) return null;
+  return `${listing.routeFrom || "…"} → ${listing.routeTo || "…"}`;
+}
 
 /** A truck body's volume in cubic metres (CBM) from its inside length × width
  *  × height in metres, rounded to 2 decimals. Null until all three are known. */

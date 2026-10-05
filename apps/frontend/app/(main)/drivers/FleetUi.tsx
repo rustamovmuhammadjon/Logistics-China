@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Smartphone, UserRound } from "lucide-react";
-import { TRUCK_BODY_TYPES, cbmOf, type FleetDriverDto, type TruckListingDto } from "@logistics/shared";
+import { Route, Smartphone, UserRound } from "lucide-react";
+import { TRUCK_BODY_TYPES, cbmOf, routeLabel, type FleetDriverDto, type TruckListingDto } from "@logistics/shared";
 import { PhoneField } from "@/components/PhoneField";
 import { PlateNumberField } from "@/components/PlateNumberField";
 
@@ -31,6 +31,22 @@ export function AppBadge({ hasApp }: { hasApp: boolean }) {
       <UserRound className="h-3 w-3" />
       Guest
     </span>
+  );
+}
+
+// Whether the truck can take a load now — a driver on a trip is busy.
+export function AvailabilityBadge({ onTrip }: { onTrip: boolean }) {
+  return onTrip ? <span className="badge-amber">On a trip</span> : <span className="badge-green">Available</span>;
+}
+
+export function RouteLine({ listing }: { listing: TruckListingDto | null }) {
+  const route = routeLabel(listing);
+  if (!route) return null;
+  return (
+    <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-700">
+      <Route className="h-4 w-4 shrink-0 text-brand-600" />
+      <span className="truncate">{route}</span>
+    </p>
   );
 }
 
@@ -141,9 +157,15 @@ export function DriverFormFields({ values }: { values?: DriverFormValues }) {
           </div>
         </div>
         <MeasureFields listing={listing} />
-        <div>
-          <label className="field-label">Base city</label>
-          <input className="field-input" name="baseCity" defaultValue={listing?.baseCity ?? ""} placeholder="Tashkent" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="field-label">Route from</label>
+            <input className="field-input" name="routeFrom" defaultValue={listing?.routeFrom ?? ""} placeholder="Tashkent" />
+          </div>
+          <div>
+            <label className="field-label">Route to</label>
+            <input className="field-input" name="routeTo" defaultValue={listing?.routeTo ?? ""} placeholder="Moscow" />
+          </div>
         </div>
         <div>
           <label className="field-label">Note</label>

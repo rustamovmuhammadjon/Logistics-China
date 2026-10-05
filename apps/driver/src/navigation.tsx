@@ -4,9 +4,8 @@ import type { Tab } from "./components/TabBar";
 export type Route =
   | { name: "trip"; tripId: string }
   | { name: "editProfile" }
-  | { name: "editVehicle" }
+  | { name: "truck" }
   | { name: "attachTrip" }
-  | { name: "listing" }
   | { name: "thread"; operatorId: string; title: string; subtitle: string | null; phone: string | null };
 
 export type Nav = {
