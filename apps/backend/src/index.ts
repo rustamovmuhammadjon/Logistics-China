@@ -20,10 +20,11 @@ import { chatsRouter } from "./routes/chats.js";
 import { fleetRouter } from "./routes/fleet.js";
 import { documentsRouter } from "./routes/documents.js";
 import { track718WebhookRouter } from "./routes/track718.js";
+import { telegramWebhookRouter } from "./routes/telegram.js";
 import { attachSession } from "./middleware/auth.js";
 import { asyncHandler, errorHandler } from "./middleware/errors.js";
 import { attachRealtime } from "./lib/realtime.js";
-import { startScheduledJobs } from "./lib/scheduler.js";
+import { startBackgroundJobs } from "./lib/scheduler.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -47,6 +48,7 @@ app.use(cookieParser());
 // limit — track718, not a browser, posts here with no session cookie and no
 // user auth (the URL's own token + the payload's signature are the gates).
 app.use("/webhooks/track718", express.json({ limit: "256kb" }), track718WebhookRouter);
+app.use("/webhooks/telegram", express.json({ limit: "1mb" }), telegramWebhookRouter);
 
 app.use(express.json({ limit: "2mb" }));
 app.use(asyncHandler(attachSession));
@@ -85,4 +87,4 @@ server.listen(port, "0.0.0.0", () => {
   console.log(`Backend listening on http://0.0.0.0:${port}`);
 });
 
-startScheduledJobs();
+startBackgroundJobs();

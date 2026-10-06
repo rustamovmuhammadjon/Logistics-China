@@ -32,7 +32,7 @@ import {
 } from "../lib/lifecycle.js";
 import { deleteUserAndRelatedData } from "../lib/users.js";
 import { toPublicUser } from "../lib/auth.js";
-import { sendBukharaArrivalsReport } from "../lib/telegram.js";
+import { checkBukharaArrival, sendBukharaArrivalsReport } from "../lib/telegram.js";
 import { truckDocumentPublicSelect } from "../lib/documents.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -306,6 +306,7 @@ adminRouter.post(
         locationUpdatedAt: data.currentLocation ? new Date() : null,
       },
     });
+    checkBukharaArrival(truck.id);
     res.json({ truck });
   })
 );
@@ -355,6 +356,7 @@ adminRouter.patch(
         locationUpdatedAt: locationChanged ? new Date() : existing.locationUpdatedAt,
       },
     });
+    checkBukharaArrival(existing.id);
     res.json({ truck });
   })
 );

@@ -265,6 +265,10 @@ model Truck {
 
   canceledAt DateTime?
 
+  // Set the moment the Telegram bot announces this truck's arrival in
+  // Bukhara, so it's announced once — not again on every later GPS ping.
+  bukharaAlertedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

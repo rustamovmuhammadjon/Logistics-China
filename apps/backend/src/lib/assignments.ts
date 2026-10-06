@@ -9,6 +9,7 @@ import {
 } from "./pairing.js";
 import { normalizePlate } from "./input.js";
 import { assertCanAddDirectTruck, assertSubOrderMutable } from "./lifecycle.js";
+import { checkBukharaArrival } from "./telegram.js";
 
 export const assignmentPublicSelect = {
   id: true,
@@ -293,6 +294,7 @@ export async function recordDriverPing(params: {
       lastLng: lng,
     },
   });
+  checkBukharaArrival(assignment.truckId);
 
   return { lastPingAt: now, lastLocationText: label };
 }

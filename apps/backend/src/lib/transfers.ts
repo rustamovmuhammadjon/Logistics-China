@@ -2,6 +2,7 @@ import { MAX_TRANSFERS_PER_SUB_ORDER } from "@logistics/shared";
 import { prisma } from "./prisma.js";
 import { badRequest, conflict, notFound } from "./errors.js";
 import { findActivePlateConflict, plateConflictMessage } from "./orders.js";
+import { checkBukharaArrival } from "./telegram.js";
 import {
   dateOrToday,
   optionalDisplayPhone,
@@ -161,5 +162,7 @@ export async function createCargoTransfer(params: {
     data: { status: "REVOKED", pairingCodeHash: null, pairingExpiresAt: null },
   });
 
+  // Bukhara is a common hand-over point, so the new truck may start there.
+  checkBukharaArrival(toTruck.id);
   return transfer;
 }

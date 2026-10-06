@@ -13,6 +13,7 @@ import { createDriverAssignment, regenerateDriverAssignment, revokeDriverAssignm
 import { createCargoTransfer } from "../lib/transfers.js";
 import { syncTrack718Tracking } from "../lib/track718.js";
 import { createDocumentUploadUrl, deleteTruckDocument, finalizeDocumentUpload } from "../lib/documents.js";
+import { checkBukharaArrival } from "../lib/telegram.js";
 import {
   assertCanAddDirectTruck,
   assertSubOrderMutable,
@@ -114,6 +115,7 @@ operatorRouter.patch(
       }),
       touchSubOrderEditor(truck.subOrderId, me.email),
     ]);
+    checkBukharaArrival(truck.id);
     res.json({ truck: updated });
   })
 );
@@ -180,6 +182,7 @@ operatorRouter.post(
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
     await syncTrack718Tracking(truck.id, gpsNumber);
+    checkBukharaArrival(truck.id);
     res.json({ truck });
   })
 );
@@ -212,6 +215,7 @@ operatorRouter.patch(
       touchSubOrderEditor(req.params.subId, me.email),
     ]);
     await syncTrack718Tracking(existing.id, gpsNumber);
+    checkBukharaArrival(existing.id);
     res.json({ truck });
   })
 );

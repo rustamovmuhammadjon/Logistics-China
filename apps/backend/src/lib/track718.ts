@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma.js";
 import { touchSubOrderEditor } from "./orders.js";
+import { checkBukharaArrival } from "./telegram.js";
 
 const DEFAULT_TZ = process.env.TRACK718_DEFAULT_TZ || "+08:00";
 
@@ -219,6 +220,7 @@ export async function processTrack718Payload(payload: Track718Payload) {
         // it's driven by the sub-order, not the truck, and otherwise a
         // GPS-only update would silently not count as one.
         await touchSubOrderEditor(updatedTruck.subOrderId, "track718");
+        checkBukharaArrival(tracking.truckId);
       }
     }
   }
