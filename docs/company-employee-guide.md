@@ -135,6 +135,7 @@ The **Monitoring** tab (top of the page) is your live overview of everything you
 
 - **Active** (default), **Completed**, **Cancelled** tabs.
 - A **DG** column (red **DG** / green **non-DG**, taken from the order) and an **Agent** column showing the agents the operator attached to each sub-order.
+- Nothing in the table is cut off: if it's wider than your screen, scroll it sideways. The **Comment** column shows the first 50 characters followed by "..." — click it to read the whole comment.
 - **Search** by order name, sub-order name, truck plate, trailer, or driver phone.
 - **Sort** newest/oldest first.
 - **Download Excel** — exports the current tab's list to a spreadsheet.

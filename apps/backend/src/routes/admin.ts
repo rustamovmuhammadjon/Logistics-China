@@ -1,7 +1,14 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
-import { dangerousGoodsField, dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
+import {
+  commentText,
+  dangerousGoodsField,
+  dateOrToday,
+  optionalDate,
+  optionalString,
+  requiredString,
+} from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import {
@@ -441,7 +448,7 @@ adminRouter.post(
     await assertSubOrderMutable(subOrderId);
     const comment = await prisma.comment.create({
       data: {
-        text: requiredString(req.body?.text, "text"),
+        text: commentText(req.body?.text),
         author: optionalString(req.body?.author),
         subOrderId,
       },

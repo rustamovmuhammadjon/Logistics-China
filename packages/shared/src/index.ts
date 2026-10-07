@@ -93,6 +93,10 @@ export type TruckDocumentDto = {
   createdAt: string;
 };
 
+export const COMMENT_MAX_LENGTH = 100;
+// How much of a comment Monitoring shows before "..." (click for the rest).
+export const COMMENT_PREVIEW_LENGTH = 50;
+
 export const TRUCK_DOCUMENT_MAX_MB = 15;
 export const TRUCK_DOCUMENT_MAX_BYTES = TRUCK_DOCUMENT_MAX_MB * 1024 * 1024;
 export const TRUCK_DOCUMENT_MAX_COUNT = 3;

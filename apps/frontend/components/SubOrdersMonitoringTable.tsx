@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
   agentLabel,
+  COMMENT_PREVIEW_LENGTH,
   currentTruckOf,
   formatDate,
   formatUpdateTime,
@@ -16,8 +18,10 @@ import {
 import { Track718MapButton } from "@/components/Track718MapModal";
 import { DgBadge } from "@/components/DangerousGoods";
 
-const TH = "px-3 py-2 text-[11px]";
-const TD = "px-3 py-2 text-xs";
+// Nothing is cut off: every column is as wide as its longest value and the
+// table scrolls sideways when that's wider than the screen.
+const TH = "whitespace-nowrap px-3 py-2 text-[11px]";
+const TD = "whitespace-nowrap px-3 py-2 text-xs";
 
 // Monitoring tracks sub-orders directly (each one is a single truck load) —
 // no more clicking an order row to reveal its sub-orders underneath. Every
@@ -31,23 +35,7 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
 
   return (
     <div className="-mx-4 overflow-x-auto border-y border-slate-200 bg-white">
-      <table className="w-full min-w-[1300px] table-fixed">
-        <colgroup>
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "6.5%" }} />
-          <col style={{ width: "4.5%" }} />
-          <col style={{ width: "6.5%" }} />
-          <col style={{ width: "7%" }} />
-          {isOperator && <col style={{ width: "9%" }} />}
-          <col style={{ width: "6.5%" }} />
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "8.5%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "5%" }} />
-          <col style={{ width: "13.5%" }} />
-          <col style={{ width: "7.5%" }} />
-          <col style={{ width: "10.5%" }} />
-        </colgroup>
+      <table className="w-max min-w-full">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left font-semibold uppercase tracking-wide text-slate-500">
             <th className={TH}>Order</th>
@@ -79,35 +67,32 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
             const comment = sub.comments?.[0]?.text ?? null;
             const agents = sub.agents ?? [];
             return (
-              <tr key={sub.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className={`${TD} truncate`}>
-                  <Link href={getOrderHref(order, ctx)} className="text-brand-600 hover:underline" title={order.name}>
+              <tr key={sub.id} className="border-b border-slate-100 align-top last:border-0 hover:bg-slate-50">
+                <td className={TD}>
+                  <Link href={getOrderHref(order, ctx)} className="text-brand-600 hover:underline">
                     {order.name}
                   </Link>
                   {order.canceledAt ? <span className="badge-red ml-1.5 text-[10px]">Cancelled</span> : null}
                 </td>
-                <td
-                  className={`${TD} truncate font-medium text-slate-800`}
-                  title={`${sub.name || "Sub-order"} — ${subOrderStatusLabel(sub.status)}`}
-                >
+                <td className={`${TD} font-medium text-slate-800`} title={subOrderStatusLabel(sub.status)}>
                   <span className="inline-flex items-center gap-1.5">
                     <span
                       className={`h-2 w-2 shrink-0 rounded-full ${
                         sub.status === "CANCELED" ? "bg-red-500" : sub.status === "CLOSED" ? "bg-slate-400" : "bg-emerald-500"
                       }`}
                     />
-                    <span className="truncate">{sub.name || "Sub-order"}</span>
+                    {sub.name || "Sub-order"}
                   </span>
                 </td>
                 <td className={TD}>
                   <DgBadge dangerousGoods={order.dangerousGoods} className="px-1.5 text-[10px]" />
                 </td>
-                <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
-                <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
+                <td className={`${TD} text-slate-600`}>{formatDate(sub.factoryLoadDate) || "—"}</td>
+                <td className={`${TD} text-slate-600`}>{current?.plateNumber || "—"}</td>
                 {isOperator && (
                   <td className={`${TD} text-slate-600`}>
                     <span className="flex items-center gap-1">
-                      <span className="truncate">{current?.gpsNumber || "—"}</span>
+                      <span>{current?.gpsNumber || "—"}</span>
                       {current?.track718 && (
                         <Track718MapButton
                           eventsUrl={`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${current.id}/track718/events`}
@@ -117,21 +102,19 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                     </span>
                   </td>
                 )}
-                <td className={`${TD} truncate text-slate-600`}>{current?.country || "—"}</td>
-                <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
-                <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
+                <td className={`${TD} text-slate-600`}>{current?.country || "—"}</td>
+                <td className={`${TD} text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
+                <td className={`${TD} text-slate-600`}>{current?.driverPhone || "—"}</td>
                 <td
-                  className={`${TD} truncate text-slate-600`}
+                  className={`${TD} text-slate-600`}
                   title={agents.map(({ agent }) => [agentLabel(agent), agent.phone].filter(Boolean).join(" · ")).join("\n") || undefined}
                 >
                   {agents.length > 0 ? agents.map(({ agent }) => agent.name).join(", ") : "—"}
                 </td>
-                <td className={`${TD} truncate text-slate-600`}>
+                <td className={`${TD} text-slate-600`}>
                   {current?.cargoWeight != null ? `${current.cargoWeight} t` : "—"}
                 </td>
-                <td className={`${TD} truncate text-slate-600`} title={current?.currentLocation ?? undefined}>
-                  {current?.currentLocation || "—"}
-                </td>
+                <td className={`${TD} text-slate-600`}>{current?.currentLocation || "—"}</td>
                 <td className={TD}>
                   {sub.lastEditedAt ? (
                     <span className={freshnessBadgeClass(freshness)}>{formatUpdateTime(sub.lastEditedAt)}</span>
@@ -139,14 +122,31 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                     <span className="text-slate-400">—</span>
                   )}
                 </td>
-                <td className={`${TD} truncate text-slate-600`} title={comment ?? undefined}>
-                  {comment || "—"}
-                </td>
+                <td className={`${TD} text-slate-600`}>{comment ? <CommentPreview text={comment} /> : "—"}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+// The first 50 characters, then "..."; a click opens the whole comment
+// (wrapped, so a long one doesn't stretch the table) and another closes it.
+function CommentPreview({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  if (text.length <= COMMENT_PREVIEW_LENGTH) return <>{text}</>;
+
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen((v) => !v)}
+      className={`text-left hover:text-slate-900 ${open ? "block max-w-xs whitespace-normal break-words" : ""}`}
+      title={open ? "Click to collapse" : "Click to read the whole comment"}
+      aria-expanded={open}
+    >
+      {open ? text : `${text.slice(0, COMMENT_PREVIEW_LENGTH).trimEnd()}...`}
+    </button>
   );
 }

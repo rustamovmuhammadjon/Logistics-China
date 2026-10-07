@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
-import { optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { commentText, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import {
   detailInclude,
   findActivePlateConflict,
@@ -134,7 +134,7 @@ operatorRouter.post(
     const [comment] = await Promise.all([
       prisma.comment.create({
         data: {
-          text: requiredString(req.body?.text, "text"),
+          text: commentText(req.body?.text),
           author: me.email,
           subOrderId,
         },

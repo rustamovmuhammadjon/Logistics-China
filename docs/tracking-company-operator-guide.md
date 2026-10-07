@@ -91,7 +91,7 @@ Next to the order's name you'll see whether it's **DG** (dangerous goods, red) o
 Inside each sub-order:
 
 - **Factory load date** — set or correct this anytime, even after the sub-order is completed or cancelled.
-- **Comments** — leave a note for the client to see (e.g. a status update). Comments are locked once the sub-order is completed/cancelled.
+- **Comments** — leave a note for the client to see (e.g. a status update), up to **100 characters** (a counter shows how many you've used). Comments are locked once the sub-order is completed/cancelled.
 - **Agents** — once the sub-order has a vehicle, pick an agent from your **Agents** list and click **Attach agent** (you can attach more than one; **Remove** takes one off). Agents can't be typed in here — add them in **Agents** first.
 - **Cancel sub-order** — cancels it; the rest of the order is unaffected.
 
@@ -169,6 +169,7 @@ The **Monitoring** tab (top of the page) is your live overview of every order yo
 
 - **Active** (default), **Completed**, **Cancelled** tabs.
 - A **DG** column (red **DG** / green **non-DG**) and an **Agent** column with the agents attached to each sub-order — the client sees both too.
+- Nothing in the table is cut off: if it's wider than your screen, scroll it sideways. The **Comment** column shows the first 50 characters followed by "..." — click it to read the whole comment, click again to fold it back.
 - **Search** by order name, sub-order name, truck plate, trailer, or driver phone.
 - **Sort** newest/oldest first.
 - **Download Excel** — exports the current tab's list to a spreadsheet (this export includes GPS numbers, since you're an operator, plus the DG and Agent columns).

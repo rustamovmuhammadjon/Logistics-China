@@ -1,4 +1,5 @@
 import type { Request } from "express";
+import { COMMENT_MAX_LENGTH } from "@logistics/shared";
 import { badRequest } from "./errors.js";
 
 export function routeParam(req: Request, name: string): string {
@@ -24,6 +25,12 @@ export function optionalFloat(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const parsed = typeof value === "number" ? value : Number.parseFloat(String(value));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function commentText(value: unknown): string {
+  const text = requiredString(value, "text");
+  if (text.length > COMMENT_MAX_LENGTH) badRequest(`A comment can be at most ${COMMENT_MAX_LENGTH} characters`);
+  return text;
 }
 
 export function requiredNumber(value: unknown, field: string): number {

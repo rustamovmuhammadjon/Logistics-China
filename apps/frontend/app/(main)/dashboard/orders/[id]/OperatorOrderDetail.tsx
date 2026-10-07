@@ -24,6 +24,7 @@ import { CargoTransferForm } from "@/components/CargoTransferForm";
 import { TruckEditorCard } from "@/components/TruckEditorCard";
 import { SubOrderLocation, transferHistory } from "@/components/TruckReadout";
 import { SubOrderAgents } from "@/components/SubOrderAgents";
+import { CommentInput } from "@/components/CommentInput";
 import { DgBadge } from "@/components/DangerousGoods";
 
 export function OperatorOrderDetail({ order, agents }: { order: GroupOrderDto; agents: AgentDto[] }) {
@@ -266,7 +267,7 @@ function OperatorComments({
           }}
           className="flex gap-2"
         >
-          <input className="field-input flex-1" type="text" name="text" placeholder="Add a comment..." required />
+          <CommentInput placeholder="Add a comment..." className="flex-1" />
           <button type="submit" className="btn-secondary shrink-0" disabled={pending}>
             Add
           </button>

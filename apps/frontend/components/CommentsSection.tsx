@@ -4,6 +4,7 @@ import { MessageSquare, Trash2 } from "lucide-react";
 import { formatDateTime, type CommentDto } from "@logistics/shared";
 import { useApiSubmit } from "@/lib/hooks";
 import { ConfirmButton } from "./ConfirmButton";
+import { CommentInput } from "./CommentInput";
 
 type CommentTarget = { groupOrderId: string; subOrderId: string };
 
@@ -57,7 +58,7 @@ export function CommentsSection({
         <input type="hidden" name="subOrderId" value={target.subOrderId} />
         <div className="flex-1">
           <label className="field-label">Add comment</label>
-          <input className="field-input" type="text" name="text" placeholder="Write a comment..." required />
+          <CommentInput placeholder="Write a comment..." />
         </div>
         <div className="w-full sm:w-40">
           <label className="field-label">Your name (optional)</label>
