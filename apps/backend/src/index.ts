@@ -19,6 +19,7 @@ import { driverRouter } from "./routes/driver.js";
 import { chatsRouter } from "./routes/chats.js";
 import { fleetRouter } from "./routes/fleet.js";
 import { documentsRouter } from "./routes/documents.js";
+import { agentsRouter } from "./routes/agents.js";
 import { track718WebhookRouter } from "./routes/track718.js";
 import { telegramWebhookRouter } from "./routes/telegram.js";
 import { attachSession } from "./middleware/auth.js";
@@ -73,6 +74,7 @@ app.use("/api/driver", driverRouter);
 app.use("/api/chats", chatsRouter);
 app.use("/api/fleet", fleetRouter);
 app.use("/api/documents", documentsRouter);
+app.use("/api/agents", agentsRouter);
 
 app.use(errorHandler);
 

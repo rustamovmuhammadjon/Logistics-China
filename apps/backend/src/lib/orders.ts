@@ -3,6 +3,7 @@ import { prisma } from "./prisma.js";
 import { optionalDisplayPhone, optionalFloat, optionalPlate, optionalString } from "./input.js";
 import { assignmentPublicSelect } from "./assignments.js";
 import { truckDocumentPublicSelect } from "./documents.js";
+import { subOrderAgentsInclude } from "./agents.js";
 
 // A company's employee creates orders on the company's behalf — the order
 // (and its operator links) belong to the company, not the employee, so
@@ -60,6 +61,7 @@ export const listInclude = {
       },
       // Just the latest comment — enough for a table cell, not the full thread.
       comments: { orderBy: { createdAt: "desc" as const }, take: 1 },
+      agents: subOrderAgentsInclude,
     },
   },
 };
@@ -159,6 +161,7 @@ export const detailInclude = {
     orderBy: { createdAt: "asc" as const },
     include: {
       comments: { orderBy: { createdAt: "desc" as const } },
+      agents: subOrderAgentsInclude,
       trucks: {
         orderBy: { createdAt: "asc" as const },
         include: {

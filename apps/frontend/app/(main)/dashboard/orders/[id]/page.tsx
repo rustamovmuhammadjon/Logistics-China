@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import type { AuthMe, GroupOrderDto } from "@logistics/shared";
+import type { AgentDto, AuthMe, GroupOrderDto } from "@logistics/shared";
 import { serverApi, serverApiOrNull } from "@/lib/server-api";
 import { OperatorOrderDetail } from "./OperatorOrderDetail";
 
@@ -17,7 +17,10 @@ export default async function DashboardOrderPage({ params }: { params: Promise<{
   // for operators viewing a linked consignee's/company's order.
   if (me.user.role !== "OPERATOR") redirect(`/orders/${id}`);
 
-  const data = await serverApiOrNull<{ order: GroupOrderDto }>(`/api/operator/orders/${id}`);
+  const [data, directory] = await Promise.all([
+    serverApiOrNull<{ order: GroupOrderDto }>(`/api/operator/orders/${id}`),
+    serverApiOrNull<{ agents: AgentDto[] }>("/api/agents"),
+  ]);
   if (!data) notFound();
 
   return (
@@ -27,7 +30,7 @@ export default async function DashboardOrderPage({ params }: { params: Promise<{
         Orders to track
       </Link>
       <div className="mt-3">
-        <OperatorOrderDetail order={data.order} />
+        <OperatorOrderDetail order={data.order} agents={directory?.agents ?? []} />
       </div>
     </>
   );

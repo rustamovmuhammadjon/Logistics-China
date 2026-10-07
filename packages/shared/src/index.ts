@@ -407,7 +407,37 @@ export type SubOrderDto = {
   updatedAt: string;
   trucks: TruckDto[];
   comments?: CommentDto[];
+  agents?: SubOrderAgentDto[];
 };
+
+export type AgentDto = {
+  id: string;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  location: string | null;
+  note: string | null;
+};
+
+export type AgentDirectoryEntryDto = AgentDto & {
+  createdByLabel: string | null;
+  createdAt: string;
+  // Open sub-orders it's attached to.
+  attachedCount: number;
+};
+
+export type SubOrderAgentDto = {
+  id: string;
+  agentId: string;
+  attachedByLabel: string | null;
+  createdAt: string;
+  agent: AgentDto;
+};
+
+export function agentLabel(agent: Pick<AgentDto, "name" | "company">) {
+  return agent.company ? `${agent.name} (${agent.company})` : agent.name;
+}
 
 export type GroupOrderDto = {
   id: string;
@@ -423,6 +453,8 @@ export type GroupOrderDto = {
   origin: string | null;
   destination: string | null;
   commodity: string | null;
+  // Applies to every sub-order in the order.
+  dangerousGoods: boolean;
   statusText: string | null;
   statusUpdatedAt: string | null;
   lastEditedByEmail: string | null;

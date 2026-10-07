@@ -17,6 +17,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { OrderFields } from "@/components/OrderFields";
 import { SubOrderLocation, TruckSequence, transferHistory } from "@/components/TruckReadout";
 import { CargoTransferForm } from "@/components/CargoTransferForm";
+import { DgBadge } from "@/components/DangerousGoods";
 
 export function ConsigneeOrderDetail({
   order,
@@ -35,7 +36,10 @@ export function ConsigneeOrderDetail({
     <div className="space-y-4">
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
+          <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold text-slate-900">
+            {order.name}
+            <DgBadge dangerousGoods={order.dangerousGoods} />
+          </h1>
           {editable && (
             <ConfirmButton
               confirmText="Cancel this whole order? It will move to the Cancelled page and leave monitoring."

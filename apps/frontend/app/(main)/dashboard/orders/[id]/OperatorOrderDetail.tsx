@@ -11,6 +11,7 @@ import {
   subOrderStatusLabel,
   toDateInputValue,
   truckStats,
+  type AgentDto,
   type CommentDto,
   type GroupOrderDto,
 } from "@logistics/shared";
@@ -22,8 +23,10 @@ import { DriverAssignPanel } from "@/components/DriverAssignPanel";
 import { CargoTransferForm } from "@/components/CargoTransferForm";
 import { TruckEditorCard } from "@/components/TruckEditorCard";
 import { SubOrderLocation, transferHistory } from "@/components/TruckReadout";
+import { SubOrderAgents } from "@/components/SubOrderAgents";
+import { DgBadge } from "@/components/DangerousGoods";
 
-export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
+export function OperatorOrderDetail({ order, agents }: { order: GroupOrderDto; agents: AgentDto[] }) {
   const { submit, pending, error } = useApiSubmit();
   const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
   const locked = isGroupOrderLocked(order);
@@ -33,7 +36,10 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
       <div className="card space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{order.name}</h1>
+            <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold text-slate-900">
+              {order.name}
+              <DgBadge dangerousGoods={order.dangerousGoods} />
+            </h1>
             {formatDirection(order.origin, order.destination) && (
               <p className="text-sm text-slate-600">{formatDirection(order.origin, order.destination)}</p>
             )}
@@ -160,6 +166,13 @@ export function OperatorOrderDetail({ order }: { order: GroupOrderDto }) {
                         cancelUrl={`/api/operator/orders/${order.id}/sub-orders/${sub.id}/trucks/${truck.id}/cancel`}
                       />
                     ))}
+                    <SubOrderAgents
+                      apiBase={`/api/operator/orders/${order.id}/sub-orders/${sub.id}`}
+                      attached={sub.agents ?? []}
+                      directory={agents}
+                      canMutate={canMutate}
+                      hasVehicle={sub.trucks.some((truck) => !truck.canceledAt)}
+                    />
                     {canMutate && (
                       <>
                         <DriverAssignPanel

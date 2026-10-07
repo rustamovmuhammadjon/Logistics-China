@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  agentLabel,
   currentTruckOf,
   formatDate,
   formatUpdateTime,
@@ -13,6 +14,7 @@ import {
   type ViewerContext,
 } from "@logistics/shared";
 import { Track718MapButton } from "@/components/Track718MapModal";
+import { DgBadge } from "@/components/DangerousGoods";
 
 const TH = "px-3 py-2 text-[11px]";
 const TD = "px-3 py-2 text-xs";
@@ -29,31 +31,35 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
 
   return (
     <div className="-mx-4 overflow-x-auto border-y border-slate-200 bg-white">
-      <table className="w-full min-w-[1100px] table-fixed">
+      <table className="w-full min-w-[1300px] table-fixed">
         <colgroup>
-          <col style={{ width: "8.5%" }} />
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "7.5%" }} />
-          {isOperator && <col style={{ width: "10%" }} />}
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "7.5%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "6%" }} />
-          <col style={{ width: "16.5%" }} />
           <col style={{ width: "8%" }} />
-          <col style={{ width: "16%" }} />
+          <col style={{ width: "6.5%" }} />
+          <col style={{ width: "4.5%" }} />
+          <col style={{ width: "6.5%" }} />
+          <col style={{ width: "7%" }} />
+          {isOperator && <col style={{ width: "9%" }} />}
+          <col style={{ width: "6.5%" }} />
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "8.5%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "5%" }} />
+          <col style={{ width: "13.5%" }} />
+          <col style={{ width: "7.5%" }} />
+          <col style={{ width: "10.5%" }} />
         </colgroup>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left font-semibold uppercase tracking-wide text-slate-500">
             <th className={TH}>Order</th>
             <th className={TH}>Sub-order</th>
+            <th className={TH}>DG</th>
             <th className={TH}>FLD</th>
             <th className={TH}>Truck #</th>
             {isOperator && <th className={TH}>GPS #</th>}
             <th className={TH}>Country</th>
             <th className={TH}>Trailer #</th>
             <th className={TH}>Driver #</th>
+            <th className={TH}>Agent</th>
             <th className={TH}>Weight</th>
             <th className={TH}>Current location</th>
             <th className={TH}>Last update</th>
@@ -71,6 +77,7 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
             // truck's own locationUpdatedAt.
             const freshness = locationFreshness(sub.lastEditedAt);
             const comment = sub.comments?.[0]?.text ?? null;
+            const agents = sub.agents ?? [];
             return (
               <tr key={sub.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                 <td className={`${TD} truncate`}>
@@ -92,6 +99,9 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                     <span className="truncate">{sub.name || "Sub-order"}</span>
                   </span>
                 </td>
+                <td className={TD}>
+                  <DgBadge dangerousGoods={order.dangerousGoods} className="px-1.5 text-[10px]" />
+                </td>
                 <td className={`${TD} truncate text-slate-600`}>{formatDate(sub.factoryLoadDate)}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.plateNumber || "—"}</td>
                 {isOperator && (
@@ -110,6 +120,12 @@ export function SubOrdersMonitoringTable({ orders, ctx }: { orders: GroupOrderDt
                 <td className={`${TD} truncate text-slate-600`}>{current?.country || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.trailerPlateNumber || "—"}</td>
                 <td className={`${TD} truncate text-slate-600`}>{current?.driverPhone || "—"}</td>
+                <td
+                  className={`${TD} truncate text-slate-600`}
+                  title={agents.map(({ agent }) => [agentLabel(agent), agent.phone].filter(Boolean).join(" · ")).join("\n") || undefined}
+                >
+                  {agents.length > 0 ? agents.map(({ agent }) => agent.name).join(", ") : "—"}
+                </td>
                 <td className={`${TD} truncate text-slate-600`}>
                   {current?.cargoWeight != null ? `${current.cargoWeight} t` : "—"}
                 </td>

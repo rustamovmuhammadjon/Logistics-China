@@ -1,4 +1,5 @@
 import { toDateInputValue } from "@logistics/shared";
+import { DgBadge, DgToggle } from "@/components/DangerousGoods";
 
 type OrderLike = {
   name?: string;
@@ -7,6 +8,7 @@ type OrderLike = {
   destination?: string | null;
   pol?: string | null;
   commodity?: string | null;
+  dangerousGoods?: boolean;
 };
 
 export function OrderFields({ order, readOnly = false }: { order?: OrderLike; readOnly?: boolean }) {
@@ -60,6 +62,16 @@ export function OrderFields({ order, readOnly = false }: { order?: OrderLike; re
           defaultValue={order?.commodity ?? ""}
           readOnly={readOnly}
         />
+      </div>
+      <div className="sm:col-span-2">
+        {readOnly ? (
+          <>
+            <label className="field-label">Cargo type</label>
+            <DgBadge dangerousGoods={order?.dangerousGoods ?? false} />
+          </>
+        ) : (
+          <DgToggle defaultValue={order?.dangerousGoods ?? false} />
+        )}
       </div>
     </div>
   );

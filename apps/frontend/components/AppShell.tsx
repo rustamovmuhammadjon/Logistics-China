@@ -7,6 +7,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  Contact,
   LayoutDashboard,
   Menu,
   MessagesSquare,
@@ -103,10 +104,14 @@ function buildNav(user: UserPublic | null, admin: boolean, unreadChats: number) 
     },
     {
       title: "Fleet",
-      items:
-        role === "OPERATOR_COMPANY" || (role === "OPERATOR" && user?.companyId)
+      items: [
+        ...(role === "OPERATOR_COMPANY" || (role === "OPERATOR" && user?.companyId)
           ? [{ href: "/drivers", label: "Drivers", icon: <TruckIcon className="h-[18px] w-[18px]" /> }]
-          : [],
+          : []),
+        ...(role === "OPERATOR" || role === "OPERATOR_COMPANY"
+          ? [{ href: "/agents", label: "Agents", icon: <Contact className="h-[18px] w-[18px]" /> }]
+          : []),
+      ],
     },
     {
       title: "Team",

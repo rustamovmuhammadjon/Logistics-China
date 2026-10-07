@@ -14,6 +14,7 @@ import { createCargoTransfer } from "../lib/transfers.js";
 import { syncTrack718Tracking } from "../lib/track718.js";
 import { createDocumentUploadUrl, deleteTruckDocument, finalizeDocumentUpload } from "../lib/documents.js";
 import { checkBukharaArrival } from "../lib/telegram.js";
+import { attachAgent, detachAgent } from "../lib/agents.js";
 import {
   assertCanAddDirectTruck,
   assertSubOrderMutable,
@@ -335,6 +336,30 @@ operatorRouter.post(
     });
     await touchSubOrderEditor(req.params.subId, me.email);
     res.json({ document });
+  })
+);
+
+operatorRouter.post(
+  "/orders/:id/sub-orders/:subId/agents",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await assertSubOrderMutable(req.params.subId);
+    const attached = await attachAgent(req.params.subId, req.body?.agentId, me);
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ attached });
+  })
+);
+
+operatorRouter.delete(
+  "/orders/:id/sub-orders/:subId/agents/:agentId",
+  asyncHandler(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    await requireLinkedSubOrder(me.id, req.params.id, req.params.subId);
+    await assertSubOrderMutable(req.params.subId);
+    await detachAgent(req.params.subId, req.params.agentId);
+    await touchSubOrderEditor(req.params.subId, me.email);
+    res.json({ ok: true });
   })
 );
 

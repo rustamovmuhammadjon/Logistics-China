@@ -98,6 +98,7 @@ Only **Employees** can create orders (the Company account cannot).
    - **Origin (from)** / **Destination (to)**
    - **POL (place of loading)**
    - **Commodity**
+   - **Cargo type** — **DG** (dangerous goods, red) or **non-DG** (green). It starts on non-DG; click **DG** for dangerous goods. It applies to every sub-order in the order, and you can change it later while editing the order.
 3. If you have **two or more** linked operators, you'll also see **"Visible to which operators?"** — a checklist. Operators with full ("All orders") access are shown as always-checked; operators limited to specific orders can be ticked on or off for this new order.
 4. Click **Create order**.
 
@@ -133,6 +134,7 @@ You cannot edit any of this — only the linked operator updates it. (One thing 
 The **Monitoring** tab (top of the page) is your live overview of everything you can see, in one table:
 
 - **Active** (default), **Completed**, **Cancelled** tabs.
+- A **DG** column (red **DG** / green **non-DG**, taken from the order) and an **Agent** column showing the agents the operator attached to each sub-order.
 - **Search** by order name, sub-order name, truck plate, trailer, or driver phone.
 - **Sort** newest/oldest first.
 - **Download Excel** — exports the current tab's list to a spreadsheet.

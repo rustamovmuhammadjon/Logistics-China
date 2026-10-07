@@ -86,11 +86,18 @@ At the top of the order you can edit:
 
 - **POL (place of loading)**
 
+Next to the order's name you'll see whether it's **DG** (dangerous goods, red) or **non-DG** (green). The client sets this when creating the order, and it applies to every sub-order in it.
+
 Inside each sub-order:
 
 - **Factory load date** — set or correct this anytime, even after the sub-order is completed or cancelled.
 - **Comments** — leave a note for the client to see (e.g. a status update). Comments are locked once the sub-order is completed/cancelled.
+- **Agents** — once the sub-order has a vehicle, pick an agent from your **Agents** list and click **Attach agent** (you can attach more than one; **Remove** takes one off). Agents can't be typed in here — add them in **Agents** first.
 - **Cancel sub-order** — cancels it; the rest of the order is unaffected.
+
+### Agents
+
+The **Agents** page (sidebar) is your list of agents — customs brokers, border or forwarding agents. If you belong to a tracking company, the list is shared by all its operators (and the company account can manage it too). Click **Add agent** and fill in the name (required), company, phone, email, location / border point and a note. **Edit** updates the agent everywhere it's attached. **Remove** takes it off the list so it can't be picked again; sub-orders it was already attached to keep showing it.
 
 ## 7. Trucks & GPS numbers
 
@@ -161,9 +168,10 @@ Cancelled items are never deleted — they stay visible as history.
 The **Monitoring** tab (top of the page) is your live overview of every order you're linked to, in one table:
 
 - **Active** (default), **Completed**, **Cancelled** tabs.
+- A **DG** column (red **DG** / green **non-DG**) and an **Agent** column with the agents attached to each sub-order — the client sees both too.
 - **Search** by order name, sub-order name, truck plate, trailer, or driver phone.
 - **Sort** newest/oldest first.
-- **Download Excel** — exports the current tab's list to a spreadsheet (this export includes GPS numbers, since you're an operator).
+- **Download Excel** — exports the current tab's list to a spreadsheet (this export includes GPS numbers, since you're an operator, plus the DG and Agent columns).
 
 The page updates live as you or a driver's paired app updates a location.
 

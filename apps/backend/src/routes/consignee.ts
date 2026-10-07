@@ -3,7 +3,7 @@ import type { User } from "@prisma/client";
 import { MAX_SUB_ORDERS_PER_BATCH } from "@logistics/shared";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, notFound, unauthorized } from "../lib/errors.js";
-import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { dangerousGoodsField, dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { detailInclude, effectiveOwnerId, stripGpsNumber } from "../lib/orders.js";
 import { assertGroupOrderMutable, cancelGroupOrder, cancelSubOrder, completeSubOrder } from "../lib/lifecycle.js";
 import { asyncHandler } from "../middleware/errors.js";
@@ -37,6 +37,7 @@ function orderFields(body: Record<string, unknown>) {
     origin: optionalString(body.origin),
     destination: optionalString(body.destination),
     commodity: optionalString(body.commodity),
+    dangerousGoods: dangerousGoodsField(body),
   };
 }
 

@@ -36,6 +36,12 @@ export function truthyFlag(value: unknown): boolean {
   return value === true || value === "true" || value === "on" || value === "1";
 }
 
+// Left out of the body = leave the stored value alone (undefined skips the
+// column in a Prisma write); a new order then gets the non-DG default.
+export function dangerousGoodsField(body: Record<string, unknown>): boolean | undefined {
+  return "dangerousGoods" in body ? truthyFlag(body.dangerousGoods) : undefined;
+}
+
 export function normalizePhone(value: unknown): string {
   const raw = requiredString(value, "phone");
   const digits = raw.replace(/\D/g, "");

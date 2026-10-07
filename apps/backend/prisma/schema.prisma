@@ -105,6 +105,8 @@ model User {
 
   // OPERATOR_COMPANY only: its own driver roster ("My drivers").
   fleetDrivers CompanyDriver[] @relation("FleetDrivers")
+  // OPERATOR_COMPANY, or a standalone OPERATOR: its agent directory.
+  agents Agent[] @relation("AgentDirectory")
   // OPERATOR only: conversations with the drivers they paired.
   driverChats ChatConversation[] @relation("DriverChats")
 
@@ -181,6 +183,10 @@ model GroupOrder {
   destination String?
   commodity   String?
 
+  // Dangerous goods. Set on the order and true of every sub-order in it —
+  // sub-orders have no flag of their own.
+  dangerousGoods Boolean @default(false)
+
   statusText      String?
   statusUpdatedAt DateTime?
 
@@ -228,9 +234,55 @@ model SubOrder {
 
   trucks   Truck[]
   comments Comment[]
+  agents   SubOrderAgent[]
 
   @@index([groupOrderId])
   @@index([status])
+}
+
+// An agent (customs broker, border or forwarding agent) in a tracking
+// company's directory, shared by its operators — or a standalone operator's
+// own. Removing one only archives it: sub-orders it was attached to keep
+// showing it.
+model Agent {
+  id String @id @default(cuid())
+
+  ownerId String
+  owner   User   @relation("AgentDirectory", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  name     String
+  company  String?
+  phone    String?
+  email    String?
+  location String?
+  note     String?
+
+  createdByLabel String?
+  archivedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subOrders SubOrderAgent[]
+
+  @@index([ownerId])
+}
+
+model SubOrderAgent {
+  id String @id @default(cuid())
+
+  subOrderId String
+  subOrder   SubOrder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  attachedByLabel String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([subOrderId, agentId])
+  @@index([agentId])
 }
 
 model Truck {

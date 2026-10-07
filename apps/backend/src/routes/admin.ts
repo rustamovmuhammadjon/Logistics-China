@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
-import { dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
+import { dangerousGoodsField, dateOrToday, optionalDate, optionalString, requiredString } from "../lib/input.js";
 import { assertSupabasePublicUrl, getSupabaseAdmin, storageBucket } from "../lib/supabase.js";
 import { findActivePlateConflict, listIncludeWithPeople, plateConflictMessage, truckFields, withOrderPeople } from "../lib/orders.js";
 import {
@@ -135,6 +135,7 @@ function orderData(body: Record<string, unknown>) {
     origin: optionalString(body.origin),
     destination: optionalString(body.destination),
     commodity: optionalString(body.commodity),
+    dangerousGoods: dangerousGoodsField(body),
   };
 }
 

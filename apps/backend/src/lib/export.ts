@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import {
+  agentLabel,
   formatDate,
   formatDateTime,
   formatDirection,
@@ -25,6 +26,10 @@ type ExportTruck = {
   createdAt: Date;
 };
 
+function dgLabel(dangerousGoods: boolean) {
+  return dangerousGoods ? "DG" : "non-DG";
+}
+
 function vehicleLabel(truck: ExportTruck): string {
   return [truck.plateNumber, truck.trailerPlateNumber].filter(Boolean).join(" | ");
 }
@@ -43,6 +48,7 @@ type ExportSubOrder = {
   factoryLoadDate: Date | null;
   trucks: ExportTruck[];
   comments?: { text: string }[];
+  agents?: { agent: { name: string; company: string | null } }[];
 };
 
 type ExportOrder = {
@@ -52,6 +58,7 @@ type ExportOrder = {
   openedAt: Date | null;
   pol: string | null;
   commodity: string | null;
+  dangerousGoods: boolean;
   subOrders: ExportSubOrder[];
   owner?: { email: string } | null;
   operators?: { email: string }[];
@@ -78,6 +85,7 @@ export async function buildOrdersWorkbook(
   const ordersSheet = workbook.addWorksheet("Orders");
   ordersSheet.columns = [
     { header: "Order", key: "name", width: 22 },
+    { header: "DG", key: "dg", width: 9 },
     { header: "Direction", key: "direction", width: 20 },
     { header: "POL", key: "pol", width: 18 },
     { header: "Commodity", key: "commodity", width: 20 },
@@ -98,6 +106,7 @@ export async function buildOrdersWorkbook(
     const stats = truckStats(order.subOrders.flatMap((s) => s.trucks));
     const row = ordersSheet.addRow({
       name: order.name,
+      dg: dgLabel(order.dangerousGoods),
       direction: formatDirection(order.origin, order.destination) || "",
       pol: order.pol || "",
       commodity: order.commodity || "",
@@ -133,10 +142,12 @@ export async function buildOrdersWorkbook(
   subSheet.columns = [
     { header: "Order", key: "order", width: 20 },
     { header: "Sub-order", key: "subOrder", width: 16 },
+    { header: "DG", key: "dg", width: 9 },
     { header: "Status", key: "status", width: 12 },
     { header: "FLD", key: "fld", width: 14 },
     ...vehicleColumns,
     { header: "Driver #", key: "driver", width: 16 },
+    { header: "Agent", key: "agent", width: 24 },
     { header: "Gross weight (tons)", key: "weight", width: 16 },
     { header: "Current location", key: "location", width: 26 },
     { header: "Last update", key: "updated", width: 18 },
@@ -163,10 +174,12 @@ export async function buildOrdersWorkbook(
       const row = subSheet.addRow({
         order: order.name,
         subOrder: sub.name || "Sub-order",
+        dg: dgLabel(order.dangerousGoods),
         status: subOrderStatusLabel(sub.status),
         fld: formatDate(sub.factoryLoadDate),
         ...vehicleData,
         driver: last?.driverPhone || "",
+        agent: (sub.agents ?? []).map(({ agent }) => agentLabel(agent)).join(", "),
         weight: last?.cargoWeight ?? "",
         location: last?.currentLocation || "",
         updated: last?.locationUpdatedAt ? formatDateTime(last.locationUpdatedAt) : "",
