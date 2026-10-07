@@ -124,7 +124,7 @@ Inside a sub-order you'll see, read-only:
 - **Current location** — with a colored freshness badge (green = recently updated, fading to amber/red the longer it's been since the last update).
 - The **truck(s)** assigned to this sub-order — plate number, trailer, country, driver name/phone, gross weight.
 - **Cargo transfer history**, if cargo was moved to a new truck along the way (e.g. at a border crossing) — shown as a simple "from → to" line per transfer.
-- **Shipping documents** for each truck (PDF/Word files the operator uploaded, up to 3 per truck) — click **Download** to save one. Everyone in your company can download them; only the operator can add or remove them.
+- **Shipping documents** for each truck (CMR, invoice, packing list… as PDF, Word, Excel or JPG/PNG files the operator uploaded, up to 3 per truck) — click **Download** to save one. Everyone in your company can download them; only the operator can add or remove them.
 - Comments the operator has left about progress.
 
 You cannot edit any of this — only the linked operator updates it. (One thing you specifically won't see here is the truck's **GPS tracker number** — that's an internal operator/tracking-company detail, not shown to companies or employees.)

@@ -100,11 +100,22 @@ export const COMMENT_PREVIEW_LENGTH = 50;
 export const TRUCK_DOCUMENT_MAX_MB = 15;
 export const TRUCK_DOCUMENT_MAX_BYTES = TRUCK_DOCUMENT_MAX_MB * 1024 * 1024;
 export const TRUCK_DOCUMENT_MAX_COUNT = 3;
+// CMR, commercial invoice, packing list… as PDF, Word, Excel, or a photo/scan.
 export const TRUCK_DOCUMENT_TYPES: Record<string, string> = {
   pdf: "application/pdf",
   doc: "application/msword",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
 };
+
+export const TRUCK_DOCUMENT_KINDS_LABEL = "PDF, Word, Excel or JPG/PNG";
+export const TRUCK_DOCUMENT_EXTENSIONS_LABEL = Object.keys(TRUCK_DOCUMENT_TYPES)
+  .map((ext) => `.${ext}`)
+  .join(", ");
 
 export function truckDocumentExtension(fileName: string): string | null {
   const ext = fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];

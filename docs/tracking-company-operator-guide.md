@@ -123,7 +123,7 @@ Click **Edit** on a truck's card to update any of its fields (including plate, t
 
 Each truck's card has a **Shipping documents** box. Only you (the operator) can upload to it; the client — the company, its employees, or the individual consignee — can see and download every document, and so can admin.
 
-- **PDF or Word** files only (.pdf, .doc, .docx).
+- For the CMR, commercial invoice (CI), packing list (PL) and similar: **PDF, Word, Excel, or a JPG/PNG photo or scan** (.pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png).
 - **Max 15 MB per document**, and **up to 3 documents per truck**. To add a fourth, delete one first (the bin icon).
 - Uploading and deleting work only on the truck's current, open sub-order; on completed/cancelled orders and transferred trucks the documents stay downloadable but can't be changed.
 

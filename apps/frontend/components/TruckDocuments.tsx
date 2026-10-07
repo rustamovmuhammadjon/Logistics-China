@@ -8,6 +8,8 @@ import {
   TRUCK_DOCUMENT_MAX_BYTES,
   TRUCK_DOCUMENT_MAX_COUNT,
   TRUCK_DOCUMENT_MAX_MB,
+  TRUCK_DOCUMENT_EXTENSIONS_LABEL,
+  TRUCK_DOCUMENT_KINDS_LABEL,
   TRUCK_DOCUMENT_TYPES,
   truckDocumentExtension,
   type TruckDocumentDto,
@@ -58,7 +60,9 @@ function validate(files: File[], room: number) {
       : `You can add ${room} more document${room === 1 ? "" : "s"} (max ${TRUCK_DOCUMENT_MAX_COUNT} per truck).`;
   }
   for (const file of files) {
-    if (!truckDocumentExtension(file.name)) return `${file.name}: only PDF or Word files (.pdf, .doc, .docx).`;
+    if (!truckDocumentExtension(file.name)) {
+      return `${file.name}: only ${TRUCK_DOCUMENT_KINDS_LABEL} files (${TRUCK_DOCUMENT_EXTENSIONS_LABEL}).`;
+    }
     if (file.size === 0) return `${file.name} is empty.`;
     if (file.size > TRUCK_DOCUMENT_MAX_BYTES) {
       return `${file.name} is ${fileSizeLabel(file.size)}. Max ${TRUCK_DOCUMENT_MAX_MB} MB per document.`;
@@ -187,7 +191,9 @@ export function TruckDocuments({
       {truckUrl && room > 0 && (
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 bg-white px-3 py-3 text-center text-xs text-slate-600 hover:border-brand-400">
           <Upload className="h-4 w-4" />
-          {busy?.startsWith("Uploading") ? busy : `Upload PDF or Word · max ${TRUCK_DOCUMENT_MAX_MB} MB each · ${room} left`}
+          {busy?.startsWith("Uploading")
+            ? busy
+            : `Upload ${TRUCK_DOCUMENT_KINDS_LABEL} · max ${TRUCK_DOCUMENT_MAX_MB} MB each · ${room} left`}
           <input
             ref={inputRef}
             type="file"

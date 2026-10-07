@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import {
   TRUCK_DOCUMENT_MAX_BYTES,
   TRUCK_DOCUMENT_MAX_COUNT,
+  TRUCK_DOCUMENT_EXTENSIONS_LABEL,
+  TRUCK_DOCUMENT_KINDS_LABEL,
   TRUCK_DOCUMENT_MAX_MB,
   TRUCK_DOCUMENT_TYPES,
   truckDocumentExtension,
@@ -12,7 +14,9 @@ import { badRequest, notFound } from "./errors.js";
 import { requiredString } from "./input.js";
 import { getSupabaseAdmin, safeFileName } from "./supabase.js";
 
-const ALLOWED_TYPES = Object.values(TRUCK_DOCUMENT_TYPES);
+// .jpg and .jpeg share one MIME type.
+const ALLOWED_TYPES = [...new Set(Object.values(TRUCK_DOCUMENT_TYPES))];
+const WRONG_TYPE_MESSAGE = `Only ${TRUCK_DOCUMENT_KINDS_LABEL} files (${TRUCK_DOCUMENT_EXTENSIONS_LABEL}) can be uploaded`;
 const DOWNLOAD_LINK_SECONDS = 60;
 
 export const truckDocumentPublicSelect = {
@@ -59,7 +63,7 @@ function storage() {
 
 function assertAllowedFile(fileName: string) {
   const ext = truckDocumentExtension(fileName);
-  if (!ext) badRequest("Only PDF or Word files (.pdf, .doc, .docx) can be uploaded");
+  if (!ext) badRequest(WRONG_TYPE_MESSAGE);
   return ext;
 }
 
@@ -114,7 +118,7 @@ export async function finalizeDocumentUpload(params: {
   if (sizeBytes <= 0 || sizeBytes > TRUCK_DOCUMENT_MAX_BYTES || !ALLOWED_TYPES.includes(contentType)) {
     await storage().remove([path]);
     if (sizeBytes > TRUCK_DOCUMENT_MAX_BYTES) badRequest(`Each document must be ${TRUCK_DOCUMENT_MAX_MB} MB or smaller`);
-    badRequest("Only PDF or Word files (.pdf, .doc, .docx) can be uploaded");
+    badRequest(WRONG_TYPE_MESSAGE);
   }
 
   let alreadyRecorded = false;
